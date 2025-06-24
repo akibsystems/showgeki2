@@ -74,9 +74,41 @@ node scripts/upload-video.js <動画ファイルパス> <登録番号>
 node scripts/upload-video.js /path/to/video.mp4 ABC12345
 ```
 
+## 自動処理スクリプト
+
+### 単発処理モード
+最も古い未完了の依頼を1件処理します：
+
+```bash
+node scripts/auto-process.js
+```
+
+### 自動監視モード
+5秒間隔でデータベースを監視し、新しい依頼があれば自動処理します：
+
+```bash
+node scripts/auto-process.js --watch
+# または
+node scripts/auto-process.js -w
+```
+
+### 自動処理の流れ
+1. 未完了の最も古い依頼を取得
+2. OpenAI GPT-4 miniでシェイクスピア風5幕劇のスクリプトを生成
+3. mulmocast-cliで動画を生成
+4. 動画をSupabaseにアップロードして完了フラグを設定
+
+### 監視モードの特徴
+- 5秒間隔での自動監視
+- 1件ずつ順次処理（並列処理なし）
+- エラー時も監視継続
+- Ctrl+Cで安全終了
+- 処理統計の表示
+
 ### 必要な環境変数（スクリプト用）
 - `SUPABASE_URL`: SupabaseプロジェクトのURL
 - `SUPABASE_SERVICE_KEY`: Supabaseのサービスキー
+- `OPENAI_API_KEY`: OpenAI APIキー（自動処理用）
 
 ## API エンドポイント
 
@@ -107,14 +139,23 @@ src/
 │   ├── supabase.ts           # Supabase設定
 │   └── database.sql          # データベーススキーマ
 └── scripts/
-    └── upload-video.js       # 動画アップロードスクリプト
+    ├── upload-video.js       # 動画アップロードスクリプト
+    └── auto-process.js       # 自動処理スクリプト
 ```
 
 ## ワークフロー
 
+### 手動処理
 1. ユーザーがストーリーを作成画面で入力
 2. システムが8桁の登録番号を生成してDBに保存
 3. オペレーターが管理画面でストーリーを確認
 4. オペレーターが動画を作成
 5. 動画アップロードスクリプトで動画をアップロード
 6. ユーザーが登録番号で動画を視聴・ダウンロード
+
+### 自動処理
+1. ユーザーがストーリーを作成画面で入力
+2. システムが8桁の登録番号を生成してDBに保存
+3. 自動処理スクリプト (`auto-process.js`) を実行
+4. AIが5幕劇のスクリプトを生成し、自動で動画を作成・アップロード
+5. ユーザーが登録番号で動画を視聴・ダウンロード
