@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type VideoData = {
@@ -16,6 +16,14 @@ export default function WatchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [videoData, setVideoData] = useState<VideoData | null>(null);
   const [error, setError] = useState('');
+
+  // ローカルストレージから登録番号を読み込み
+  useEffect(() => {
+    const savedId = localStorage.getItem('lastRegistrationId');
+    if (savedId) {
+      setRegistrationId(savedId);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,14 +56,31 @@ export default function WatchPage() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (videoData?.video_url) {
-      const link = document.createElement('a');
-      link.href = videoData.video_url;
-      link.download = `showgeki_${videoData.id}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        // モバイル環境でのダウンロード対応
+        if (navigator.userAgent.match(/iPhone|iPad|iPod|Android/i)) {
+          // モバイルの場合は新しいタブで開く
+          window.open(videoData.video_url, '_blank');
+        } else {
+          // デスクトップの場合は従来の方法
+          const response = await fetch(videoData.video_url);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `showgeki_${videoData.id}.mp4`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
+      } catch (error) {
+        console.error('ダウンロードに失敗しました:', error);
+        // フォールバック: 新しいタブで開く
+        window.open(videoData.video_url, '_blank');
+      }
     }
   };
 
