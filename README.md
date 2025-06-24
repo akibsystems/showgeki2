@@ -66,12 +66,12 @@ npm run dev
 動画を作成後、以下のスクリプトを使用してアップロードできます：
 
 ```bash
-node scripts/upload-video.js <登録番号> <動画ファイルパス>
+node scripts/upload-video.js <動画ファイルパス> <登録番号>
 ```
 
 例：
 ```bash
-node scripts/upload-video.js ABC12345 /path/to/video.mp4
+node scripts/upload-video.js /path/to/video.mp4 ABC12345
 ```
 
 ### 必要な環境変数（スクリプト用）

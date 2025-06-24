@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-async function uploadVideo(registrationId, videoFilePath) {
+async function uploadVideo(videoFilePath, registrationId) {
   try {
     // ファイルの存在確認
     if (!fs.existsSync(videoFilePath)) {
@@ -100,10 +100,10 @@ const args = process.argv.slice(2);
 
 if (args.length !== 2) {
   console.log('使用方法:');
-  console.log('node scripts/upload-video.js <登録番号> <動画ファイルパス>');
+  console.log('node scripts/upload-video.js <動画ファイルパス> <登録番号>');
   console.log('');
   console.log('例:');
-  console.log('node scripts/upload-video.js ABC12345 /path/to/video.mp4');
+  console.log('node scripts/upload-video.js /path/to/video.mp4 ABC12345');
   console.log('');
   console.log('必要な環境変数:');
   console.log('- SUPABASE_URL: SupabaseプロジェクトのURL');
@@ -111,7 +111,7 @@ if (args.length !== 2) {
   process.exit(1);
 }
 
-const [registrationId, videoFilePath] = args;
+const [videoFilePath, registrationId] = args;
 
 // 動画アップロードの実行
-uploadVideo(registrationId, videoFilePath);
+uploadVideo(videoFilePath, registrationId);

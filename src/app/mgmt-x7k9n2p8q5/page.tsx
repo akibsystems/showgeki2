@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
 
   useEffect(() => {
     fetchStories();
@@ -60,9 +61,32 @@ export default function AdminPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // 簡易的なフィードバック（必要に応じてtoast等に変更可能）
+      console.log('コピーしました:', text);
+    } catch (error) {
+      console.error('コピーに失敗しました:', error);
+    }
   };
+
+  // ストーリーをフィルタリング・ソート
+  const getFilteredAndSortedStories = () => {
+    let filteredStories = stories;
+    
+    if (activeTab === 'pending') {
+      // 未完了のみフィルタリング
+      filteredStories = stories.filter(story => !story.is_completed);
+      // 古い順にソート
+      return filteredStories.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    } else {
+      // すべて表示、新しい順にソート
+      return filteredStories.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  };
+
+  const displayedStories = getFilteredAndSortedStories();
 
   if (isLoading) {
     return (
@@ -101,13 +125,37 @@ export default function AdminPage() {
             </div>
           )}
           
+          {/* タブ */}
+          <div className="flex space-x-1 mb-6">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                activeTab === 'pending'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              未完了 ({stories.filter(s => !s.is_completed).length})
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                activeTab === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              すべて ({stories.length})
+            </button>
+          </div>
+
           <div className="space-y-4 sm:space-y-6">
-            {stories.length === 0 ? (
+            {displayedStories.length === 0 ? (
               <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
-                投稿された願いはありません
+                {activeTab === 'pending' ? '未完了の願いはありません' : '投稿された願いはありません'}
               </div>
             ) : (
-              stories.map((story) => (
+              displayedStories.map((story) => (
                 <div
                   key={story.id}
                   className={`border rounded-lg p-4 sm:p-6 ${
@@ -116,9 +164,18 @@ export default function AdminPage() {
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
                     <div className="flex-1">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 break-all">
-                        登録番号: {story.id}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-all">
+                          登録番号: {story.id}
+                        </h3>
+                        <button
+                          onClick={() => copyToClipboard(story.id)}
+                          className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 px-2 py-1 rounded text-xs border touch-manipulation flex-shrink-0"
+                          title="登録番号をコピー"
+                        >
+                          コピー
+                        </button>
+                      </div>
                       <p className="text-xs sm:text-sm text-gray-500">
                         作成日: {new Date(story.created_at).toLocaleDateString('ja-JP', {
                           year: 'numeric',
