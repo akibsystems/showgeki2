@@ -16,6 +16,12 @@ export default function WatchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [videoData, setVideoData] = useState<VideoData | null>(null);
   const [error, setError] = useState('');
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   // ローカルストレージから登録番号を読み込み
   useEffect(() => {
@@ -81,6 +87,46 @@ export default function WatchPage() {
         // フォールバック: 新しいタブで開く
         window.open(videoData.video_url, '_blank');
       }
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!rating) {
+      setError('評価を選択してください');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          story_id: videoData?.id,
+          review_text: reviewText.trim(),
+          rating: rating,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '感想の投稿に失敗しました');
+      }
+
+      setReviewSubmitted(true);
+      setShowReviewForm(false);
+      setRating(0);
+      setReviewText('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '感想の投稿に失敗しました');
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -179,6 +225,105 @@ export default function WatchPage() {
                     >
                       5幕劇をダウンロード
                     </button>
+
+                    {/* 感想投稿セクション */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      {reviewSubmitted ? (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-blue-800 font-medium">✅ 感想を投稿いただきありがとうございました！</p>
+                        </div>
+                      ) : !showReviewForm ? (
+                        <button
+                          onClick={() => setShowReviewForm(true)}
+                          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors touch-manipulation text-sm sm:text-base"
+                        >
+                          感想を書く
+                        </button>
+                      ) : (
+                        <form onSubmit={handleReviewSubmit} className="space-y-4">
+                          <h3 className="font-medium text-gray-900 text-lg">この5幕劇の感想をお聞かせください</h3>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              評価 *
+                            </label>
+                            <div className="flex space-x-4 justify-center">
+                              {[
+                                { value: 1, emoji: '😞', label: '残念' },
+                                { value: 2, emoji: '😐', label: '普通' },
+                                { value: 3, emoji: '🙂', label: '良い' },
+                                { value: 4, emoji: '😊', label: 'とても良い' },
+                                { value: 5, emoji: '🤩', label: '最高' }
+                              ].map((item) => (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  onClick={() => setRating(item.value)}
+                                  onMouseEnter={() => setHoveredRating(item.value)}
+                                  onMouseLeave={() => setHoveredRating(0)}
+                                  className={`flex flex-col items-center p-4 rounded-xl transition-all duration-200 touch-manipulation ${
+                                    rating && rating !== item.value
+                                      ? 'bg-gray-100 border-2 border-gray-200 opacity-40'
+                                      : item.value === (hoveredRating || rating)
+                                      ? 'bg-blue-100 border-2 border-blue-500 transform scale-110'
+                                      : 'bg-gray-100 border-2 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
+                                  }`}
+                                  title={item.label}
+                                >
+                                  <span className={`text-4xl mb-2 transition-all duration-200 ${
+                                    rating && rating !== item.value
+                                      ? 'filter grayscale'
+                                      : ''
+                                  }`}>{item.emoji}</span>
+                                  <span className="text-xs text-gray-600 font-medium">{item.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label htmlFor="reviewText" className="block text-sm font-medium text-gray-700 mb-2">
+                              感想（任意）
+                            </label>
+                            <textarea
+                              id="reviewText"
+                              value={reviewText}
+                              onChange={(e) => setReviewText(e.target.value)}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              rows={4}
+                              placeholder="この5幕劇の感想があれば自由にお書きください（未入力でも投稿できます）"
+                              maxLength={1000}
+                              disabled={isSubmittingReview}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              {reviewText.length}/1000文字
+                            </p>
+                          </div>
+
+                          <div className="flex space-x-3">
+                            <button
+                              type="submit"
+                              disabled={isSubmittingReview || !rating}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors touch-manipulation text-sm sm:text-base"
+                            >
+                              {isSubmittingReview ? '投稿中...' : '感想を投稿'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowReviewForm(false);
+                                setRating(0);
+                                setReviewText('');
+                                setError('');
+                              }}
+                              className="flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors touch-manipulation text-sm sm:text-base"
+                            >
+                              キャンセル
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

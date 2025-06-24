@@ -11,16 +11,39 @@ type Story = {
   created_at: string;
 };
 
+type Review = {
+  id: string;
+  story_id: string;
+  review_text: string;
+  rating: number;
+  created_at: string;
+};
+
 export default function AdminPage() {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+  const [reviews, setReviews] = useState<Map<string, Review[]>>(new Map());
+  const [loadingReviews, setLoadingReviews] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchStories();
   }, []);
+
+  // 「全て」タブが選択された時に完了済みストーリーの感想を自動読み込み
+  useEffect(() => {
+    if (activeTab === 'all') {
+      const completedStories = stories.filter(story => story.is_completed);
+      completedStories.forEach(story => {
+        // 各ストーリーの感想を自動読み込み
+        if (!loadingReviews.has(story.id) && !reviews.has(story.id)) {
+          fetchReviews(story.id);
+        }
+      });
+    }
+  }, [activeTab, stories]);
 
   const fetchStories = async () => {
     try {
@@ -34,6 +57,31 @@ export default function AdminPage() {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchReviews = async (storyId: string) => {
+    if (loadingReviews.has(storyId) || reviews.has(storyId)) {
+      return; // 既に読み込み中または読み込み済み
+    }
+
+    setLoadingReviews(prev => new Set(prev).add(storyId));
+
+    try {
+      const response = await fetch(`/api/admin/reviews?story_id=${storyId}`);
+      if (!response.ok) {
+        throw new Error('レビューの取得に失敗しました');
+      }
+      const reviewData = await response.json();
+      setReviews(prev => new Map(prev).set(storyId, reviewData));
+    } catch (err) {
+      console.error('レビューの取得エラー:', err);
+    } finally {
+      setLoadingReviews(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(storyId);
+        return newSet;
+      });
     }
   };
 
@@ -229,6 +277,134 @@ export default function AdminPage() {
                       <p className="text-green-800 text-xs sm:text-sm break-all">
                         5幕劇URL: <a href={story.video_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-900">{story.video_url}</a>
                       </p>
+                    </div>
+                  )}
+
+                  {/* 感想セクション（完了済みストーリーのみ） */}
+                  {story.is_completed && (
+                    <div className="mt-4">
+                      {activeTab === 'pending' ? (
+                        // 未完了タブでは従来通りボタンクリックで表示
+                        !reviews.has(story.id) && !loadingReviews.has(story.id) ? (
+                          <button
+                            onClick={() => fetchReviews(story.id)}
+                            className="text-blue-600 hover:text-blue-800 underline text-sm"
+                          >
+                            感想を表示
+                          </button>
+                        ) : loadingReviews.has(story.id) ? (
+                          <p className="text-gray-500 text-sm">感想を読み込み中...</p>
+                        ) : (
+                          <div className="border-t pt-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h5 className="font-medium text-gray-900 text-sm sm:text-base">
+                                感想 ({reviews.get(story.id)?.length || 0}件)
+                              </h5>
+                              <button
+                                onClick={() => {
+                                  setReviews(prev => {
+                                    const newMap = new Map(prev);
+                                    newMap.delete(story.id);
+                                    return newMap;
+                                  });
+                                }}
+                                className="text-gray-500 hover:text-gray-700 text-xs"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            
+                            {reviews.get(story.id)?.length === 0 ? (
+                              <p className="text-gray-500 text-sm">まだ感想は投稿されていません</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {reviews.get(story.id)?.map((review) => (
+                                  <div key={review.id} className="bg-gray-50 p-3 rounded-lg">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex items-center">
+                                          <span className="text-lg mr-1">
+                                            {review.rating === 1 && '😞'}
+                                            {review.rating === 2 && '😐'}
+                                            {review.rating === 3 && '🙂'}
+                                            {review.rating === 4 && '😊'}
+                                            {review.rating === 5 && '🤩'}
+                                          </span>
+                                          <span className="text-xs text-gray-500">
+                                            {review.rating}/5
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(review.created_at).toLocaleDateString('ja-JP', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                                      {review.review_text || '（感想の記載なし）'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      ) : (
+                        // 全てタブでは最初から展開表示
+                        loadingReviews.has(story.id) ? (
+                          <div className="border-t pt-4">
+                            <p className="text-gray-500 text-sm">感想を読み込み中...</p>
+                          </div>
+                        ) : (
+                          <div className="border-t pt-4">
+                            <h5 className="font-medium text-gray-900 text-sm sm:text-base mb-3">
+                              感想 ({reviews.get(story.id)?.length || 0}件)
+                            </h5>
+                            
+                            {reviews.get(story.id)?.length === 0 ? (
+                              <p className="text-gray-500 text-sm">まだ感想は投稿されていません</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {reviews.get(story.id)?.map((review) => (
+                                  <div key={review.id} className="bg-gray-50 p-3 rounded-lg">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex items-center">
+                                          <span className="text-lg mr-1">
+                                            {review.rating === 1 && '😞'}
+                                            {review.rating === 2 && '😐'}
+                                            {review.rating === 3 && '🙂'}
+                                            {review.rating === 4 && '😊'}
+                                            {review.rating === 5 && '🤩'}
+                                          </span>
+                                          <span className="text-xs text-gray-500">
+                                            {review.rating}/5
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(review.created_at).toLocaleDateString('ja-JP', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                                      {review.review_text || '（感想の記載なし）'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>

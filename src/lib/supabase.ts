@@ -12,3 +12,11 @@ export type Story = {
   video_url?: string
   created_at: string
 }
+
+export type Review = {
+  id: string
+  story_id: string
+  review_text: string
+  rating: number
+  created_at: string
+}

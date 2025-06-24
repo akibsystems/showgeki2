@@ -20,3 +20,19 @@ FOR ALL USING (true);
 -- Create policy to allow all operations on storage
 CREATE POLICY "Allow all operations on videos bucket" ON storage.objects
 FOR ALL USING (bucket_id = 'videos');
+
+-- Create reviews table
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  story_id VARCHAR(8) NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  review_text TEXT NOT NULL,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Enable RLS for the reviews table
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations on reviews table
+CREATE POLICY "Allow all operations on reviews" ON reviews
+FOR ALL USING (true);
