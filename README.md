@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Showgeki - ストーリー動画化サービス
 
-## Getting Started
+ユーザーが入力したストーリーを動画化できるWebサービスです。
 
-First, run the development server:
+## 機能
+
+### ユーザー向け機能
+- **作成画面** (`/create`): ストーリーを入力して8桁の登録番号を取得
+- **閲覧画面** (`/watch`): 登録番号で動画を視聴・ダウンロード
+
+### オペレーター向け機能
+- **管理画面** (`/admin`): 投稿されたストーリーの確認と完了フラグの管理
+- **動画アップロードスクリプト**: 作成した動画をアップロードするためのNode.jsスクリプト
+
+## 技術スタック
+
+- **フロントエンド**: Next.js 15 (App Router), Tailwind CSS
+- **バックエンド**: Next.js API Routes
+- **データベース**: Supabase (PostgreSQL)
+- **ストレージ**: Supabase Storage
+- **認証**: なし（匿名利用可能）
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 2. 環境変数の設定
+
+`.env.local.example`を参考に`.env.local`ファイルを作成してください。
+
+```bash
+cp .env.local.example .env.local
+```
+
+### 3. Supabaseの設定
+
+1. [Supabase](https://supabase.com/)でプロジェクトを作成
+2. `src/lib/database.sql`のSQLを実行してテーブルとストレージを作成
+3. 環境変数にSupabaseの設定を追加
+
+### 4. 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## データベース構造
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### storiesテーブル
+- `id`: VARCHAR(8) - 8桁のランダムな登録番号（主キー）
+- `story_text`: TEXT - ストーリー内容
+- `is_completed`: BOOLEAN - 動画完成フラグ
+- `video_url`: TEXT - 動画のURL（完成後に設定）
+- `created_at`: TIMESTAMP - 作成日時
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Supabase Storage
+- バケット名: `videos`
+- 動画ファイル名: `{登録番号}.mp4`
 
-## Learn More
+## オペレーター用の動画アップロード
 
-To learn more about Next.js, take a look at the following resources:
+動画を作成後、以下のスクリプトを使用してアップロードできます：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+node scripts/upload-video.js <登録番号> <動画ファイルパス>
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+例：
+```bash
+node scripts/upload-video.js ABC12345 /path/to/video.mp4
+```
 
-## Deploy on Vercel
+### 必要な環境変数（スクリプト用）
+- `SUPABASE_URL`: SupabaseプロジェクトのURL
+- `SUPABASE_SERVICE_KEY`: Supabaseのサービスキー
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API エンドポイント
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### ユーザー向け
+- `POST /api/stories` - ストーリーの投稿
+- `GET /api/stories/[id]` - 特定のストーリーと動画の取得
+
+### 管理者向け
+- `GET /api/admin/stories` - 全ストーリーの一覧取得
+- `POST /api/admin/stories/[id]/complete` - ストーリーの完了フラグ設定
+
+## フォルダ構成
+
+```
+src/
+├── app/
+│   ├── page.tsx              # ホーム画面
+│   ├── create/
+│   │   └── page.tsx          # ストーリー作成画面
+│   ├── watch/
+│   │   └── page.tsx          # 動画視聴画面
+│   ├── admin/
+│   │   └── page.tsx          # オペレーター管理画面
+│   └── api/
+│       ├── stories/          # ストーリー関連API
+│       └── admin/            # 管理者用API
+├── lib/
+│   ├── supabase.ts           # Supabase設定
+│   └── database.sql          # データベーススキーマ
+└── scripts/
+    └── upload-video.js       # 動画アップロードスクリプト
+```
+
+## ワークフロー
+
+1. ユーザーがストーリーを作成画面で入力
+2. システムが8桁の登録番号を生成してDBに保存
+3. オペレーターが管理画面でストーリーを確認
+4. オペレーターが動画を作成
+5. 動画アップロードスクリプトで動画をアップロード
+6. ユーザーが登録番号で動画を視聴・ダウンロード
