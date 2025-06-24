@@ -77,21 +77,21 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/"
-            className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2"
+            className="text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium flex items-center gap-2 touch-manipulation"
           >
             ← ホームに戻る
           </Link>
         </div>
         
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight">
             AI劇場管理画面
           </h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 leading-relaxed">
             投稿された願いを確認し、AIが5幕劇を完成させた後に完了フラグを立てることができます。
           </p>
           
@@ -101,25 +101,25 @@ export default function AdminPage() {
             </div>
           )}
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {stories.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
                 投稿された願いはありません
               </div>
             ) : (
               stories.map((story) => (
                 <div
                   key={story.id}
-                  className={`border rounded-lg p-6 ${
+                  className={`border rounded-lg p-4 sm:p-6 ${
                     story.is_completed ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
+                    <div className="flex-1">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 break-all">
                         登録番号: {story.id}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         作成日: {new Date(story.created_at).toLocaleDateString('ja-JP', {
                           year: 'numeric',
                           month: 'long',
@@ -129,13 +129,13 @@ export default function AdminPage() {
                         })}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center">
                       {story.is_completed ? (
-                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <span className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
                           完了済み
                         </span>
                       ) : (
-                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <span className="bg-yellow-100 text-yellow-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
                           制作中
                         </span>
                       )}
@@ -143,14 +143,14 @@ export default function AdminPage() {
                   </div>
                   
                   <div className="mb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">願いの内容:</h4>
-                    <div className="bg-gray-50 p-4 rounded-lg relative">
-                      <pre className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">
+                    <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">願いの内容:</h4>
+                    <div className="bg-gray-50 p-3 sm:p-4 rounded-lg relative">
+                      <pre className="whitespace-pre-wrap text-gray-700 text-xs sm:text-sm leading-relaxed pr-16">
                         {story.story_text}
                       </pre>
                       <button
                         onClick={() => copyToClipboard(story.story_text)}
-                        className="absolute top-2 right-2 bg-white hover:bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border"
+                        className="absolute top-2 right-2 bg-white hover:bg-gray-100 active:bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs border touch-manipulation"
                       >
                         コピー
                       </button>
@@ -161,7 +161,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => handleCompleteStory(story.id)}
                       disabled={processingIds.has(story.id)}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded transition-colors"
+                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded transition-colors touch-manipulation text-sm sm:text-base"
                     >
                       {processingIds.has(story.id) ? '処理中...' : '5幕劇作成完了'}
                     </button>
@@ -169,8 +169,8 @@ export default function AdminPage() {
                   
                   {story.is_completed && story.video_url && (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-                      <p className="text-green-800 text-sm">
-                        5幕劇URL: <a href={story.video_url} target="_blank" rel="noopener noreferrer" className="underline">{story.video_url}</a>
+                      <p className="text-green-800 text-xs sm:text-sm break-all">
+                        5幕劇URL: <a href={story.video_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-900">{story.video_url}</a>
                       </p>
                     </div>
                   )}
