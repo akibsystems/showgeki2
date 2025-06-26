@@ -47,28 +47,49 @@ async function getStoryWithAuth(storyId: string, uid: string) {
 }
 
 /**
- * Generate mock video (placeholder for actual video generation)
- * TODO: Replace with actual mulmocast CLI integration
+ * Generate actual video using FFmpeg and upload to Supabase Storage
+ * Supports both story-based and script-based video generation
  */
-async function generateMockVideo(story: Story): Promise<{
+async function generateActualVideo(story: Story): Promise<{
   url: string;
+  path: string;
   duration_sec: number;
   resolution: string;
   size_mb: number;
 }> {
-  // Simulate video generation processing time
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Mock video metadata based on story content
-  const estimatedDuration = Math.max(30, Math.min(180, story.text_raw.length / 10)); // 30-180 seconds
-  const mockVideoId = `video_${story.id}_${Date.now()}`;
+  // Import video generation library
+  const { generateVideo, generateVideoFromScript } = await import('@/lib/video-generator');
   
-  return {
-    url: `https://storage.googleapis.com/showgeki2-videos/${mockVideoId}.mp4`,
-    duration_sec: Math.round(estimatedDuration),
-    resolution: '1920x1080',
-    size_mb: Number((estimatedDuration * 2.5).toFixed(2)) // ~2.5MB per second estimate
-  };
+  try {
+    // Check if story has a generated script
+    if (story.script_json && typeof story.script_json === 'object') {
+      // Generate video from script (more sophisticated)
+      console.log('Generating video from script for story:', story.id);
+      return await generateVideoFromScript(story, story.script_json as any, {
+        resolution: '1280x720', // Smaller resolution for faster processing
+        fps: 24,
+        backgroundColor: '#1a1a2e',
+        textColor: 'white',
+        fontSize: 36,
+      });
+    } else {
+      // Generate simple video from story text
+      console.log('Generating video from story text for story:', story.id);
+      const estimatedDuration = Math.max(15, Math.min(60, Math.ceil(story.text_raw.length / 20))); // 15-60 seconds
+      
+      return await generateVideo(story, {
+        resolution: '1280x720',
+        fps: 24,
+        duration: estimatedDuration,
+        backgroundColor: '#1a1a2e',
+        textColor: 'white',
+        fontSize: 36,
+      });
+    }
+  } catch (error) {
+    console.error('Video generation failed:', error);
+    throw new Error(`Video generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -128,15 +149,15 @@ async function generateVideo(
       );
     }
 
-    // Verify story has a generated script
-    if (story.status !== 'script_generated' || !story.script_json) {
+    // Check if story can be used for video generation
+    // Allow video generation from either script or raw text
+    if (story.status === 'error') {
       return NextResponse.json(
         {
-          error: 'Story must have a generated script before video generation',
+          error: 'Cannot generate video from story with error status',
           type: ErrorType.VALIDATION,
           details: { 
-            currentStatus: story.status,
-            hasScript: !!story.script_json 
+            currentStatus: story.status
           },
           timestamp: new Date().toISOString()
         },
@@ -267,8 +288,8 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
       .eq('id', videoId)
       .eq('uid', uid);
 
-    // Generate video (mock implementation)
-    const videoResult = await generateMockVideo(story);
+    // Generate actual video
+    const videoResult = await generateActualVideo(story);
 
     // Update video with generated content
     const updateData: SupabaseVideoUpdate = {

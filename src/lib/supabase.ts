@@ -248,6 +248,78 @@ export function handleSupabaseError(error: any): never {
 }
 
 // ================================================================
+// Storage Helper Functions
+// ================================================================
+
+/**
+ * Upload video file to Supabase Storage
+ */
+export async function uploadVideoToStorage(
+  videoBuffer: Buffer,
+  fileName: string,
+  contentType: string = 'video/mp4'
+): Promise<{ url: string; path: string }> {
+  const adminClient = createAdminClient();
+  
+  const filePath = `videos/${fileName}`;
+  
+  const { data, error } = await adminClient.storage
+    .from('videos')
+    .upload(filePath, videoBuffer, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new SupabaseError(`Failed to upload video: ${error.message}`, error.name);
+  }
+
+  // Get public URL
+  const { data: urlData } = adminClient.storage
+    .from('videos')
+    .getPublicUrl(filePath);
+
+  return {
+    url: urlData.publicUrl,
+    path: filePath,
+  };
+}
+
+/**
+ * Delete video file from Supabase Storage
+ */
+export async function deleteVideoFromStorage(filePath: string): Promise<void> {
+  const adminClient = createAdminClient();
+  
+  const { error } = await adminClient.storage
+    .from('videos')
+    .remove([filePath]);
+
+  if (error) {
+    throw new SupabaseError(`Failed to delete video: ${error.message}`, error.name);
+  }
+}
+
+/**
+ * Get video metadata from Supabase Storage
+ */
+export async function getVideoMetadata(filePath: string) {
+  const adminClient = createAdminClient();
+  
+  const { data, error } = await adminClient.storage
+    .from('videos')
+    .list(filePath.split('/').slice(0, -1).join('/'), {
+      search: filePath.split('/').pop(),
+    });
+
+  if (error) {
+    throw new SupabaseError(`Failed to get video metadata: ${error.message}`, error.name);
+  }
+
+  return data?.[0];
+}
+
+// ================================================================
 // Configuration
 // ================================================================
 
@@ -255,4 +327,7 @@ export const supabaseConfig = {
   url: supabaseUrl!,
   anonKey: supabaseAnonKey!,
   hasServiceRole: !!supabaseServiceRoleKey,
+  storage: {
+    videoBucket: 'videos',
+  },
 } as const;
