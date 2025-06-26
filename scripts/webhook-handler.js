@@ -160,6 +160,22 @@ function generateMovie() {
       throw new Error('mulmocast-cli が見つかりません');
     }
 
+    // システム情報をログ出力
+    console.log('📊 システム情報:');
+    console.log(`  - Node.js: ${process.version}`);
+    console.log(`  - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
+    console.log(`  - Working Directory: ${process.cwd()}`);
+    console.log(`  - Mulmocast Path: ${mulmocastPath}`);
+    
+    // ディスク容量チェック
+    try {
+      const { execSync: exec } = require('child_process');
+      const dfOutput = exec('df -h /app', { encoding: 'utf8' });
+      console.log('  - Disk Usage:', dfOutput.split('\n')[1]);
+    } catch (dfError) {
+      console.log('  - Disk Usage: Could not check');
+    }
+
     // 出力ディレクトリを確保
     const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
     if (!fs.existsSync(outputDir)) {
@@ -170,12 +186,18 @@ function generateMovie() {
       // 実際のmulmocast-cliコマンドを実行
       const command = 'npm run movie scripts/school.json';
       console.log(`実行コマンド: ${command}`);
+      console.log('🚀 mulmocast-cli 実行開始...');
 
+      const startTime = Date.now();
       execSync(command, {
         cwd: mulmocastPath,
         stdio: 'inherit',
-        timeout: 300000 // 5分タイムアウト
+        timeout: 600000, // 10分タイムアウト (Cloud Run制限を考慮)
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer (大きなログ出力に対応)
       });
+      
+      const executionTime = Date.now() - startTime;
+      console.log(`⏱️ mulmocast-cli 実行完了: ${Math.round(executionTime / 1000)}秒`);
 
       // 出力ファイルの存在確認
       if (!fs.existsSync(OUTPUT_VIDEO_PATH)) {
@@ -393,7 +415,22 @@ const server = http.createServer(async (req, res) => {
 
           // 非同期で動画生成処理を開始（レスポンスは即座に返す）
           processVideoGeneration(requestData).catch(error => {
-            console.error('動画生成処理でエラー:', error);
+            console.error('❌ 動画生成処理でエラー:', error.message);
+            console.error('❌ エラースタック:', error.stack);
+            
+            // エラーを動画レコードに記録
+            if (requestData.video_id && requestData.uid) {
+              supabase
+                .from('videos')
+                .update({
+                  status: 'failed',
+                  error_msg: `処理エラー: ${error.message}`
+                })
+                .eq('id', requestData.video_id)
+                .eq('uid', requestData.uid)
+                .then(() => console.log('❌ 動画ステータスをfailedに更新'))
+                .catch(updateError => console.error('❌ ステータス更新エラー:', updateError.message));
+            }
           });
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
