@@ -18,7 +18,7 @@ spec:
         run.googleapis.com/startup-probe-timeout-seconds: "600"
     spec:
       containers:
-      - image: gcr.io/PROJECT_ID/showgeki2-auto-process:latest
+      - image: gcr.io/showgeki2/showgeki2-auto-process:latest
         ports:
         - containerPort: 8080
         env:
