@@ -81,9 +81,7 @@ describe('Authentication System Tests', () => {
     // Mock NextRequest
     const request = {
       method,
-      headers: {
-        get: vi.fn((name: string) => allHeaders[name.toLowerCase()] || null),
-      },
+      headers: new Map(Object.entries(allHeaders)),
       nextUrl: {
         pathname: fullUrl.pathname,
         searchParams: fullUrl.searchParams,
@@ -91,6 +89,9 @@ describe('Authentication System Tests', () => {
       clone: vi.fn(),
       json: vi.fn(),
     } as unknown as NextRequest
+
+    // Add get method to headers
+    ;(request.headers as any).get = vi.fn((name: string) => allHeaders[name.toLowerCase()] || null)
 
     // Set up body handling
     if (body) {

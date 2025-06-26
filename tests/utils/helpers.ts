@@ -51,25 +51,24 @@ export const createMockVideo = (overrides = {}) => ({
 })
 
 export const createMockScript = (overrides = {}) => ({
-  version: '1.0',
+  $mulmocast: {
+    version: '1.0',
+  },
   title: 'Test Script',
-  scenes: [
+  lang: 'en',
+  speechParams: {
+    provider: 'openai' as const,
+    speakers: {
+      Presenter: { voiceId: 'alloy' }
+    }
+  },
+  beats: [
     {
-      id: 'scene1',
-      type: 'dialogue' as const,
-      content: 'Test dialogue',
+      speaker: 'Presenter',
+      text: 'Test dialogue',
       duration: 5,
-      voice: {
-        character: 'Character1',
-        emotion: 'neutral',
-      },
     },
   ],
-  metadata: {
-    duration_total: 30,
-    resolution: '1920x1080',
-    fps: 30,
-  },
   ...overrides,
 })
 

@@ -207,7 +207,7 @@ describe('Schemas Validation Tests', () => {
       resolution: '1920x1080',
       size_mb: 10.5,
       status: 'completed',
-      error_msg: null,
+      error_msg: undefined,
       created_at: '2024-01-01T00:00:00.000Z',
     }
 
@@ -334,36 +334,38 @@ describe('Schemas Validation Tests', () => {
 
   describe('MulmoscriptSchema', () => {
     const validMulmoscript = {
-      version: '1.0',
+      $mulmocast: {
+        version: '1.0'
+      },
       title: 'Test Script',
-      scenes: [
+      lang: 'en',
+      speechParams: {
+        provider: 'openai' as const,
+        speakers: {
+          Presenter: { voiceId: 'alloy' }
+        }
+      },
+      beats: [
         {
-          id: 'scene1',
-          type: 'dialogue',
-          content: 'Hello, world!',
+          speaker: 'Presenter',
+          text: 'Hello, world!',
           duration: 5.5,
         },
       ],
-      metadata: {
-        duration_total: 30.5,
-        resolution: '1920x1080',
-        fps: 30,
-      },
     }
 
     it('validates complete mulmoscript object', () => {
       expect(MulmoscriptSchema.parse(validMulmoscript)).toEqual(validMulmoscript)
     })
 
-    it('validates mulmoscript with multiple scenes', () => {
+    it('validates mulmoscript with multiple beats', () => {
       const script = {
         ...validMulmoscript,
-        scenes: [
-          ...validMulmoscript.scenes,
+        beats: [
+          ...validMulmoscript.beats,
           {
-            id: 'scene2',
-            type: 'narration',
-            content: 'Meanwhile...',
+            speaker: 'Narrator',
+            text: 'Meanwhile...',
             duration: 3.0,
           },
         ],
@@ -371,17 +373,18 @@ describe('Schemas Validation Tests', () => {
       expect(MulmoscriptSchema.parse(script)).toEqual(script)
     })
 
-    it('rejects mulmoscript with empty title', () => {
-      expect(() => MulmoscriptSchema.parse({ ...validMulmoscript, title: '' })).toThrow()
+    it('validates mulmoscript without title', () => {
+      const { title, ...scriptWithoutTitle } = validMulmoscript
+      expect(MulmoscriptSchema.parse(scriptWithoutTitle)).toEqual(scriptWithoutTitle)
     })
 
-    it('rejects mulmoscript with empty scenes array', () => {
-      expect(() => MulmoscriptSchema.parse({ ...validMulmoscript, scenes: [] })).toThrow()
+    it('rejects mulmoscript with empty beats array', () => {
+      expect(() => MulmoscriptSchema.parse({ ...validMulmoscript, beats: [] })).toThrow()
     })
 
-    it('rejects mulmoscript with invalid metadata', () => {
-      const invalidMetadata = { ...validMulmoscript, metadata: { ...validMulmoscript.metadata, fps: -1 } }
-      expect(() => MulmoscriptSchema.parse(invalidMetadata)).toThrow()
+    it('rejects mulmoscript with invalid speechParams', () => {
+      const invalidSpeechParams = { ...validMulmoscript, speechParams: { provider: 'invalid' } }
+      expect(() => MulmoscriptSchema.parse(invalidSpeechParams)).toThrow()
     })
   })
 
@@ -454,7 +457,7 @@ describe('Schemas Validation Tests', () => {
         status: 'completed',
         progress: 100,
         url: 'https://example.com/video.mp4',
-        error_msg: null,
+        error_msg: undefined,
       }
       expect(VideoStatusResponseSchema.parse(response)).toEqual(response)
     })
