@@ -32,8 +32,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
 // 環境に応じたパス設定
-const WORK_DIR = process.env.NODE_ENV === 'development' 
-  ? '/app/mulmocast-cli' 
+const WORK_DIR = process.env.NODE_ENV === 'development'
+  ? '/app/mulmocast-cli'
   : '/app/mulmocast-cli';
 const SCHOOL_JSON_PATH = path.join(WORK_DIR, 'scripts', 'school.json');
 const OUTPUT_VIDEO_PATH = path.join(WORK_DIR, 'output', 'school.mp4');
@@ -141,7 +141,7 @@ function writeSchoolJson(jsonContent) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    
+
     fs.writeFileSync(SCHOOL_JSON_PATH, jsonContent, 'utf8');
     console.log(`✅ ${SCHOOL_JSON_PATH} に書き込み完了`);
   } catch (error) {
@@ -153,42 +153,44 @@ function generateMovie() {
   try {
     console.log('mulmocast-cliで動画生成中...');
     console.log('🎬 実際のmulmocast-cliで動画生成を開始...');
-    
+
     // mulmocast-cliが存在するかチェック
     const mulmocastPath = '/app/mulmocast-cli';
     if (!fs.existsSync(path.join(mulmocastPath, 'package.json'))) {
       throw new Error('mulmocast-cli が見つかりません');
     }
-    
+
     // 出力ディレクトリを確保
     const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
-    
+
     try {
       // 実際のmulmocast-cliコマンドを実行
       const command = 'npm run movie scripts/school.json';
       console.log(`実行コマンド: ${command}`);
-      
+
       execSync(command, {
         cwd: mulmocastPath,
         stdio: 'inherit',
         timeout: 300000 // 5分タイムアウト
       });
-      
+
       // 出力ファイルの存在確認
       if (!fs.existsSync(OUTPUT_VIDEO_PATH)) {
         throw new Error(`出力動画ファイルが見つかりません: ${OUTPUT_VIDEO_PATH}`);
       }
-      
+
       console.log('✅ 動画生成完了');
-      
+      return OUTPUT_VIDEO_PATH; // Return video path for upload
+
     } catch (execError) {
       console.error('mulmocast-cli実行エラー:', execError.message);
       // フォールバック: ダミーファイルを作成
       console.log('⚠️ フォールバック: ダミーファイルを作成');
       fs.writeFileSync(OUTPUT_VIDEO_PATH, 'dummy video content - mulmocast failed', 'utf8');
+      return OUTPUT_VIDEO_PATH;
     }
 
   } catch (error) {
@@ -196,47 +198,85 @@ function generateMovie() {
   }
 }
 
-function uploadVideo(registrationId) {
+/**
+ * Upload video to Supabase Storage
+ */
+async function uploadVideoToSupabase(videoPath, videoId) {
   try {
-    console.log('動画をアップロード中...');
-    const uploadScript = path.join(__dirname, 'upload-video.js');
-    const command = `node "${uploadScript}" "${OUTPUT_VIDEO_PATH}" "${registrationId}"`;
+    console.log('動画をSupabase Storageにアップロード中...');
 
-    execSync(command, {
-      stdio: 'inherit'
-    });
+    // Read video file
+    const videoBuffer = fs.readFileSync(videoPath);
+    const fileName = `${videoId}_${Date.now()}.mp4`;
+    const filePath = `videos/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { error } = await supabase.storage
+      .from('videos')
+      .upload(filePath, videoBuffer, {
+        contentType: 'video/mp4',
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(`Supabase upload failed: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('videos')
+      .getPublicUrl(filePath);
 
     console.log('✅ 動画アップロード完了');
+    console.log(`🔗 動画URL: ${urlData.publicUrl}`);
+
+    return urlData.publicUrl;
   } catch (error) {
     throw new Error(`動画アップロードエラー: ${error.message}`);
   }
 }
 
-async function processStory(storyId) {
+async function processVideoGeneration(payload) {
   try {
-    // ストーリーを取得
-    const { data: story, error } = await supabase
-      .from('stories')
-      .select('*')
-      .eq('id', storyId)
-      .eq('is_completed', false)
-      .single();
+    const { video_id, story_id, uid, title, text_raw, script_json } = payload;
 
-    if (error || !story) {
-      console.log(`ストーリーID ${storyId} が見つからないか、既に完了済みです`);
-      return false;
-    }
-
-    console.log('🚀 新しい依頼を処理します...');
-    console.log(`📝 登録番号: ${story.id}`);
-    console.log(`📅 作成日: ${story.created_at}`);
-    console.log(`📄 ストーリー: ${story.story_text.substring(0, 100)}${story.story_text.length > 100 ? '...' : ''}`);
+    console.log('🚀 動画生成処理を開始します...');
+    console.log(`📹 動画ID: ${video_id}`);
+    console.log(`📝 ストーリーID: ${story_id}`);
+    console.log(`👤 UID: ${uid}`);
+    console.log(`📄 タイトル: ${title}`);
     console.log('');
 
-    // 2. OpenAI APIでスクリプト生成
-    console.log('2. OpenAI APIでスクリプト生成中...');
-    const jsonContent = await generateScriptWithOpenAI(story.story_text);
-    console.log('✅ スクリプト生成完了');
+    // Update video status to 'processing'
+    await supabase
+      .from('videos')
+      .update({ status: 'processing' })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    let jsonContent;
+
+    // Check if script_json already exists
+    if (script_json && typeof script_json === 'object') {
+      console.log('2. 既存のスクリプトを使用...');
+      jsonContent = JSON.stringify(script_json, null, 2);
+      console.log('✅ スクリプト準備完了');
+    } else {
+      // Generate script with OpenAI if not exists
+      console.log('2. OpenAI APIでスクリプト生成中...');
+      jsonContent = await generateScriptWithOpenAI(text_raw);
+      console.log('✅ スクリプト生成完了');
+
+      // Update story with generated script
+      await supabase
+        .from('stories')
+        .update({
+          script_json: JSON.parse(jsonContent),
+          status: 'script_generated'
+        })
+        .eq('id', story_id)
+        .eq('uid', uid);
+    }
     console.log('');
 
     // 3. school.jsonに書き込み
@@ -246,22 +286,64 @@ async function processStory(storyId) {
 
     // 4. mulmocast-cliで動画生成
     console.log('4. mulmocast-cliで動画生成中...');
-    generateMovie();
+    const videoPath = generateMovie();
     console.log('');
 
-    // 5. 動画をアップロード
-    console.log('5. 動画をアップロード中...');
-    uploadVideo(story.id);
+    // 5. 動画をSupabase Storageにアップロード
+    console.log('5. 動画をSupabase Storageにアップロード中...');
+    const videoUrl = await uploadVideoToSupabase(videoPath, video_id);
     console.log('');
+
+    // 6. Get video file stats
+    const stats = fs.statSync(videoPath);
+    const videoSizeMB = stats.size / (1024 * 1024);
+
+    // 7. Update video record with completion
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({
+        status: 'completed',
+        url: videoUrl,
+        duration_sec: 30, // Default duration, can be calculated from video
+        resolution: '1920x1080', // Default resolution from mulmocast
+        size_mb: Number(videoSizeMB.toFixed(2))
+      })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    if (updateError) {
+      throw new Error(`動画レコード更新エラー: ${updateError.message}`);
+    }
+
+    // 8. Update story status to completed
+    await supabase
+      .from('stories')
+      .update({ status: 'completed' })
+      .eq('id', story_id)
+      .eq('uid', uid);
 
     console.log('🎉 処理が完了しました！');
-    console.log(`📹 登録番号 ${story.id} の5幕劇が完成し、アップロードされました。`);
+    console.log(`📹 動画ID ${video_id} の動画が完成し、アップロードされました。`);
+    console.log(`🔗 動画URL: ${videoUrl}`);
     console.log('');
 
     return true; // 処理完了
 
   } catch (error) {
     console.error('❌ 処理中にエラーが発生しました:', error.message);
+
+    // Update video status to failed
+    if (payload.video_id && payload.uid) {
+      await supabase
+        .from('videos')
+        .update({
+          status: 'failed',
+          error_msg: error.message
+        })
+        .eq('id', payload.video_id)
+        .eq('uid', payload.uid);
+    }
+
     return false; // エラーのため処理失敗
   }
 }
@@ -287,7 +369,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
-    
+
     req.on('data', chunk => {
       body += chunk.toString();
     });
@@ -297,18 +379,22 @@ const server = http.createServer(async (req, res) => {
         const payload = JSON.parse(body);
         console.log('Webhook受信:', payload);
 
-        // Supabase Webhookの場合、新しいレコードは payload.record に含まれる
-        if (payload.type === 'INSERT' && payload.table === 'stories' && payload.record) {
-          const storyId = payload.record.id;
-          console.log(`新しいストーリーが作成されました: ${storyId}`);
-          
-          // 非同期でストーリー処理を開始（レスポンスは即座に返す）
-          processStory(storyId).catch(error => {
-            console.error('ストーリー処理でエラー:', error);
+        // Handle video generation requests from API Routes
+        if (payload.type === 'video_generation' && payload.payload) {
+          const requestData = payload.payload;
+          console.log(`新しい動画生成リクエスト: ${requestData.video_id}`);
+
+          // 非同期で動画生成処理を開始（レスポンスは即座に返す）
+          processVideoGeneration(requestData).catch(error => {
+            console.error('動画生成処理でエラー:', error);
           });
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Processing started' }));
+          res.end(JSON.stringify({
+            success: true,
+            message: 'Video generation started',
+            video_id: requestData.video_id
+          }));
         } else {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, message: 'Webhook received but no action needed' }));

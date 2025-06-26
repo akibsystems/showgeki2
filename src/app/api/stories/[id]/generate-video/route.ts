@@ -46,51 +46,6 @@ async function getStoryWithAuth(storyId: string, uid: string) {
   return { data, error };
 }
 
-/**
- * Generate actual video using FFmpeg and upload to Supabase Storage
- * Supports both story-based and script-based video generation
- */
-async function generateActualVideo(story: Story): Promise<{
-  url: string;
-  path: string;
-  duration_sec: number;
-  resolution: string;
-  size_mb: number;
-}> {
-  // Import video generation library
-  const { generateVideo, generateVideoFromScript } = await import('@/lib/video-generator');
-  
-  try {
-    // Check if story has a generated script
-    if (story.script_json && typeof story.script_json === 'object') {
-      // Generate video from script (more sophisticated)
-      console.log('Generating video from script for story:', story.id);
-      return await generateVideoFromScript(story, story.script_json as any, {
-        resolution: '1280x720', // Smaller resolution for faster processing
-        fps: 24,
-        backgroundColor: '#1a1a2e',
-        textColor: 'white',
-        fontSize: 36,
-      });
-    } else {
-      // Generate simple video from story text
-      console.log('Generating video from story text for story:', story.id);
-      const estimatedDuration = Math.max(15, Math.min(60, Math.ceil(story.text_raw.length / 20))); // 15-60 seconds
-      
-      return await generateVideo(story, {
-        resolution: '1280x720',
-        fps: 24,
-        duration: estimatedDuration,
-        backgroundColor: '#1a1a2e',
-        textColor: 'white',
-        fontSize: 36,
-      });
-    }
-  } catch (error) {
-    console.error('Video generation failed:', error);
-    throw new Error(`Video generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
 
 /**
  * Check if video already exists for story
@@ -273,7 +228,7 @@ async function generateVideo(
 // ================================================================
 
 /**
- * Generate video asynchronously (simulates Cloud Run Job)
+ * Generate video asynchronously via Cloud Run webhook
  */
 async function generateVideoAsync(videoId: string, story: Story, uid: string): Promise<void> {
   const supabase = createAdminClient();
@@ -288,36 +243,21 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
       .eq('id', videoId)
       .eq('uid', uid);
 
-    // Generate actual video
-    const videoResult = await generateActualVideo(story);
+    // Call Cloud Run webhook for video generation
+    const webhookResult = await callCloudRunWebhook({
+      video_id: videoId,
+      story_id: story.id,
+      uid: uid,
+      title: story.title,
+      text_raw: story.text_raw,
+      script_json: story.script_json
+    });
 
-    // Update video with generated content
-    const updateData: SupabaseVideoUpdate = {
-      status: 'completed',
-      url: videoResult.url,
-      duration_sec: videoResult.duration_sec,
-      resolution: videoResult.resolution,
-      size_mb: videoResult.size_mb
-    };
-
-    const { error: updateError } = await supabase
-      .from('videos')
-      .update(updateData)
-      .eq('id', videoId)
-      .eq('uid', uid);
-
-    if (updateError) {
-      throw new Error(`Failed to update video: ${updateError.message}`);
+    if (!webhookResult.success) {
+      throw new Error(`Cloud Run webhook failed: ${webhookResult.error || 'Unknown error'}`);
     }
 
-    // Update story status to 'completed'
-    await supabase
-      .from('stories')
-      .update({ 
-        status: 'completed'
-      })
-      .eq('id', story.id)
-      .eq('uid', uid);
+    console.log('Cloud Run webhook called successfully for video:', videoId);
 
   } catch (error) {
     console.error('Async video generation failed:', error);
@@ -331,6 +271,51 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);
+  }
+}
+
+/**
+ * Call Cloud Run webhook for video generation
+ */
+async function callCloudRunWebhook(payload: {
+  video_id: string;
+  story_id: string;
+  uid: string;
+  title: string;
+  text_raw: string;
+  script_json?: any;
+}): Promise<{ success: boolean; error?: string }> {
+  const CLOUD_RUN_WEBHOOK_URL = process.env.CLOUD_RUN_WEBHOOK_URL || 'https://showgeki2-auto-process-598866385095.asia-northeast1.run.app/webhook';
+  
+  try {
+    console.log('Calling Cloud Run webhook for video generation...', CLOUD_RUN_WEBHOOK_URL);
+    
+    const response = await fetch(CLOUD_RUN_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'video_generation',
+        payload
+      }),
+      // Add timeout for webhook calls
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return { success: true };
+
+  } catch (error) {
+    console.error('Cloud Run webhook call failed:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown webhook error'
+    };
   }
 }
 
