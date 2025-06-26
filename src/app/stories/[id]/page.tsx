@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
-import { Button, Card, CardContent, CardFooter, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
+import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor } from '@/components/editor';
 import { VideoModal } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
@@ -17,7 +17,7 @@ const StoryEditorPage: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const storyId = params.id as string;
-  const { state } = useApp();
+  const { } = useApp();
   const { success, error } = useToast();
   
   // Use SWR hooks for data fetching
@@ -94,14 +94,36 @@ const StoryEditorPage: React.FC = () => {
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
     try {
-      // TODO: Implement API call to generate video
-      // This would call /api/stories/[id]/generate-video
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay until API is ready
+      const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
       
-      success('Video generation started');
+      const response = await fetch(`/api/stories/${storyId}/generate-video`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': uid,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        success('Video generation started');
+        // Refresh videos data to show the new video
+        if (videos) {
+          // Trigger revalidation of videos
+          window.location.reload();
+        }
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
     } catch (err) {
       console.error('Failed to generate video:', err);
-      error('Failed to generate video');
+      error(err instanceof Error ? err.message : 'Failed to generate video');
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -118,9 +140,9 @@ const StoryEditorPage: React.FC = () => {
     }
   };
 
-  const handleScriptSave = async (script: any) => {
+  const handleScriptSave = async (script: unknown) => {
     try {
-      await updateStory({ script_json: script });
+      await updateStory({ script_json: script as Record<string, any> });
       success('Script saved successfully');
     } catch (err) {
       console.error('Failed to save script:', err);
@@ -192,7 +214,7 @@ const StoryEditorPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Story Not Found</h2>
-            <p className="text-gray-600 mb-6">The story you're looking for doesn't exist.</p>
+            <p className="text-gray-600 mb-6">The story you&apos;re looking for doesn&apos;t exist.</p>
             <Button onClick={() => router.push('/dashboard')}>
               Back to Dashboard
             </Button>
@@ -207,7 +229,7 @@ const StoryEditorPage: React.FC = () => {
   const processingVideo = videos?.find(v => v.story_id === storyId && v.status === 'processing');
   const video = storyVideo || processingVideo || videos?.find(v => v.story_id === storyId);
 
-  const wordCount = (isEditing ? formData.text_raw : story.text_raw).split(/\s+/).filter(word => word.length > 0).length;
+  const wordCount = (isEditing ? formData.text_raw : story.text_raw || '').split(/\s+/).filter(word => word.length > 0).length;
 
   return (
     <Layout>
@@ -220,8 +242,8 @@ const StoryEditorPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900">
                   {isEditing ? formData.title || 'Untitled Story' : story.title}
                 </h1>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(story.status)}`}>
-                  {story.status.replace('_', ' ')}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(story.status || 'draft')}`}>
+                  {(story.status || 'draft').replace('_', ' ')}
                 </span>
               </div>
               <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -415,8 +437,8 @@ const StoryEditorPage: React.FC = () => {
                 {story.script_json ? (
                   <ScriptEditor
                     script={story.script_json as any}
-                    onChange={(updatedScript) => {
-                      // Optimistic update - will be persisted on save
+                    onChange={(updatedScript: unknown) => {
+                      // Revalidate story data when script changes
                       mutateStory();
                     }}
                     onSave={handleScriptSave}
@@ -455,11 +477,11 @@ const StoryEditorPage: React.FC = () => {
                 <CardContent className="p-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Status</h3>
                   <div className="space-y-3">
-                    <div className={`p-3 rounded-lg border ${getStatusColor(story.status)}`}>
+                    <div className={`p-3 rounded-lg border ${getStatusColor(story.status || 'draft')}`}>
                       <div className="flex items-center space-x-2">
                         {story.status === 'processing' && <Spinner size="sm" />}
                         <span className="font-medium capitalize">
-                          {story.status.replace('_', ' ')}
+                          {(story.status || 'draft').replace('_', ' ')}
                         </span>
                       </div>
                       {story.status === 'processing' && (

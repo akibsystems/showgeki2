@@ -282,26 +282,62 @@ export class ApiClient {
 
   async get<T>(url: string, params?: Record<string, string>): Promise<T> {
     const response = await this.request<T>({ method: 'GET', url, params });
+    
+    // Handle API response format { success: true, data: ... }
+    const responseData = response.data as any;
+    if (responseData && responseData.success && responseData.data !== undefined) {
+      return responseData.data;
+    }
+    
     return response.data;
   }
 
   async post<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'POST', url, data });
+    console.log('API POST response:', response.data); // Debug log
+    
+    // Handle API response format { success: true, data: ... }
+    const responseData = response.data as any;
+    if (responseData && responseData.success && responseData.data !== undefined) {
+      return responseData.data;
+    }
+    
     return response.data;
   }
 
   async put<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'PUT', url, data });
+    
+    // Handle API response format { success: true, data: ... }
+    const responseData = response.data as any;
+    if (responseData && responseData.success && responseData.data !== undefined) {
+      return responseData.data;
+    }
+    
     return response.data;
   }
 
   async delete<T>(url: string): Promise<T> {
     const response = await this.request<T>({ method: 'DELETE', url });
+    
+    // Handle API response format { success: true, data: ... }
+    const responseData = response.data as any;
+    if (responseData && responseData.success && responseData.data !== undefined) {
+      return responseData.data;
+    }
+    
     return response.data;
   }
 
   async patch<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'PATCH', url, data });
+    
+    // Handle API response format { success: true, data: ... }
+    const responseData = response.data as any;
+    if (responseData && responseData.success && responseData.data !== undefined) {
+      return responseData.data;
+    }
+    
     return response.data;
   }
 

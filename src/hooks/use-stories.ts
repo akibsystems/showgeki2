@@ -130,8 +130,10 @@ export function useStories(params?: StoriesQueryParams): UseStoriesReturn {
  * Hook to fetch a single story by ID
  */
 export function useStory(id: string): UseStoryReturn {
+  // Don't make API call if id is undefined/invalid
+  const shouldFetch = id && id !== 'undefined';
   const { data: story, error, isLoading, mutate: swrMutate } = useSWR<Story>(
-    id ? swrKeys.story(id) : null,
+    shouldFetch ? swrKeys.story(id) : null,
     {
       revalidateOnFocus: true,
       refreshInterval: 5000, // Refresh every 5 seconds for processing stories

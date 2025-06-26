@@ -45,6 +45,12 @@ const DashboardPage: React.FC = () => {
     inProgress: Array.isArray(stories) ? stories.filter(s => s.status === 'processing').length : 0,
   };
 
+  // Get story title by story_id
+  const getStoryTitle = (storyId: string): string => {
+    const story = stories?.find(s => s.id === storyId);
+    return story?.title || `Story ${storyId}`;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -230,7 +236,7 @@ const DashboardPage: React.FC = () => {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-sm font-medium text-gray-900">Video {video.id.slice(0, 8)}</h3>
+                          <h3 className="text-sm font-medium text-gray-900">{getStoryTitle(video.story_id)}</h3>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(video.status)}`}>
                             {video.status}
                           </span>

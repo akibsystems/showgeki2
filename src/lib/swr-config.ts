@@ -103,7 +103,7 @@ export const swrKeys = {
   // Stories
   stories: () => '/api/stories',
   story: (id: string) => `/api/stories/${id}`,
-  storyScript: (id: string) => `/api/stories/${id}/script`,
+  storyScript: (id: string) => `/api/stories/${id}/generate-script`,
   
   // Videos
   videos: () => '/api/videos',

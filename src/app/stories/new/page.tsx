@@ -57,6 +57,12 @@ const NewStoryPage: React.FC = () => {
         text_raw: formData.text_raw.trim(),
       });
       
+      console.log('Created story:', newStory); // Debug log
+      
+      if (!newStory || !newStory.id) {
+        throw new Error('Invalid story response - missing ID');
+      }
+      
       success('Story created successfully');
       router.push(`/stories/${newStory.id}`);
     } catch (err) {
@@ -71,8 +77,8 @@ const NewStoryPage: React.FC = () => {
     router.push('/dashboard');
   };
 
-  const wordCount = formData.text_raw.split(/\s+/).filter(word => word.length > 0).length;
-  const charCount = formData.text_raw.length;
+  const wordCount = (formData.text_raw || '').split(/\s+/).filter(word => word.length > 0).length;
+  const charCount = (formData.text_raw || '').length;
 
   return (
     <Layout>

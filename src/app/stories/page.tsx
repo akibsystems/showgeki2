@@ -205,7 +205,7 @@ const StoriesPage: React.FC = () => {
                     
                     <div className="flex justify-between items-center text-xs text-gray-500">
                       <div className="flex items-center space-x-3">
-                        <span>{story.text_raw.split(/\s+/).filter(word => word.length > 0).length} words</span>
+                        <span>{(story.text_raw || '').split(/\s+/).filter(word => word.length > 0).length} words</span>
                         <span>Updated {formatDate(story.updated_at)}</span>
                       </div>
                       

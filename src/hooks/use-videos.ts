@@ -62,7 +62,9 @@ export function useVideos(params?: VideosQueryParams): UseVideosReturn {
     storyId: undefined, // Remove storyId as it's not a valid API parameter
   } : undefined;
   
-  const cacheKey = createCacheKey(swrKeys.videos(), apiParams);
+  // Don't make API call if storyId is undefined/invalid
+  const shouldFetch = !params?.storyId || (params.storyId && params.storyId !== 'undefined');
+  const cacheKey = shouldFetch ? createCacheKey(swrKeys.videos(), apiParams) : null;
   
   const { data: videos, error, isLoading, mutate: swrMutate } = useSWR<Video[]>(
     cacheKey,

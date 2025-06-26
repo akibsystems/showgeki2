@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
-import { VideoModal, VideoThumbnail } from '@/components/video';
+import { VideoModal } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
-import { useVideos } from '@/hooks';
+import { useVideos, useStories } from '@/hooks';
 import type { VideoStatus, Video } from '@/types';
 
 // ================================================================
@@ -30,6 +30,9 @@ const VideosPage: React.FC = () => {
   
   // Fetch videos using SWR hook
   const { videos, isLoading } = useVideos();
+  
+  // Fetch stories to get titles
+  const { stories } = useStories();
 
 
   // Filter and search videos
@@ -90,6 +93,12 @@ const VideosPage: React.FC = () => {
   };
 
   const statusCounts = getStatusCounts();
+
+  // Get story title by story_id
+  const getStoryTitle = (storyId: string): string => {
+    const story = stories?.find(s => s.id === storyId);
+    return story?.title || `Story ${storyId}`;
+  };
 
   // Handler functions
   const handleWatchVideo = (video: Video) => {
@@ -242,7 +251,7 @@ const VideosPage: React.FC = () => {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
-                      Video {video.story_id}
+                      {getStoryTitle(video.story_id)}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(video.status)} ml-2 flex-shrink-0`}>
                       {video.status}
@@ -253,17 +262,28 @@ const VideosPage: React.FC = () => {
                   <div className="aspect-video mb-4">
                     {video.status === 'completed' && video.url ? (
                       <div 
-                        className="cursor-pointer"
+                        className="cursor-pointer relative group"
                         onClick={() => handleWatchVideo(video)}
                       >
-                        <VideoThumbnail
+                        <video
                           src={video.url}
-                          width={320}
-                          height={180}
-                          timeOffset={2}
-                          alt={`Thumbnail for video ${video.story_id}`}
-                          className="w-full h-full"
+                          className="w-full h-full object-cover rounded-lg"
+                          preload="metadata"
+                          muted
+                          onLoadedMetadata={(e) => {
+                            // Set the video to show frame at 2 seconds for thumbnail
+                            const video = e.target as HTMLVideoElement;
+                            video.currentTime = Math.min(2, video.duration - 1);
+                          }}
                         />
+                        {/* Play overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-white bg-opacity-80 rounded-full p-3">
+                            <svg className="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
@@ -379,8 +399,8 @@ const VideosPage: React.FC = () => {
             setSelectedVideo(null);
           }}
           videoUrl={selectedVideo.url}
-          title={`Video ${selectedVideo.story_id}`}
-          storyTitle={`Video ${selectedVideo.story_id}`}
+          title={getStoryTitle(selectedVideo.story_id)}
+          storyTitle={getStoryTitle(selectedVideo.story_id)}
           duration={selectedVideo.duration_sec}
           onDownload={() => handleDownloadVideo(selectedVideo)}
         />
