@@ -28,10 +28,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+                <span className="text-white font-bold text-sm">T</span>
               </div>
               <span className="text-xl font-semibold text-gray-900">
-                mulmocast GUI
+                TOBE ストーリー動画生成
               </span>
             </Link>
 

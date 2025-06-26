@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "mulmocast GUI",
-  description: "Browser-based GUI for mulmocast video generation",
+  title: "TOBE ストーリー動画生成",
+  description: "AIを活用したストーリー動画生成プラットフォーム",
 };
 
 export default function RootLayout({

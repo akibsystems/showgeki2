@@ -98,7 +98,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Create and manage your video stories with mulmocast.
+                AIを活用してストーリーから動画を生成・管理できます。
               </p>
             </div>
             <Link href="/stories/new">
