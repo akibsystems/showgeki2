@@ -11,11 +11,11 @@ type VideoInsert = Omit<Video, 'id' | 'created_at'>;
 type VideoUpdate = Partial<Omit<Video, 'id' | 'created_at'>>;
 
 interface VideosQueryParams {
+  storyId?: string;
   status?: 'queued' | 'processing' | 'completed' | 'failed';
   limit?: number;
   offset?: number;
   search?: string;
-  storyId?: string;
 }
 
 interface UseVideosReturn {
@@ -55,7 +55,14 @@ interface UseStoryVideosReturn {
  * Hook to fetch all videos with optional filtering
  */
 export function useVideos(params?: VideosQueryParams): UseVideosReturn {
-  const cacheKey = createCacheKey(swrKeys.videos(), params);
+  // Convert storyId to story_id for API compatibility
+  const apiParams = params ? {
+    ...params,
+    ...(params.storyId && { story_id: params.storyId }),
+    storyId: undefined, // Remove storyId as it's not a valid API parameter
+  } : undefined;
+  
+  const cacheKey = createCacheKey(swrKeys.videos(), apiParams);
   
   const { data: videos, error, isLoading, mutate: swrMutate } = useSWR<Video[]>(
     cacheKey,

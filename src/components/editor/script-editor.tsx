@@ -215,7 +215,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
       const totalDuration = newScenes.reduce((sum, scene) => sum + (scene.duration || 0), 0);
       const updatedScript = {
         ...script,
-        beats: newScenes
+        beats: newScenes,
       };
       onChange(updatedScript);
     }
@@ -224,7 +224,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   // Add new scene
   const handleAddScene = () => {
     if (script) {
-      const newScenes = [...script.beats, createDefaultScene()];
+      const newScenes = [...(script.beats || []), createDefaultScene()];
       handleScenesChange(newScenes);
     }
   };
@@ -232,7 +232,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   // Remove scene
   const handleRemoveScene = (index: number) => {
     if (script) {
-      const newScenes = script.beats.filter((_, i) => i !== index);
+      const newScenes = (script.beats || []).filter((_, i) => i !== index);
       handleScenesChange(newScenes);
     }
   };
@@ -351,12 +351,12 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Resolution</label>
               <select
-                value={script.canvasSize?.width + 'x' + script.canvasSize?.height || '1280x720'}
+                value={(script as any).canvasSize?.width + 'x' + (script as any).canvasSize?.height || '1280x720'}
                 onChange={(e) => {
                   const [width, height] = e.target.value.split('x').map(Number);
                   handleVisualChange({
                     canvasSize: { width, height }
-                  });
+                  } as any);
                 }}
                 disabled={isReadOnly}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50"
@@ -370,11 +370,10 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">FPS</label>
               <select
-                value="30"
-                onChange={(e) => {
-                  // FPS is not directly configurable in mulmocast format
-                  console.log('FPS change not implemented for mulmocast format');
-                }}
+                value={(script as any).fps || 30}
+                onChange={(e) => handleVisualChange({
+                  fps: parseInt(e.target.value)
+                } as any)}
                 disabled={isReadOnly}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50"
               >
@@ -386,8 +385,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           </div>
 
           <div className="mt-4 text-sm text-gray-600">
-            <span className="font-medium">Total Duration:</span> {script.beats.reduce((sum, beat) => sum + (beat.duration || 0), 0).toFixed(1)}s
-            <span className="ml-4 font-medium">Beats:</span> {script.beats.length}
+            <span className="font-medium">Total Duration:</span> {((script as any).beats || []).reduce((sum: number, beat: any) => sum + (beat.duration || 0), 0).toFixed(1)}s
+            <span className="ml-4 font-medium">Beats:</span> {script.beats?.length || 0}
           </div>
         </CardContent>
       </Card>
@@ -395,7 +394,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
       {/* Editor Content */}
       {mode === 'visual' ? (
         <SceneEditor
-          scenes={script.beats}
+          scenes={script.beats || []}
           onChange={handleScenesChange}
           onAddScene={handleAddScene}
           onRemoveScene={handleRemoveScene}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, CardFooter, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
@@ -20,14 +20,29 @@ const DashboardPage: React.FC = () => {
   const { stories, isLoading: storiesLoading } = useStories({ limit: 5 });
   const { videos, isLoading: videosLoading } = useVideos({ limit: 5 });
 
+  // Ensure workspace exists for first-time users
+  useEffect(() => {
+    const initializeWorkspace = async () => {
+      if (!workspaceLoading && !workspace && !state.isLoading) {
+        try {
+          await ensureWorkspace();
+        } catch (error) {
+          console.error('Failed to initialize workspace:', error);
+        }
+      }
+    };
+
+    initializeWorkspace();
+  }, [workspace, workspaceLoading, ensureWorkspace, state.isLoading]);
+
   // Calculate stats from actual data
-  const recentStories = stories?.slice(0, 4) || [];
-  const recentVideos = videos?.slice(0, 2) || [];
+  const recentStories = Array.isArray(stories) ? stories.slice(0, 4) : [];
+  const recentVideos = Array.isArray(videos) ? videos.slice(0, 2) : [];
   
   const stats = {
-    stories: stories?.length || 0,
-    videos: videos?.length || 0,
-    inProgress: stories?.filter(s => s.status === 'processing').length || 0,
+    stories: Array.isArray(stories) ? stories.length : 0,
+    videos: Array.isArray(videos) ? videos.length : 0,
+    inProgress: Array.isArray(stories) ? stories.filter(s => s.status === 'processing').length : 0,
   };
 
   const getStatusColor = (status: string) => {

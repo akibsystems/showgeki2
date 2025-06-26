@@ -24,7 +24,26 @@ const swrFetcher = async (url: string) => {
       throw error;
     }
 
-    return response.json();
+    const result = await response.json();
+    
+    // Extract data from API response format { success: true, data: ... }
+    if (result.success && result.data !== undefined) {
+      // For list endpoints, extract the array from the data object
+      if (url.includes('/api/videos') && result.data.videos) {
+        return result.data.videos;
+      }
+      if (url.includes('/api/stories') && result.data.stories) {
+        return result.data.stories;
+      }
+      if (url.includes('/api/workspaces') && result.data.workspaces) {
+        return result.data.workspaces;
+      }
+      
+      // For single item endpoints, return the data directly
+      return result.data;
+    }
+    
+    return result;
   } catch (error) {
     console.error('SWR fetch error:', error);
     throw error;

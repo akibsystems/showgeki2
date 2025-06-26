@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
+import { useStories, useUserWorkspace } from '@/hooks';
 
 // ================================================================
 // New Story Page Component
@@ -14,6 +15,10 @@ const NewStoryPage: React.FC = () => {
   const router = useRouter();
   const { state } = useApp();
   const { success, error } = useToast();
+  
+  // Hooks for API calls
+  const { ensureWorkspace } = useUserWorkspace();
+  const { createStory } = useStories();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -42,12 +47,18 @@ const NewStoryPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Implement API call to save story
-      const mockStoryId = 'story_' + Date.now();
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      // Ensure workspace exists for the user
+      const workspace = await ensureWorkspace();
+      
+      // Create the story
+      const newStory = await createStory({
+        workspace_id: workspace.id,
+        title: formData.title.trim(),
+        text_raw: formData.text_raw.trim(),
+      });
       
       success('Story created successfully');
-      router.push(`/stories/${mockStoryId}`);
+      router.push(`/stories/${newStory.id}`);
     } catch (err) {
       console.error('Failed to create story:', err);
       error('Failed to create story');

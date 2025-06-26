@@ -320,7 +320,7 @@ const StoryEditorPage: React.FC = () => {
                     </svg>
                     Script Editor
                     <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {story.script_json.scenes?.length || 0} scenes
+                      {(story.script_json as any)?.beats?.length || 0} beats
                     </span>
                   </button>
                 )}
@@ -393,7 +393,7 @@ const StoryEditorPage: React.FC = () => {
                         </Button>
                       </div>
                       <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {story.script_json.scenes?.map((scene: any, index: number) => (
+                        {((story.script_json as any)?.beats || []).map((scene: any, index: number) => (
                           <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                             <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                               {index + 1}
