@@ -1,0 +1,527 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Layout } from '@/components/layout';
+import { Button, Card, CardContent, CardFooter, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
+import { useApp, useToast } from '@/contexts';
+
+// ================================================================
+// Types
+// ================================================================
+
+interface Story {
+  id: string;
+  title: string;
+  text_raw: string;
+  script_json?: any;
+  status: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
+  created_at: string;
+  updated_at: string;
+  video?: {
+    id: string;
+    url?: string;
+    status: 'queued' | 'processing' | 'completed' | 'failed';
+    duration_sec?: number;
+  };
+}
+
+// ================================================================
+// Story Editor Page Component
+// ================================================================
+
+const StoryEditorPage: React.FC = () => {
+  const router = useRouter();
+  const params = useParams();
+  const storyId = params.id as string;
+  const { state } = useApp();
+  const { success, error } = useToast();
+  
+  const [story, setStory] = useState<Story | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    text_raw: '',
+  });
+
+  // Mock data - will be replaced with API calls
+  useEffect(() => {
+    const loadStory = async () => {
+      try {
+        setIsLoading(true);
+        // TODO: Replace with actual API call
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+        
+        const mockStory: Story = {
+          id: storyId,
+          title: 'Product Introduction Video',
+          text_raw: 'Welcome to our revolutionary new product that will change the way you work. Our innovative solution combines cutting-edge technology with user-friendly design to deliver unprecedented results. Join thousands of satisfied customers who have already transformed their workflow.',
+          script_json: storyId === 'story1' ? {
+            scenes: [
+              { text: 'Welcome to our revolutionary new product', duration: 3 },
+              { text: 'Cutting-edge technology meets user-friendly design', duration: 4 },
+              { text: 'Join thousands of satisfied customers', duration: 3 }
+            ]
+          } : undefined,
+          status: storyId === 'story1' ? 'completed' : storyId === 'story2' ? 'processing' : 'draft',
+          created_at: '2024-01-25T09:15:00Z',
+          updated_at: '2024-01-25T10:30:00Z',
+          video: storyId === 'story1' ? {
+            id: 'video1',
+            url: 'https://example.com/video.mp4',
+            status: 'completed',
+            duration_sec: 120,
+          } : storyId === 'story2' ? {
+            id: 'video2',
+            status: 'processing',
+          } : undefined,
+        };
+        
+        setStory(mockStory);
+        setFormData({
+          title: mockStory.title,
+          text_raw: mockStory.text_raw,
+        });
+      } catch (err) {
+        console.error('Failed to load story:', err);
+        error('Failed to load story');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (storyId) {
+      loadStory();
+    }
+  }, [storyId, error]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!formData.title.trim() || !formData.text_raw.trim()) {
+      error('Title and content are required');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // TODO: Implement API call to save story
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      
+      if (story) {
+        setStory({
+          ...story,
+          title: formData.title,
+          text_raw: formData.text_raw,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      
+      setIsEditing(false);
+      success('Story saved successfully');
+    } catch (err) {
+      console.error('Failed to save story:', err);
+      error('Failed to save story');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateScript = async () => {
+    setIsGeneratingScript(true);
+    try {
+      // TODO: Implement API call to generate script
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Mock delay
+      
+      if (story) {
+        setStory({
+          ...story,
+          status: 'script_generated',
+          script_json: {
+            scenes: [
+              { text: 'Generated scene 1', duration: 3 },
+              { text: 'Generated scene 2', duration: 4 },
+              { text: 'Generated scene 3', duration: 3 }
+            ]
+          },
+          updated_at: new Date().toISOString(),
+        });
+      }
+      
+      success('Script generated successfully');
+    } catch (err) {
+      console.error('Failed to generate script:', err);
+      error('Failed to generate script');
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    setIsGeneratingVideo(true);
+    try {
+      // TODO: Implement API call to generate video
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay
+      
+      if (story) {
+        setStory({
+          ...story,
+          status: 'processing',
+          video: {
+            id: 'video_' + Date.now(),
+            status: 'processing',
+          },
+          updated_at: new Date().toISOString(),
+        });
+      }
+      
+      success('Video generation started');
+    } catch (err) {
+      console.error('Failed to generate video:', err);
+      error('Failed to generate video');
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      // TODO: Implement API call to delete story
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      
+      success('Story deleted successfully');
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to delete story:', err);
+      error('Failed to delete story');
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-600 bg-green-100 border-green-200';
+      case 'processing':
+        return 'text-blue-600 bg-blue-100 border-blue-200';
+      case 'script_generated':
+        return 'text-purple-600 bg-purple-100 border-purple-200';
+      case 'error':
+        return 'text-red-600 bg-red-100 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const day = date.getDate();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${month} ${day}, ${year} at ${hours}:${minutes}`;
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-600">Loading story...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!story) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Story Not Found</h2>
+            <p className="text-gray-600 mb-6">The story you're looking for doesn't exist.</p>
+            <Button onClick={() => router.push('/dashboard')}>
+              Back to Dashboard
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const wordCount = (isEditing ? formData.text_raw : story.text_raw).split(/\s+/).filter(word => word.length > 0).length;
+
+  return (
+    <Layout>
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {isEditing ? formData.title || 'Untitled Story' : story.title}
+                </h1>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(story.status)}`}>
+                  {story.status.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                <span>Created {formatDate(story.created_at)}</span>
+                <span>Updated {formatDate(story.updated_at)}</span>
+                <span>{wordCount} words</span>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              {isEditing ? (
+                <>
+                  <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Spinner size="sm" color="white" className="mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => setShowDeleteModal(true)}>
+                    Delete
+                  </Button>
+                  <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                    Edit Story
+                  </Button>
+                  {story.status === 'draft' && (
+                    <Button onClick={handleGenerateScript} disabled={isGeneratingScript}>
+                      {isGeneratingScript ? (
+                        <>
+                          <Spinner size="sm" color="white" className="mr-2" />
+                          Generating...
+                        </>
+                      ) : (
+                        'Generate Script'
+                      )}
+                    </Button>
+                  )}
+                  {story.status === 'script_generated' && (
+                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo}>
+                      {isGeneratingVideo ? (
+                        <>
+                          <Spinner size="sm" color="white" className="mr-2" />
+                          Starting...
+                        </>
+                      ) : (
+                        'Generate Video'
+                      )}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Story Content */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Story Content</h3>
+                
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
+                        Content
+                      </label>
+                      <textarea
+                        id="text_raw"
+                        name="text_raw"
+                        value={formData.text_raw}
+                        onChange={handleInputChange}
+                        rows={10}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="prose max-w-none">
+                    <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                      {story.text_raw}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Generated Script */}
+            {story.script_json && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Generated Script</h3>
+                  <div className="space-y-3">
+                    {story.script_json.scenes?.map((scene: any, index: number) => (
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-gray-700">{scene.text}</p>
+                          <p className="text-xs text-gray-500 mt-1">{scene.duration}s duration</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="space-y-6">
+              {/* Status Card */}
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Status</h3>
+                  <div className="space-y-3">
+                    <div className={`p-3 rounded-lg border ${getStatusColor(story.status)}`}>
+                      <div className="flex items-center space-x-2">
+                        {story.status === 'processing' && <Spinner size="sm" />}
+                        <span className="font-medium capitalize">
+                          {story.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      {story.status === 'processing' && (
+                        <p className="text-xs mt-1 opacity-75">
+                          Video generation in progress...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Video Card */}
+              {story.video && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Video</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full ${story.video.status === 'completed' ? 'bg-green-400' : story.video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
+                        <span className="text-sm capitalize">{story.video.status}</span>
+                      </div>
+                      
+                      {story.video.duration_sec && (
+                        <p className="text-sm text-gray-600">
+                          Duration: {Math.floor(story.video.duration_sec / 60)}:{(story.video.duration_sec % 60).toString().padStart(2, '0')}
+                        </p>
+                      )}
+                      
+                      {story.video.status === 'completed' && story.video.url && (
+                        <div className="space-y-2">
+                          <Button size="sm" className="w-full">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Watch Video
+                          </Button>
+                          <Button variant="secondary" size="sm" className="w-full">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Actions Card */}
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
+                  <div className="space-y-2">
+                    <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push('/dashboard')}>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Back to Dashboard
+                    </Button>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push('/stories/new')}>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Create New Story
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <ModalHeader>
+          <h3 className="text-lg font-medium text-gray-900">Delete Story</h3>
+        </ModalHeader>
+        <ModalBody>
+          <p className="text-sm text-gray-600">
+            Are you sure you want to delete this story? This action cannot be undone.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete Story
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </Layout>
+  );
+};
+
+export default StoryEditorPage;
