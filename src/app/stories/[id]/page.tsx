@@ -63,7 +63,7 @@ const StoryEditorPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      await updateStory(storyId, {
+      await updateStory({
         title: formData.title,
         text_raw: formData.text_raw,
       });
@@ -81,7 +81,7 @@ const StoryEditorPage: React.FC = () => {
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
     try {
-      await generateScript(storyId);
+      await generateScript();
       success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
@@ -109,7 +109,7 @@ const StoryEditorPage: React.FC = () => {
 
   const handleDelete = async () => {
     try {
-      await deleteStory(storyId);
+      await deleteStory();
       success('Story deleted successfully');
       router.push('/dashboard');
     } catch (err) {
@@ -120,7 +120,7 @@ const StoryEditorPage: React.FC = () => {
 
   const handleScriptSave = async (script: any) => {
     try {
-      await updateStory(storyId, { script_json: script });
+      await updateStory({ script_json: script });
       success('Script saved successfully');
     } catch (err) {
       console.error('Failed to save script:', err);
@@ -414,14 +414,10 @@ const StoryEditorPage: React.FC = () => {
               <div className="script-editor-container">
                 {story.script_json ? (
                   <ScriptEditor
-                    script={story.script_json}
+                    script={story.script_json as any}
                     onChange={(updatedScript) => {
                       // Optimistic update - will be persisted on save
-                      mutateStory({
-                        ...story,
-                        script_json: updatedScript,
-                        updated_at: new Date().toISOString(),
-                      }, false);
+                      mutateStory();
                     }}
                     onSave={handleScriptSave}
                     isReadOnly={false}

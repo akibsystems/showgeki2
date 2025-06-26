@@ -15,6 +15,7 @@ interface VideosQueryParams {
   limit?: number;
   offset?: number;
   search?: string;
+  storyId?: string;
 }
 
 interface UseVideosReturn {

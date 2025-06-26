@@ -1,5 +1,6 @@
 import { render, RenderOptions } from '@testing-library/react'
 import { ReactElement } from 'react'
+import { vi, expect } from 'vitest'
 
 // テスト用のUID
 export const TEST_UID = 'test-uid-12345678-1234-1234-1234-123456789abc'

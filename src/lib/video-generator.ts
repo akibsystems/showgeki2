@@ -101,14 +101,14 @@ export async function generateVideoFromScript(
   options: VideoGenerationOptions = {}
 ): Promise<VideoGenerationResult> {
   const {
-    resolution = script.metadata.resolution || '1920x1080',
-    fps = script.metadata.fps || 30,
+    resolution = (script.canvasSize ? `${script.canvasSize.width}x${script.canvasSize.height}` : '1280x720'),
+    fps = 30,
     backgroundColor = '#1a1a1a',
     textColor = 'white',
     fontSize = 48,
   } = options;
 
-  const duration = Math.ceil(script.metadata.duration_total);
+  const duration = Math.ceil(script.beats.reduce((sum, beat) => sum + (beat.duration || 0), 0));
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'video-gen-'));
   const outputPath = path.join(tempDir, `${story.id}.mp4`);
 
@@ -116,16 +116,16 @@ export async function generateVideoFromScript(
     // Generate video segments for each scene
     const videoSegments: string[] = [];
     
-    for (let i = 0; i < script.scenes.length; i++) {
-      const scene = script.scenes[i];
+    for (let i = 0; i < script.beats.length; i++) {
+      const beat = script.beats[i];
       const segmentPath = path.join(tempDir, `segment_${i}.mp4`);
       
       await generateVideoWithFFmpeg({
-        text: scene.content,
+        text: beat.text,
         outputPath: segmentPath,
         resolution,
         fps,
-        duration: scene.duration,
+        duration: beat.duration || 3,
         backgroundColor,
         textColor,
         fontSize,
