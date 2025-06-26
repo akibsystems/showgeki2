@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AIシェイクスピアが勝手に作った、あなたの未来5幕劇",
-  description: "AIがあなたの未来を5幕の劇として動画化するサービス",
+  title: "mulmocast GUI",
+  description: "Browser-based GUI for mulmocast video generation",
 };
 
 export default function RootLayout({
