@@ -43,3 +43,16 @@ next-env.d.ts
 # gcloud
 supabase.env
 openai.env
+
+# mulmocast-cli related
+mulmocast-output/
+mulmocast-scripts/
+logs/
+
+# Docker volumes
+*.mp4
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg

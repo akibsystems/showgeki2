@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  showgeki2-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+    env_file:
+      - .env.local
+      - supabase.env
+      - openai.env
+    volumes:
+      - ./scripts:/app/scripts
+      - ./mulmocast-output:/app/mulmocast-cli/output
+      - ./mulmocast-scripts:/app/mulmocast-cli/scripts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    stdin_open: true
+    tty: true
+    
+  # Production-like environment (original)
+  showgeki2-prod:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - .env.local
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    profiles:
+      - prod

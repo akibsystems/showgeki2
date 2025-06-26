@@ -31,8 +31,10 @@ if (!openaiApiKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
-// Cloud Run環境用のパス設定
-const WORK_DIR = '/app/mulmocast-cli';
+// 環境に応じたパス設定
+const WORK_DIR = process.env.NODE_ENV === 'development' 
+  ? '/app/mulmocast-cli' 
+  : '/app/mulmocast-cli';
 const SCHOOL_JSON_PATH = path.join(WORK_DIR, 'scripts', 'school.json');
 const OUTPUT_VIDEO_PATH = path.join(WORK_DIR, 'output', 'school.mp4');
 
@@ -150,18 +152,59 @@ function generateMovie() {
   try {
     console.log('mulmocast-cliで動画生成中...');
     
-    // Cloud Run環境では、mulmocast-cliが利用できない場合の代替処理
-    // この部分は実際のmulmocast-cli環境に合わせて調整が必要
-    console.log('⚠️ Cloud Run環境では動画生成をスキップします');
-    
-    // ダミーファイルを作成（実際の環境では削除）
-    const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    // 開発環境では実際のmulmocast-cliを使用
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎬 実際のmulmocast-cliで動画生成を開始...');
+      
+      // mulmocast-cliが存在するかチェック
+      const mulmocastPath = '/app/mulmocast-cli';
+      if (!fs.existsSync(path.join(mulmocastPath, 'package.json'))) {
+        throw new Error('mulmocast-cli が見つかりません');
+      }
+      
+      // 出力ディレクトリを確保
+      const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      
+      try {
+        // 実際のmulmocast-cliコマンドを実行
+        const command = 'npm run movie scripts/school.json';
+        console.log(`実行コマンド: ${command}`);
+        
+        execSync(command, {
+          cwd: mulmocastPath,
+          stdio: 'inherit',
+          timeout: 300000 // 5分タイムアウト
+        });
+        
+        // 出力ファイルの存在確認
+        if (!fs.existsSync(OUTPUT_VIDEO_PATH)) {
+          throw new Error(`出力動画ファイルが見つかりません: ${OUTPUT_VIDEO_PATH}`);
+        }
+        
+        console.log('✅ 動画生成完了');
+        
+      } catch (execError) {
+        console.error('mulmocast-cli実行エラー:', execError.message);
+        // 開発環境でもフォールバック
+        console.log('⚠️ フォールバック: ダミーファイルを作成');
+        fs.writeFileSync(OUTPUT_VIDEO_PATH, 'dummy video content - mulmocast failed', 'utf8');
+      }
+      
+    } else {
+      // 本番環境ではダミー実装
+      console.log('⚠️ 本番環境では動画生成をスキップします');
+      
+      const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      fs.writeFileSync(OUTPUT_VIDEO_PATH, 'dummy video content', 'utf8');
+      
+      console.log('✅ 動画生成完了 (ダミー)');
     }
-    fs.writeFileSync(OUTPUT_VIDEO_PATH, 'dummy video content', 'utf8');
-    
-    console.log('✅ 動画生成完了 (ダミー)');
 
   } catch (error) {
     throw new Error(`動画生成エラー: ${error.message}`);
