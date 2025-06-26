@@ -10,6 +10,11 @@ import {
   type Story
 } from '@/lib/schemas';
 import { ErrorType } from '@/types';
+import { 
+  generateMulmoscriptWithFallback, 
+  testOpenAIConnection,
+  type ScriptGenerationOptions 
+} from '@/lib/openai-client';
 
 // ================================================================
 // Route Parameters Type
@@ -47,71 +52,30 @@ async function getStoryWithAuth(storyId: string, uid: string) {
 }
 
 /**
- * Generate mock script for testing
- * TODO: Replace with actual LLM integration
+ * Parse request body for script generation options
  */
-function generateMockMulmoscript(story: Story): Mulmoscript {
-  const scenes = [
-    {
-      id: 'scene_001',
-      type: 'narration' as const,
-      content: `Once upon a time, in the world of "${story.title}"...`,
-      duration: 3.0,
-      voice: {
-        character: 'narrator',
-        emotion: 'neutral'
-      }
-    },
-    {
-      id: 'scene_002', 
-      type: 'dialogue' as const,
-      content: story.text_raw.slice(0, 200) + '...',
-      duration: 8.0,
-      voice: {
-        character: 'protagonist',
-        emotion: 'excited'
-      }
-    },
-    {
-      id: 'scene_003',
-      type: 'action' as const,
-      content: 'Visual transition showing the story development',
-      duration: 2.0
-    },
-    {
-      id: 'scene_004',
-      type: 'dialogue' as const,
-      content: 'And thus our tale unfolds with wisdom and wonder...',
-      duration: 4.0,
-      voice: {
-        character: 'wise_character',
-        emotion: 'contemplative'
-      }
-    },
-    {
-      id: 'scene_005',
-      type: 'narration' as const,
-      content: 'The end of our magical story.',
-      duration: 3.0,
-      voice: {
-        character: 'narrator',
-        emotion: 'peaceful'
-      }
-    }
-  ];
-
-  const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0);
-
-  return {
-    version: 'v1.0',
-    title: story.title,
-    scenes,
-    metadata: {
-      duration_total: totalDuration,
-      resolution: '1920x1080',
-      fps: 30
-    }
-  };
+async function parseScriptGenerationOptions(request: NextRequest): Promise<ScriptGenerationOptions> {
+  try {
+    const body = await request.json();
+    
+    return {
+      templateId: body.template_id,
+      targetDuration: typeof body.target_duration === 'number' ? body.target_duration : 20,
+      stylePreference: ['dramatic', 'comedic', 'adventure', 'romantic', 'mystery'].includes(body.style_preference) 
+        ? body.style_preference 
+        : 'dramatic',
+      language: ['japanese', 'english'].includes(body.language) ? body.language : 'japanese',
+      retryCount: typeof body.retry_count === 'number' ? Math.min(body.retry_count, 3) : 2,
+    };
+  } catch {
+    // If no body or invalid JSON, return defaults
+    return {
+      targetDuration: 20,
+      stylePreference: 'dramatic',
+      language: 'japanese',
+      retryCount: 2,
+    };
+  }
 }
 
 // ================================================================
@@ -173,12 +137,22 @@ async function generateScript(
       }
     }
 
-    // Generate script for story
+    // Parse generation options from request body
+    const generationOptions = await parseScriptGenerationOptions(request);
 
-    // Generate script (currently mock, replace with actual LLM integration)
-    const generatedScript = generateMockMulmoscript(story);
+    console.log(`[Script Generation] Starting for story ${storyId} with options:`, {
+      ...generationOptions,
+      story_title: story.title,
+      story_length: story.text_raw.length
+    });
 
-    // Validate generated script
+    // Generate script using OpenAI integration with fallback
+    const { script: generatedScript, generated_with_ai } = await generateMulmoscriptWithFallback(
+      story, 
+      generationOptions
+    );
+
+    // Validate generated script (already validated in generateMulmoscriptWithFallback, but double-check)
     const scriptValidation = validateSchema(MulmoscriptSchema, generatedScript);
     if (!scriptValidation.success) {
       console.error('Generated script validation failed:', scriptValidation.errors);
@@ -192,6 +166,14 @@ async function generateScript(
         { status: 500 }
       );
     }
+
+    console.log(`[Script Generation] Completed for story ${storyId}`, {
+      generated_with_ai,
+      beat_count: generatedScript.beats.length,
+      has_speech_params: !!generatedScript.speechParams,
+      has_image_params: !!generatedScript.imageParams,
+      language: generatedScript.lang || 'en'
+    });
 
     const supabase = createAdminClient();
 
@@ -229,7 +211,9 @@ async function generateScript(
     const responseData = {
       script_json: scriptValidation.data,
       status: updatedStory.status as 'script_generated',
-      story: storyValidation.success ? storyValidation.data : updatedStory
+      story: storyValidation.success ? storyValidation.data : updatedStory,
+      generated_with_ai: generated_with_ai,
+      generation_options: generationOptions
     };
 
     // Validate response format - ensuring type consistency
@@ -241,7 +225,9 @@ async function generateScript(
     return NextResponse.json({
       success: true,
       data: responseData,
-      message: 'Script generated successfully',
+      message: generated_with_ai 
+        ? 'Script generated successfully with AI' 
+        : 'Script generated successfully with fallback method',
       timestamp: new Date().toISOString()
     });
 

@@ -77,10 +77,94 @@ export const ReviewSchema = z.object({
 });
 
 // ================================================================
-// Mulmocast Script Schema
+// Mulmocast Script Schema (公式フォーマット準拠)
 // ================================================================
 
-// シーンスキーマ
+// mulmocast 公式スキーマ準拠
+export const MulmoSpeakerDataSchema = z.object({
+  voiceId: z.string(),
+  displayName: z.record(z.string(), z.string()).optional(),
+});
+
+export const MulmoSpeakersSchema = z.record(z.string(), MulmoSpeakerDataSchema);
+
+export const MulmoSpeechParamsSchema = z.object({
+  provider: z.enum(['openai', 'nijivoice', 'google', 'elevenlabs']).default('openai'),
+  speakers: MulmoSpeakersSchema,
+});
+
+export const MulmoImageParamsSchema = z.object({
+  provider: z.enum(['openai', 'google']).default('openai').optional(),
+  model: z.string().optional(),
+  style: z.string().optional(),
+  quality: z.string().optional(),
+});
+
+export const MulmoCanvasSizeSchema = z.object({
+  width: z.number().default(1280),
+  height: z.number().default(720),
+});
+
+export const MulmoAudioParamsSchema = z.object({
+  padding: z.number().default(0.3),
+  introPadding: z.number().default(1.0),
+  closingPadding: z.number().default(0.8),
+  outroPadding: z.number().default(1.0),
+  bgmVolume: z.number().default(0.2),
+  audioVolume: z.number().default(1.0),
+});
+
+export const MulmoTextSlideSchema = z.object({
+  type: z.literal('textSlide'),
+  slide: z.object({
+    title: z.string(),
+    subtitle: z.string().optional(),
+    bullets: z.array(z.string()).optional(),
+  }),
+});
+
+export const MulmoImageSchema = z.object({
+  type: z.literal('image'),
+  source: z.object({
+    kind: z.enum(['url', 'path', 'base64', 'text']),
+    url: z.string().optional(),
+    path: z.string().optional(),
+    data: z.string().optional(),
+    text: z.string().optional(),
+  }),
+});
+
+export const MulmoImageAssetSchema = z.union([
+  MulmoTextSlideSchema,
+  MulmoImageSchema,
+]);
+
+export const MulmoBeatSchema = z.object({
+  speaker: z.string().default('Presenter'),
+  text: z.string().default(''),
+  id: z.string().optional(),
+  description: z.string().optional(),
+  image: MulmoImageAssetSchema.optional(),
+  imagePrompt: z.string().optional(),
+  duration: z.number().optional(),
+});
+
+export const MulmoscriptSchema = z.object({
+  $mulmocast: z.object({
+    version: z.literal('1.0'),
+    credit: z.literal('closing').optional(),
+  }),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  lang: z.string().default('en'),
+  canvasSize: MulmoCanvasSizeSchema.optional(),
+  speechParams: MulmoSpeechParamsSchema,
+  imageParams: MulmoImageParamsSchema.optional(),
+  audioParams: MulmoAudioParamsSchema.optional(),
+  beats: z.array(MulmoBeatSchema).min(1),
+});
+
+// 後方互換性のため古いScene型を残す
 export const SceneSchema = z.object({
   id: z.string(),
   type: z.enum(['dialogue', 'narration', 'action']),
@@ -90,18 +174,6 @@ export const SceneSchema = z.object({
     character: z.string(),
     emotion: z.string(),
   }).optional(),
-});
-
-// mulmoscript全体スキーマ
-export const MulmoscriptSchema = z.object({
-  version: z.string(),
-  title: z.string().min(1, 'Script title is required'),
-  scenes: z.array(SceneSchema).min(1, 'At least one scene is required'),
-  metadata: z.object({
-    duration_total: z.number().positive(),
-    resolution: z.string(),
-    fps: z.number().int().positive(),
-  }),
 });
 
 // ================================================================
@@ -131,6 +203,14 @@ export const UpdateStoryRequestSchema = z.object({
 export const GenerateScriptResponseSchema = z.object({
   script_json: MulmoscriptSchema,
   status: StoryStatusSchema,
+  generated_with_ai: z.boolean().optional(),
+  generation_options: z.object({
+    templateId: z.string().optional(),
+    targetDuration: z.number().optional(),
+    stylePreference: z.enum(['dramatic', 'comedic', 'adventure', 'romantic', 'mystery']).optional(),
+    language: z.enum(['japanese', 'english']).optional(),
+    retryCount: z.number().optional(),
+  }).optional(),
 });
 
 // 動画生成レスポンス
@@ -210,6 +290,9 @@ export type Review = z.infer<typeof ReviewSchema>;
 export type StoryStatus = z.infer<typeof StoryStatusSchema>;
 export type VideoStatus = z.infer<typeof VideoStatusSchema>;
 export type Mulmoscript = z.infer<typeof MulmoscriptSchema>;
+export type MulmoBeat = z.infer<typeof MulmoBeatSchema>;
+export type MulmoSpeechParams = z.infer<typeof MulmoSpeechParamsSchema>;
+export type MulmoImageParams = z.infer<typeof MulmoImageParamsSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
 
 // API リクエスト・レスポンス型
