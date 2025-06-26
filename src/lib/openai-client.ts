@@ -6,13 +6,13 @@
  */
 
 import OpenAI from 'openai';
-import { 
-  generateOpenAIPrompt, 
-  logPromptPerformance, 
-  extractJSONFromResponse, 
+import {
+  generateOpenAIPrompt,
+  logPromptPerformance,
+  extractJSONFromResponse,
   validateGeneratedScript,
   createPromptHash,
-  type PromptPerformanceLog 
+  type PromptPerformanceLog
 } from './prompt-templates';
 import { type Story, type Mulmoscript, MulmoscriptSchema, validateSchema } from './schemas';
 
@@ -76,10 +76,10 @@ function getOpenAIClient(): OpenAI {
     if (!apiKey) {
       throw new Error('OpenAI API key not configured. Set OPENAI_API_KEY environment variable.');
     }
-    
+
     initializeOpenAI({ apiKey });
   }
-  
+
   return openaiClient as OpenAI;
 }
 
@@ -97,17 +97,17 @@ export async function generateMulmoscriptWithOpenAI(
   const startTime = Date.now();
   let retryCount = 0;
   const maxRetries = options.retryCount || 2;
-  
+
   // Default configuration
   const config = {
-    model: 'gpt-4o-mini', // Cost-effective model for script generation
+    model: 'gpt-4.1', // Cost-effective model for script generation
     maxTokens: 2000,
     temperature: 0.7, // Balanced creativity and consistency
   };
-  
+
   try {
     const client = getOpenAIClient();
-    
+
     // Generate prompt using template system
     const promptData = generateOpenAIPrompt(story, {
       templateId: options.templateId,
@@ -115,14 +115,14 @@ export async function generateMulmoscriptWithOpenAI(
       stylePreference: options.stylePreference,
       language: options.language,
     });
-    
+
     const promptHash = createPromptHash(promptData.messages[1].content);
-    
+
     // Retry logic for handling API failures
     while (retryCount <= maxRetries) {
       try {
         console.log(`[OpenAI] Generating script for story ${story.id} (attempt ${retryCount + 1}/${maxRetries + 1})`);
-        
+
         // Call OpenAI API
         const completion = await client.chat.completions.create({
           model: config.model,
@@ -131,36 +131,36 @@ export async function generateMulmoscriptWithOpenAI(
           temperature: config.temperature,
           response_format: { type: "json_object" }, // Ensure JSON response
         });
-        
+
         const responseTime = Date.now() - startTime;
         const choice = completion.choices[0];
-        
+
         if (!choice?.message?.content) {
           throw new Error('Empty response from OpenAI API');
         }
-        
+
         // Extract and validate JSON
         const rawContent = choice.message.content;
         let scriptData: any;
-        
+
         try {
           scriptData = extractJSONFromResponse(rawContent);
         } catch (parseError) {
           throw new Error(`JSON parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         }
-        
+
         // Validate generated script structure
         const validation = validateGeneratedScript(scriptData);
         if (!validation.valid) {
           throw new Error(`Generated script validation failed: ${validation.errors.join(', ')}`);
         }
-        
+
         // Final Zod validation
         const zodValidation = validateSchema(MulmoscriptSchema, validation.script);
         if (!zodValidation.success) {
           throw new Error(`Zod validation failed: ${zodValidation.errors?.map(e => e.message).join(', ')}`);
         }
-        
+
         // Log successful generation
         const performanceLog: PromptPerformanceLog = {
           template_id: promptData.metadata.template_id,
@@ -172,11 +172,11 @@ export async function generateMulmoscriptWithOpenAI(
           generated_script_valid: true,
           timestamp: new Date().toISOString(),
         };
-        
+
         logPromptPerformance(performanceLog);
-        
+
         console.log(`[OpenAI] Successfully generated script for story ${story.id} in ${responseTime}ms`);
-        
+
         return {
           success: true,
           script: zodValidation.data as Mulmoscript,
@@ -190,13 +190,13 @@ export async function generateMulmoscriptWithOpenAI(
             retry_count: retryCount,
           },
         };
-        
+
       } catch (attemptError) {
         retryCount++;
         const errorMessage = attemptError instanceof Error ? attemptError.message : 'Unknown error';
-        
+
         console.warn(`[OpenAI] Attempt ${retryCount} failed for story ${story.id}: ${errorMessage}`);
-        
+
         if (retryCount > maxRetries) {
           // Log failed generation
           const performanceLog: PromptPerformanceLog = {
@@ -210,25 +210,25 @@ export async function generateMulmoscriptWithOpenAI(
             generated_script_valid: false,
             timestamp: new Date().toISOString(),
           };
-          
+
           logPromptPerformance(performanceLog);
-          
+
           throw attemptError;
         }
-        
+
         // Wait before retry (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
     }
-    
+
     throw new Error('Maximum retries exceeded');
-    
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error during script generation';
     const responseTime = Date.now() - startTime;
-    
+
     console.error(`[OpenAI] Failed to generate script for story ${story.id}: ${errorMessage}`);
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -255,24 +255,24 @@ export async function generateMulmoscriptWithFallback(
   try {
     // Try OpenAI generation first
     const result = await generateMulmoscriptWithOpenAI(story, options);
-    
+
     if (result.success && result.script) {
       return {
         script: result.script,
         generated_with_ai: true,
       };
     }
-    
+
     // If OpenAI fails, fall back to mock generation
     console.warn(`[OpenAI] Falling back to mock generation for story ${story.id}: ${result.error}`);
-    
+
   } catch (error) {
     console.error(`[OpenAI] Error during AI generation, falling back to mock: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  
+
   // Fallback: Use enhanced mock generation
   const mockScript = generateEnhancedMockMulmoscript(story, options);
-  
+
   return {
     script: mockScript,
     generated_with_ai: false,
@@ -292,7 +292,7 @@ function generateEnhancedMockMulmoscript(
 ): Mulmoscript {
   const style = options.stylePreference || 'dramatic';
   const language = options.language || 'japanese';
-  
+
   // Style-based content variations
   const styleVariations = {
     dramatic: {
@@ -321,9 +321,9 @@ function generateEnhancedMockMulmoscript(
       closing: 'The mystery is solved, but its intrigue lingers in the mind.',
     },
   };
-  
+
   const variation = styleVariations[style];
-  
+
   // Create beats with proper mulmocast format
   const beats = [
     {
@@ -352,7 +352,7 @@ function generateEnhancedMockMulmoscript(
       imagePrompt: `Conclusion scene: ${variation.imageStyle}, peaceful resolution showing the outcome`,
     },
   ];
-  
+
   return {
     $mulmocast: {
       version: '1.0' as const,
@@ -364,7 +364,7 @@ function generateEnhancedMockMulmoscript(
       speakers: {
         Narrator: {
           voiceId: 'shimmer',
-          displayName: language === 'japanese' 
+          displayName: language === 'japanese'
             ? { ja: '語り手', en: 'Narrator' }
             : { en: 'Narrator', ja: '語り手' },
         },
@@ -403,18 +403,18 @@ export async function testOpenAIConnection(): Promise<{
 }> {
   try {
     const client = getOpenAIClient();
-    
+
     // Simple test request (must mention "JSON" when using json_object format)
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [{ 
-        role: 'user', 
-        content: 'Test connection. Please respond with valid JSON format: {"status": "ok"}' 
+      messages: [{
+        role: 'user',
+        content: 'Test connection. Please respond with valid JSON format: {"status": "ok"}'
       }],
       max_tokens: 50,
       response_format: { type: "json_object" },
     });
-    
+
     const response = completion.choices[0]?.message?.content;
     if (response) {
       const parsed = JSON.parse(response);
@@ -428,12 +428,12 @@ export async function testOpenAIConnection(): Promise<{
         };
       }
     }
-    
+
     return {
       success: false,
       error: 'Unexpected response format',
     };
-    
+
   } catch (error) {
     return {
       success: false,

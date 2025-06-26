@@ -38,101 +38,6 @@ const WORK_DIR = process.env.NODE_ENV === 'development'
 const SCHOOL_JSON_PATH = path.join(WORK_DIR, 'scripts', 'school.json');
 const OUTPUT_VIDEO_PATH = path.join(WORK_DIR, 'output', 'school.mp4');
 
-async function generateScriptWithOpenAI(storyText) {
-  try {
-    console.log('OpenAI APIでスクリプト生成中...');
-
-    const prompt = `以下のストーリーをシェイクスピア風の５幕の悲喜劇として台本を考えてください。
-
-【制約】
-- 各幕で1人の人物が1つ台詞を言います
-- 登場人物は全体で1〜3名で、ストーリーに応じて調整してください
-- 音声は次の音声IDの中から選んでください
-　(男性) alloy, echo, fable, onyx
-　(女性) nova, shimmer
-- 登場人物の名前と、音声IDを決めてください
-- セリフは現代的でカジュアルな日本語を使ってください
-- 背景や登場人物はストーリに応じて一貫性を持たせてください
-- 以下のJSON形式で出力してください
-
-{
-    "$mulmocast": {
-        "version": "1.0"
-    },
-    "imageParams": {
-        "style": "Ghibli style anime, soft pastel colors, delicate line art, cinematic lighting",
-        "model": "gpt-image-1",
-        "quality": "medium"
-    },
-    "speechParams": {
-        "provider": "openai",
-        "speakers": {
-            "[人物1]": {
-                "voiceId": "[人物1の音声ID]"
-            },
-            "[人物2]": {
-                "voiceId": "[人物2の音声ID]"
-            }
-        }
-    },
-    "beats": [
-        {
-            "speaker": "[speakersの中の人物名]",
-            "text": "[第１幕のセリフ]",
-            "imagePrompt": "[第１幕の画像]"
-        },
-        {
-            "speaker": "[speakersの中の人物名]",
-            "text": "[第２幕のセリフ]",
-            "imagePrompt": "[第２幕の画像]"
-        },
-        {
-            "speaker": "[speakersの中の人物名]",
-            "text": "[第３幕のセリフ]",
-            "imagePrompt": "[第３幕の画像]"
-        },
-        {
-            "speaker": "[speakersの中の人物名]",
-            "text": "[第４幕のセリフ]",
-            "imagePrompt": "[第４幕の画像]"
-        },
-        {
-            "speaker": "[speakersの中の人物名]",
-            "text": "[第５幕のセリフ]",
-            "imagePrompt": "[第５幕の画像]"
-        }
-    ]
-}
-
-【ストーリー】
-${storyText}`;
-
-    const response = await openai.chat.completions.create({
-      model: 'o4-mini',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      response_format: { type: 'json_object' }
-    });
-
-    const jsonContent = response.choices[0].message.content;
-
-    try {
-      // JSONの妥当性をチェック
-      JSON.parse(jsonContent);
-      return jsonContent;
-    } catch (parseError) {
-      throw new Error(`生成されたJSONが無効です: ${parseError.message}`);
-    }
-  } catch (error) {
-    console.error('OpenAI APIエラー:', error.message);
-    throw error;
-  }
-}
-
 function writeSchoolJson(jsonContent) {
   try {
     console.log('school.jsonに書き込み中...');
@@ -166,7 +71,7 @@ function generateMovie() {
     console.log(`  - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
     console.log(`  - Working Directory: ${process.cwd()}`);
     console.log(`  - Mulmocast Path: ${mulmocastPath}`);
-    
+
     // ディスク容量チェック
     try {
       const { execSync: exec } = require('child_process');
@@ -184,7 +89,7 @@ function generateMovie() {
 
     try {
       // 実際のmulmocast-cliコマンドを実行
-      const command = 'npm run movie scripts/school.json';
+      const command = 'yarn movie scripts/school.json -f';
       console.log(`実行コマンド: ${command}`);
       console.log('🚀 mulmocast-cli 実行開始...');
 
@@ -195,7 +100,7 @@ function generateMovie() {
         timeout: 600000, // 10分タイムアウト (Cloud Run制限を考慮)
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer (大きなログ出力に対応)
       });
-      
+
       const executionTime = Date.now() - startTime;
       console.log(`⏱️ mulmocast-cli 実行完了: ${Math.round(executionTime / 1000)}秒`);
 
@@ -285,26 +190,19 @@ async function processVideoGeneration(payload) {
 
     let jsonContent;
 
-    // Check if script_json already exists
+    // Check if script_json already exists - REQUIRED
     if (script_json && typeof script_json === 'object') {
       console.log('2. 既存のスクリプトを使用...');
       jsonContent = JSON.stringify(script_json, null, 2);
       console.log('✅ スクリプト準備完了');
     } else {
-      // Generate script with OpenAI if not exists
-      console.log('2. OpenAI APIでスクリプト生成中...');
-      jsonContent = await generateScriptWithOpenAI(text_raw);
-      console.log('✅ スクリプト生成完了');
+      // script_jsonが存在しない場合はエラーで終了
+      const errorMessage = `script_jsonが存在しません。動画生成にはスクリプトが必要です。`;
+      console.error('❌ エラー:', errorMessage);
+      console.error('📝 受信したscript_json:', script_json);
+      console.error('📝 script_json型:', typeof script_json);
 
-      // Update story with generated script
-      await supabase
-        .from('stories')
-        .update({
-          script_json: JSON.parse(jsonContent),
-          status: 'script_generated'
-        })
-        .eq('id', story_id)
-        .eq('uid', uid);
+      throw new Error(errorMessage);
     }
     console.log('');
 
@@ -417,7 +315,7 @@ const server = http.createServer(async (req, res) => {
           processVideoGeneration(requestData).catch(error => {
             console.error('❌ 動画生成処理でエラー:', error.message);
             console.error('❌ エラースタック:', error.stack);
-            
+
             // エラーを動画レコードに記録
             if (requestData.video_id && requestData.uid) {
               supabase

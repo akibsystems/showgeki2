@@ -220,7 +220,9 @@ Respond with ONLY the JSON mulmocast script (no additional text):
     }
   },
   "imageParams": {
-    "style": "{{style_preference}} style, cinematic, high quality, detailed"
+    "style": "Ghibli style anime, soft pastel colors, delicate line art, cinematic lighting",
+    "model": "gpt-image-1",
+    "quality": "low"
   },
   "beats": [
     {
@@ -325,11 +327,11 @@ export function registerTemplate(template: PromptTemplate): void {
  * Replace template variables with actual values
  */
 export function substituteVariables(
-  template: string, 
+  template: string,
   context: PromptContext
 ): string {
   let result = template;
-  
+
   // Default values
   const defaults = {
     target_duration: '20.0',
@@ -337,7 +339,7 @@ export function substituteVariables(
     voice_count: '3',
     language: 'japanese'
   };
-  
+
   // Combine context with defaults
   const variables = {
     story_title: context.story_title,
@@ -347,13 +349,13 @@ export function substituteVariables(
     voice_count: (context.voice_count || 3).toString(),
     language: context.language || defaults.language
   };
-  
+
   // Replace all variables
   Object.entries(variables).forEach(([key, value]) => {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     result = result.replace(regex, value);
   });
-  
+
   return result;
 }
 
@@ -361,11 +363,11 @@ export function substituteVariables(
  * Validate that all required variables are provided
  */
 export function validateContext(
-  template: PromptTemplate, 
+  template: PromptTemplate,
   context: PromptContext
 ): { valid: boolean; missing: string[] } {
   const missing: string[] = [];
-  
+
   template.variables.forEach(variable => {
     const value = (context as any)[variable];
     if (value === undefined || value === null || value === '') {
@@ -375,7 +377,7 @@ export function validateContext(
       }
     }
   });
-  
+
   return {
     valid: missing.length === 0,
     missing
@@ -398,14 +400,14 @@ export function generatePrompt(
     language?: PromptContext['language'];
   } = {}
 ): PromptGenerationResult {
-  const template = options.templateId 
-    ? getTemplate(options.templateId) 
+  const template = options.templateId
+    ? getTemplate(options.templateId)
     : getDefaultTemplate();
-    
+
   if (!template) {
     throw new Error(`Template not found: ${options.templateId}`);
   }
-  
+
   const context: PromptContext = {
     story_title: story.title,
     story_text: story.text_raw,
@@ -414,19 +416,19 @@ export function generatePrompt(
     voice_count: 3,
     language: options.language || 'japanese'
   };
-  
+
   // Validate context
   const validation = validateContext(template, context);
   if (!validation.valid) {
     throw new Error(`Missing required context variables: ${validation.missing.join(', ')}`);
   }
-  
+
   // Generate prompt
   const prompt = substituteVariables(template.content, context);
-  
+
   // Estimate token count (rough approximation: 1 token ≈ 4 characters)
   const estimatedTokens = Math.ceil(prompt.length / 4);
-  
+
   return {
     prompt,
     template_id: template.id,
@@ -441,7 +443,7 @@ export function generatePrompt(
  */
 export function generateOpenAIPrompt(story: Story, options: Parameters<typeof generatePrompt>[1] = {}) {
   const result = generatePrompt(story, options);
-  
+
   return {
     messages: [
       {
@@ -468,17 +470,17 @@ const performanceLog: PromptPerformanceLog[] = [];
  */
 export function logPromptPerformance(log: PromptPerformanceLog): void {
   performanceLog.push(log);
-  
+
   // Update template statistics
   const template = getTemplate(log.template_id);
   if (template) {
     template.metadata.usage_count = (template.metadata.usage_count || 0) + 1;
-    
+
     // Calculate success rate
     const templateLogs = performanceLog.filter(l => l.template_id === log.template_id);
     const successCount = templateLogs.filter(l => l.success && l.generated_script_valid).length;
     template.metadata.success_rate = successCount / templateLogs.length;
-    
+
     // Update timestamp
     template.metadata.updated_at = new Date().toISOString();
   }
@@ -497,7 +499,7 @@ export function getTemplatePerformance(templateId: string): {
 } {
   const template = getTemplate(templateId);
   const logs = performanceLog.filter(l => l.template_id === templateId);
-  
+
   if (!template || logs.length === 0) {
     return {
       usage_count: 0,
@@ -508,9 +510,9 @@ export function getTemplatePerformance(templateId: string): {
       recent_logs: []
     };
   }
-  
+
   const successfulLogs = logs.filter(l => l.success);
-  
+
   return {
     usage_count: logs.length,
     success_rate: successfulLogs.length / logs.length,
@@ -530,7 +532,7 @@ export function getOverallPerformance(): {
   template_performance: Record<string, ReturnType<typeof getTemplatePerformance>>;
 } {
   const allTemplates = getAllTemplates();
-  
+
   return {
     total_requests: performanceLog.length,
     overall_success_rate: performanceLog.filter(l => l.success && l.generated_script_valid).length / Math.max(performanceLog.length, 1),
@@ -567,7 +569,7 @@ export function extractJSONFromResponse(response: string): any {
     .replace(/```json\s*\n?/g, '')
     .replace(/```\s*$/g, '')
     .trim();
-  
+
   try {
     return JSON.parse(cleanResponse);
   } catch (error) {
@@ -589,31 +591,31 @@ export function validateGeneratedScript(scriptData: any): {
   script?: Mulmoscript;
 } {
   const errors: string[] = [];
-  
+
   // Basic structure validation
   if (!scriptData || typeof scriptData !== 'object') {
     errors.push('Response is not a valid object');
     return { valid: false, errors };
   }
-  
+
   // Mulmocast format validation
   if (!scriptData.$mulmocast) errors.push('Missing $mulmocast field');
   else if (!scriptData.$mulmocast.version) errors.push('Missing $mulmocast.version field');
-  
+
   if (!scriptData.speechParams) errors.push('Missing speechParams field');
   else {
     if (!scriptData.speechParams.speakers) errors.push('Missing speechParams.speakers field');
     if (!scriptData.speechParams.provider) errors.push('Missing speechParams.provider field');
   }
-  
+
   if (!Array.isArray(scriptData.beats)) errors.push('Beats must be an array');
-  
+
   // Beats validation
   if (scriptData.beats) {
     if (scriptData.beats.length === 0) {
       errors.push('At least one beat is required');
     }
-    
+
     scriptData.beats.forEach((beat: any, index: number) => {
       if (!beat.speaker) errors.push(`Beat ${index + 1}: Missing speaker`);
       if (!beat.text && typeof beat.text !== 'string') errors.push(`Beat ${index + 1}: Missing or invalid text`);
@@ -623,16 +625,16 @@ export function validateGeneratedScript(scriptData: any): {
       }
     });
   }
-  
+
   // Optional fields validation
   if (scriptData.lang && typeof scriptData.lang !== 'string') {
     errors.push('Invalid lang field type');
   }
-  
+
   if (scriptData.imageParams && typeof scriptData.imageParams !== 'object') {
     errors.push('Invalid imageParams field type');
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
