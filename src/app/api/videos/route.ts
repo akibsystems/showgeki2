@@ -35,8 +35,9 @@ async function getVideos(
 
     // Apply filters
     if (storyId) {
-      // Validate story ID format (8-character string)
-      if (typeof storyId !== 'string' || storyId.length !== 8 || !/^[A-Z0-9]+$/.test(storyId)) {
+      // Validate story ID format (UUID)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (typeof storyId !== 'string' || !uuidRegex.test(storyId)) {
         return NextResponse.json(
           {
             error: 'Invalid story_id format',

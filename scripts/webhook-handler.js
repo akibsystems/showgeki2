@@ -180,6 +180,9 @@ async function processVideoGeneration(payload) {
     if (!uuidRegex.test(video_id)) {
       throw new Error(`無効なvideo_id形式: "${video_id}" - UUID形式である必要があります`);
     }
+    if (!uuidRegex.test(story_id)) {
+      throw new Error(`無効なstory_id形式: "${story_id}" - UUID形式である必要があります`);
+    }
 
     // Update video status to 'processing'
     await supabase

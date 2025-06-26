@@ -32,7 +32,7 @@ export const StoryStatusSchema = z.enum([
 
 // ストーリースキーマ
 export const StorySchema = z.object({
-  id: z.string().length(8, 'Story ID must be 8 characters'),
+  id: z.string().uuid('Story ID must be UUID format'),
   workspace_id: z.string().uuid(),
   uid: UidSchema,
   title: z.string().min(1, 'Title is required').max(255, 'Title is too long'),
@@ -56,7 +56,7 @@ export const VideoStatusSchema = z.enum([
 // 動画スキーマ
 export const VideoSchema = z.object({
   id: z.string().uuid(),
-  story_id: z.string().length(8),
+  story_id: z.string().uuid(),
   uid: UidSchema,
   url: z.string().url().optional(),
   duration_sec: z.number().int().positive().optional(),
@@ -70,7 +70,7 @@ export const VideoSchema = z.object({
 // レビュースキーマ（既存互換）
 export const ReviewSchema = z.object({
   id: z.string().uuid(),
-  story_id: z.string().length(8),
+  story_id: z.string().uuid(),
   review_text: z.string().min(1, 'Review text is required'),
   rating: z.number().int().min(1).max(5),
   created_at: z.string().datetime(),

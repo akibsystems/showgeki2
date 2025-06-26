@@ -24,8 +24,9 @@ interface RouteContext {
  * Validate story ID format
  */
 function isValidStoryId(id: string): boolean {
-  // Story IDs are 8-character strings
-  return typeof id === 'string' && id.length === 8 && /^[A-Z0-9]+$/.test(id);
+  // Story IDs are now UUIDs
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return typeof id === 'string' && uuidRegex.test(id);
 }
 
 /**

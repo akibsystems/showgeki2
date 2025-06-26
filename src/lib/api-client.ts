@@ -228,12 +228,20 @@ export class ApiClient {
 
       // Parse response
       const contentType = response.headers.get('content-type');
-      let responseData: T;
+      let responseData: any;
 
       if (contentType?.includes('application/json')) {
         responseData = await response.json();
       } else {
         responseData = (await response.text()) as unknown as T;
+      }
+
+      // Extract data from API response format { success: true, data: ... }
+      let extractedData: T;
+      if (responseData && typeof responseData === 'object' && responseData.success && responseData.data !== undefined) {
+        extractedData = responseData.data;
+      } else {
+        extractedData = responseData;
       }
 
       // Convert headers to object
@@ -243,7 +251,7 @@ export class ApiClient {
       });
 
       return {
-        data: responseData,
+        data: extractedData,
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
@@ -282,62 +290,26 @@ export class ApiClient {
 
   async get<T>(url: string, params?: Record<string, string>): Promise<T> {
     const response = await this.request<T>({ method: 'GET', url, params });
-    
-    // Handle API response format { success: true, data: ... }
-    const responseData = response.data as any;
-    if (responseData && responseData.success && responseData.data !== undefined) {
-      return responseData.data;
-    }
-    
     return response.data;
   }
 
   async post<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'POST', url, data });
-    console.log('API POST response:', response.data); // Debug log
-    
-    // Handle API response format { success: true, data: ... }
-    const responseData = response.data as any;
-    if (responseData && responseData.success && responseData.data !== undefined) {
-      return responseData.data;
-    }
-    
     return response.data;
   }
 
   async put<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'PUT', url, data });
-    
-    // Handle API response format { success: true, data: ... }
-    const responseData = response.data as any;
-    if (responseData && responseData.success && responseData.data !== undefined) {
-      return responseData.data;
-    }
-    
     return response.data;
   }
 
   async delete<T>(url: string): Promise<T> {
     const response = await this.request<T>({ method: 'DELETE', url });
-    
-    // Handle API response format { success: true, data: ... }
-    const responseData = response.data as any;
-    if (responseData && responseData.success && responseData.data !== undefined) {
-      return responseData.data;
-    }
-    
     return response.data;
   }
 
   async patch<T>(url: string, data?: any): Promise<T> {
     const response = await this.request<T>({ method: 'PATCH', url, data });
-    
-    // Handle API response format { success: true, data: ... }
-    const responseData = response.data as any;
-    if (responseData && responseData.success && responseData.data !== undefined) {
-      return responseData.data;
-    }
-    
     return response.data;
   }
 

@@ -41,8 +41,8 @@ const StoryEditorPage: React.FC = () => {
   React.useEffect(() => {
     if (story) {
       setFormData({
-        title: story.title,
-        text_raw: story.text_raw,
+        title: story.title || '',
+        text_raw: story.text_raw || '',
       });
     }
   }, [story]);

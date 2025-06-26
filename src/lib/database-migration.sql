@@ -9,6 +9,8 @@
 -- 2. 関連テーブル・制約の削除（外部キー制約があるテーブルから先に削除）
 DROP TABLE IF EXISTS reviews CASCADE;
 DROP TABLE IF EXISTS stories CASCADE;
+DROP TABLE IF EXISTS videos CASCADE;
+DROP TABLE IF EXISTS workspaces CASCADE;
 
 -- 3. 新規テーブル群の作成
 
@@ -35,7 +37,7 @@ FOR ALL USING (true);
 -- stories テーブル（新スキーマ）
 -- ================================================================
 CREATE TABLE stories (
-  id VARCHAR(8) PRIMARY KEY DEFAULT upper(substring(gen_random_uuid()::text, 1, 8)),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   uid VARCHAR(36) NOT NULL,
   title VARCHAR(255) NOT NULL,
@@ -67,7 +69,7 @@ FOR ALL USING (true);
 -- ================================================================
 CREATE TABLE videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  story_id VARCHAR(8) NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
   uid VARCHAR(36) NOT NULL,
   url TEXT,
   duration_sec INTEGER CHECK (duration_sec > 0),
@@ -98,7 +100,7 @@ FOR ALL USING (true);
 -- ================================================================
 CREATE TABLE reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  story_id VARCHAR(8) NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
   review_text TEXT NOT NULL,
   rating INTEGER CHECK (rating >= 1 AND rating <= 5),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -158,9 +160,9 @@ INSERT INTO workspaces (id, uid, name) VALUES
 
 -- サンプルストーリー
 INSERT INTO stories (id, workspace_id, uid, title, text_raw, status) VALUES 
-  ('SAMPLE01', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
+  ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
    'カフェ経営の夢', '10年後に理想のカフェを経営していたい。地域の人々が集まる温かい場所を作りたい。', 'draft'),
-  ('SAMPLE02', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
+  ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
    '家族との幸せな時間', '家族と幸せに暮らしたい。子供たちの成長を見守り、一緒に過ごす時間を大切にしたい。', 'draft');
 
 -- ================================================================

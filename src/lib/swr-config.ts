@@ -28,19 +28,22 @@ const swrFetcher = async (url: string) => {
     
     // Extract data from API response format { success: true, data: ... }
     if (result.success && result.data !== undefined) {
+      const data = result.data;
+      
       // For list endpoints, extract the array from the data object
-      if (url.includes('/api/videos') && result.data.videos) {
-        return result.data.videos;
+      if (url.match(/^\/api\/videos(\?.*)?$/) && data.videos) {
+        return data.videos;
       }
-      if (url.includes('/api/stories') && result.data.stories) {
-        return result.data.stories;
+      if (url.match(/^\/api\/stories(\?.*)?$/) && data.stories) {
+        // This is a GET /api/stories (list endpoint)
+        return data.stories;
       }
-      if (url.includes('/api/workspaces') && result.data.workspaces) {
-        return result.data.workspaces;
+      if (url.match(/^\/api\/workspaces(\?.*)?$/) && data.workspaces) {
+        return data.workspaces;
       }
       
       // For single item endpoints, return the data directly
-      return result.data;
+      return data;
     }
     
     return result;
