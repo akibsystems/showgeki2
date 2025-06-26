@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, CardFooter, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
+import { ScriptEditor } from '@/components/editor';
+import { VideoModal } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
 
 // ================================================================
@@ -44,6 +46,8 @@ const StoryEditorPage: React.FC = () => {
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'content' | 'script'>('content');
   
   const [formData, setFormData] = useState({
     title: '',
@@ -209,6 +213,45 @@ const StoryEditorPage: React.FC = () => {
     }
   };
 
+  const handleScriptSave = async (script: any) => {
+    try {
+      // TODO: Implement API call to save script
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      
+      if (story) {
+        setStory({
+          ...story,
+          script_json: script,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      
+      success('Script saved successfully');
+    } catch (err) {
+      console.error('Failed to save script:', err);
+      error('Failed to save script');
+    }
+  };
+
+  const handleDownloadVideo = async () => {
+    if (!story?.video?.url) return;
+
+    try {
+      // Create download link
+      const link = document.createElement('a');
+      link.href = story.video.url;
+      link.download = `${story.title}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      success('Video download started');
+    } catch (err) {
+      console.error('Failed to download video:', err);
+      error('Failed to download video');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -345,71 +388,164 @@ const StoryEditorPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Story Content */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Story Content</h3>
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8">
+                <button
+                  onClick={() => setCurrentTab('content')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    currentTab === 'content'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Story Content
+                </button>
                 
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        id="title"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
-                        Content
-                      </label>
-                      <textarea
-                        id="text_raw"
-                        name="text_raw"
-                        value={formData.text_raw}
-                        onChange={handleInputChange}
-                        rows={10}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="prose max-w-none">
-                    <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                      {story.text_raw}
-                    </div>
-                  </div>
+                {story.script_json && (
+                  <button
+                    onClick={() => setCurrentTab('script')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      currentTab === 'script'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Script Editor
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {story.script_json.scenes?.length || 0} scenes
+                    </span>
+                  </button>
                 )}
-              </CardContent>
-            </Card>
+              </nav>
+            </div>
 
-            {/* Generated Script */}
-            {story.script_json && (
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Generated Script</h3>
-                  <div className="space-y-3">
-                    {story.script_json.scenes?.map((scene: any, index: number) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1">
-                          <p className="text-gray-700">{scene.text}</p>
-                          <p className="text-xs text-gray-500 mt-1">{scene.duration}s duration</p>
+            {/* Tab Content */}
+            {currentTab === 'content' ? (
+              <>
+                {/* Story Content */}
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Story Content</h3>
+                    
+                    {isEditing ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                            Title
+                          </label>
+                          <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            value={formData.title}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
+                            Content
+                          </label>
+                          <textarea
+                            id="text_raw"
+                            name="text_raw"
+                            value={formData.text_raw}
+                            onChange={handleInputChange}
+                            rows={10}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    ) : (
+                      <div className="prose max-w-none">
+                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                          {story.text_raw}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Generated Script Preview */}
+                {story.script_json && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-gray-900">Script Preview</h3>
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => setCurrentTab('script')}
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                          Edit Script
+                        </Button>
+                      </div>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {story.script_json.scenes?.map((scene: any, index: number) => (
+                          <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                              {index + 1}
+                            </span>
+                            <div className="flex-1">
+                              <p className="text-gray-700">{scene.text || scene.content}</p>
+                              <p className="text-xs text-gray-500 mt-1">{scene.duration}s • {scene.type}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            ) : (
+              /* Script Editor */
+              <div className="script-editor-container">
+                {story.script_json ? (
+                  <ScriptEditor
+                    script={story.script_json}
+                    onChange={(updatedScript) => {
+                      setStory({
+                        ...story,
+                        script_json: updatedScript,
+                        updated_at: new Date().toISOString(),
+                      });
+                    }}
+                    onSave={handleScriptSave}
+                    isReadOnly={false}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Script Generated</h3>
+                      <p className="text-gray-600 mb-4">Generate a script first to start editing</p>
+                      <Button onClick={handleGenerateScript} disabled={isGeneratingScript}>
+                        {isGeneratingScript ? (
+                          <>
+                            <Spinner size="sm" color="white" className="mr-2" />
+                            Generating...
+                          </>
+                        ) : (
+                          'Generate Script'
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
           </div>
 
@@ -457,13 +593,13 @@ const StoryEditorPage: React.FC = () => {
                       
                       {story.video.status === 'completed' && story.video.url && (
                         <div className="space-y-2">
-                          <Button size="sm" className="w-full">
+                          <Button size="sm" className="w-full" onClick={() => setShowVideoModal(true)}>
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Watch Video
                           </Button>
-                          <Button variant="secondary" size="sm" className="w-full">
+                          <Button variant="secondary" size="sm" className="w-full" onClick={handleDownloadVideo}>
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -500,6 +636,19 @@ const StoryEditorPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Video Modal */}
+      {story?.video?.url && (
+        <VideoModal
+          isOpen={showVideoModal}
+          onClose={() => setShowVideoModal(false)}
+          videoUrl={story.video.url}
+          title={story.title}
+          storyTitle={story.title}
+          duration={story.video.duration_sec}
+          onDownload={handleDownloadVideo}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>

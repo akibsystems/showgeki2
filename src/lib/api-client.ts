@@ -23,7 +23,12 @@ import type {
 // Configuration
 // ================================================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+// For Next.js app, use relative paths for API routes
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || (
+  typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'http://localhost:3000'
+);
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 1000; // 1 second

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, CardFooter, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
+import { useStories, useVideos, useUserWorkspace } from '@/hooks';
 import Link from 'next/link';
 
 // ================================================================
@@ -14,58 +15,20 @@ const DashboardPage: React.FC = () => {
   const { state } = useApp();
   const { success } = useToast();
 
-  // Mock data for demonstration - will be replaced with SWR data fetching
-  // Single workspace for user (auto-created)
-  const userWorkspace = {
-    id: '1',
-    name: 'My Workspace',
-    story_count: 3,
-    video_count: 1,
+  // Fetch data using SWR hooks
+  const { workspace, isLoading: workspaceLoading, ensureWorkspace } = useUserWorkspace();
+  const { stories, isLoading: storiesLoading } = useStories({ limit: 5 });
+  const { videos, isLoading: videosLoading } = useVideos({ limit: 5 });
+
+  // Calculate stats from actual data
+  const recentStories = stories?.slice(0, 4) || [];
+  const recentVideos = videos?.slice(0, 2) || [];
+  
+  const stats = {
+    stories: stories?.length || 0,
+    videos: videos?.length || 0,
+    inProgress: stories?.filter(s => s.status === 'processing').length || 0,
   };
-
-  const mockRecentStories = [
-    {
-      id: 'story1',
-      title: 'Product Introduction Video',
-      status: 'completed' as const,
-      updated_at: '2024-01-25T09:15:00Z',
-    },
-    {
-      id: 'story2',
-      title: 'Tutorial: Getting Started',
-      status: 'processing' as const,
-      updated_at: '2024-01-24T16:45:00Z',
-    },
-    {
-      id: 'story3',
-      title: 'Customer Testimonial',
-      status: 'draft' as const,
-      updated_at: '2024-01-23T11:20:00Z',
-    },
-    {
-      id: 'story4',
-      title: 'Company Overview',
-      status: 'error' as const,
-      updated_at: '2024-01-22T14:30:00Z',
-    }
-  ];
-
-  const mockRecentVideos = [
-    {
-      id: 'video1',
-      title: 'Product Introduction Video',
-      status: 'completed' as const,
-      duration_sec: 120,
-      created_at: '2024-01-25T10:00:00Z',
-    },
-    {
-      id: 'video2',
-      title: 'Tutorial: Getting Started', 
-      status: 'processing' as const,
-      duration_sec: null,
-      created_at: '2024-01-24T17:00:00Z',
-    }
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,7 +52,10 @@ const DashboardPage: React.FC = () => {
     return `${month} ${day}, ${hours}:${minutes}`;
   };
 
-  if (state.isLoading) {
+  // Show loading state while essential data is loading
+  const isLoading = state.isLoading || workspaceLoading || (storiesLoading && !stories) || (videosLoading && !videos);
+  
+  if (isLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
@@ -137,7 +103,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Stories</p>
-                  <p className="text-2xl font-bold text-gray-900">{userWorkspace.story_count}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.stories}</p>
                 </div>
               </div>
             </CardContent>
@@ -153,7 +119,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Videos</p>
-                  <p className="text-2xl font-bold text-gray-900">{userWorkspace.video_count}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.videos}</p>
                 </div>
               </div>
             </CardContent>
@@ -169,9 +135,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">In Progress</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {mockRecentStories.filter(story => story.status === 'processing').length}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.inProgress}</p>
                 </div>
               </div>
             </CardContent>
@@ -188,7 +152,16 @@ const DashboardPage: React.FC = () => {
               </Link>
             </div>
             <div className="space-y-4">
-              {mockRecentStories.map((story) => (
+              {recentStories.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm">No stories yet</p>
+                  <p className="text-xs mt-1">Create your first story to get started</p>
+                </div>
+              ) : (
+                recentStories.map((story) => (
                 <Card key={story.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
@@ -213,7 +186,8 @@ const DashboardPage: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -226,13 +200,22 @@ const DashboardPage: React.FC = () => {
               </Link>
             </div>
             <div className="space-y-4">
-              {mockRecentVideos.map((video) => (
+              {recentVideos.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm">No videos yet</p>
+                  <p className="text-xs mt-1">Create a story to generate your first video</p>
+                </div>
+              ) : (
+                recentVideos.map((video) => (
                 <Card key={video.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-sm font-medium text-gray-900">{video.title}</h3>
+                          <h3 className="text-sm font-medium text-gray-900">Video {video.id.slice(0, 8)}</h3>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(video.status)}`}>
                             {video.status}
                           </span>
@@ -252,7 +235,7 @@ const DashboardPage: React.FC = () => {
                             </svg>
                           </Button>
                         )}
-                        <Link href={`/videos/${video.id}`}>
+                        <Link href={`/stories/${video.story_id}`}>
                           <Button variant="ghost" size="sm">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -263,16 +246,7 @@ const DashboardPage: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-              
-              {mockRecentVideos.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-sm">No videos yet</p>
-                  <p className="text-xs mt-1">Create a story to generate your first video</p>
-                </div>
+                ))
               )}
             </div>
           </div>

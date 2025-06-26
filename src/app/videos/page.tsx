@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
+import { VideoModal, VideoThumbnail } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
 
 // ================================================================
@@ -31,12 +32,14 @@ type StatusFilter = 'all' | 'queued' | 'processing' | 'completed' | 'failed';
 
 const VideosPage: React.FC = () => {
   const { state } = useApp();
-  const { error } = useToast();
+  const { error, success } = useToast();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   // Mock data - will be replaced with API calls
   useEffect(() => {
@@ -161,6 +164,52 @@ const VideosPage: React.FC = () => {
 
   const statusCounts = getStatusCounts();
 
+  // Handler functions
+  const handleWatchVideo = (video: Video) => {
+    setSelectedVideo(video);
+    setShowVideoModal(true);
+  };
+
+  const handleDownloadVideo = async (video: Video) => {
+    if (!video.url) return;
+
+    try {
+      // Create download link
+      const link = document.createElement('a');
+      link.href = video.url;
+      link.download = `${video.story_title}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      success('Video download started');
+    } catch (err) {
+      console.error('Failed to download video:', err);
+      error('Failed to download video');
+    }
+  };
+
+  const handleRetryVideo = async (video: Video) => {
+    try {
+      // TODO: Implement API call to retry video generation
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      
+      // Update video status to queued
+      setVideos(prevVideos => 
+        prevVideos.map(v => 
+          v.id === video.id 
+            ? { ...v, status: 'queued' as const, error_msg: undefined }
+            : v
+        )
+      );
+      
+      success('Video generation restarted');
+    } catch (err) {
+      console.error('Failed to retry video:', err);
+      error('Failed to retry video generation');
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -284,33 +333,44 @@ const VideosPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Video Thumbnail Placeholder */}
-                  <div className="aspect-video bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
-                    {video.status === 'completed' ? (
-                      <div className="text-center">
-                        <svg className="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-xs text-gray-500">Video Ready</p>
-                      </div>
-                    ) : video.status === 'processing' ? (
-                      <div className="text-center">
-                        <Spinner size="lg" className="mx-auto mb-2" />
-                        <p className="text-xs text-gray-500">Processing...</p>
-                      </div>
-                    ) : video.status === 'failed' ? (
-                      <div className="text-center">
-                        <svg className="w-12 h-12 mx-auto text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <p className="text-xs text-red-500">Failed</p>
+                  {/* Video Thumbnail */}
+                  <div className="aspect-video mb-4">
+                    {video.status === 'completed' && video.url ? (
+                      <div 
+                        className="cursor-pointer"
+                        onClick={() => handleWatchVideo(video)}
+                      >
+                        <VideoThumbnail
+                          src={video.url}
+                          width={320}
+                          height={180}
+                          timeOffset={2}
+                          alt={`Thumbnail for ${video.story_title}`}
+                          className="w-full h-full"
+                        />
                       </div>
                     ) : (
-                      <div className="text-center">
-                        <svg className="w-12 h-12 mx-auto text-yellow-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-xs text-yellow-600">Queued</p>
+                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                        {video.status === 'processing' ? (
+                          <div className="text-center">
+                            <Spinner size="lg" className="mx-auto mb-2" />
+                            <p className="text-xs text-gray-500">Processing...</p>
+                          </div>
+                        ) : video.status === 'failed' ? (
+                          <div className="text-center">
+                            <svg className="w-12 h-12 mx-auto text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <p className="text-xs text-red-500">Failed</p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <svg className="w-12 h-12 mx-auto text-yellow-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-xs text-yellow-600">Queued</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -354,13 +414,13 @@ const VideosPage: React.FC = () => {
                   <div className="mt-4 flex space-x-2">
                     {video.status === 'completed' && video.url && (
                       <>
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" onClick={() => handleWatchVideo(video)}>
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           Watch
                         </Button>
-                        <Button variant="secondary" size="sm" className="flex-1">
+                        <Button variant="secondary" size="sm" className="flex-1" onClick={() => handleDownloadVideo(video)}>
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
@@ -370,7 +430,7 @@ const VideosPage: React.FC = () => {
                     )}
                     
                     {video.status === 'failed' && (
-                      <Button variant="secondary" size="sm" className="w-full">
+                      <Button variant="secondary" size="sm" className="w-full" onClick={() => handleRetryVideo(video)}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -393,6 +453,22 @@ const VideosPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Video Modal */}
+      {selectedVideo?.url && (
+        <VideoModal
+          isOpen={showVideoModal}
+          onClose={() => {
+            setShowVideoModal(false);
+            setSelectedVideo(null);
+          }}
+          videoUrl={selectedVideo.url}
+          title={selectedVideo.story_title}
+          storyTitle={selectedVideo.story_title}
+          duration={selectedVideo.duration_sec}
+          onDownload={() => handleDownloadVideo(selectedVideo)}
+        />
+      )}
     </Layout>
   );
 };
