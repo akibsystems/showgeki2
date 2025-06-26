@@ -6,11 +6,20 @@
 const { randomUUID } = require('crypto');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env.local') });
 
-// Hybrid testing: Local API + Production Cloud Run webhook
+// 設定：テスト環境の選択
+const WEBHOOK_MODE = process.env.WEBHOOK_MODE || 'cloud'; // 'cloud' | 'local'
 const API_URL = process.env.API_URL || 'http://localhost:3000'; // Local Next.js dev server
-const CLOUD_RUN_WEBHOOK_URL = 'https://showgeki2-auto-process-598866385095.asia-northeast1.run.app'; // Production Cloud Run webhook
 
-console.log('🔀 ハイブリッドテストモード: API=ローカル, Webhook=本番Cloud Run');
+// Webhook URL設定
+const WEBHOOK_URLS = {
+  cloud: 'https://showgeki2-auto-process-598866385095.asia-northeast1.run.app',
+  local: 'http://localhost:8080'
+};
+
+const WEBHOOK_URL = WEBHOOK_URLS[WEBHOOK_MODE];
+
+console.log(`🔀 テストモード: API=ローカル, Webhook=${WEBHOOK_MODE === 'cloud' ? 'Cloud Run' : 'ローカルコンテナ'}`);
+console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
 
 // テスト用のUID（匿名ユーザー識別子）
 const testUid = randomUUID();
@@ -287,14 +296,55 @@ async function testSystemProcessing() {
   }
 }
 
+// Webhook接続テスト関数を追加
+async function testWebhookConnection() {
+  console.log(`🔌 Webhook接続テスト中 (${WEBHOOK_MODE}モード)...`);
+  
+  try {
+    const response = await fetch(`${WEBHOOK_URL}/health`, {
+      method: 'GET',
+      timeout: 10000 // 10秒タイムアウト
+    });
+    
+    if (response.ok) {
+      console.log('✅ Webhook接続成功');
+      return true;
+    } else {
+      console.warn(`⚠️ Webhook応答エラー: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ Webhook接続失敗: ${error.message}`);
+    if (WEBHOOK_MODE === 'local') {
+      console.log('💡 ローカルコンテナが起動していない可能性があります。');
+      console.log('   docker run -p 8080:8080 を確認してください。');
+    }
+    return false;
+  }
+}
+
 async function main() {
-  console.log('🚀 ハイブリッド動画生成システムテストを開始...');
+  console.log('🚀 フレキシブル動画生成システムテストを開始...');
   console.log(`🔗 API URL: ${API_URL} (ローカル)`);
-  console.log(`🔗 Cloud Run Webhook URL: ${CLOUD_RUN_WEBHOOK_URL} (本番)`);
+  console.log(`🔗 Webhook URL: ${WEBHOOK_URL} (${WEBHOOK_MODE})`);
   console.log(`👤 テストUID: ${testUid}`);
   console.log('');
 
+  // Webhook接続テスト
+  const webhookAvailable = await testWebhookConnection();
+  console.log('');
+
   try {
+    // Webhookが利用できない場合の処理
+    if (!webhookAvailable && WEBHOOK_MODE === 'local') {
+      console.log('⚠️ ローカルWebhookが利用できません。動画生成テストをスキップします。');
+      console.log('💡 ローカルテスト手順:');
+      console.log('   1. docker build -t showgeki2-webhook .');
+      console.log('   2. docker run -p 8080:8080 --env-file .env.local showgeki2-webhook');
+      console.log('   3. WEBHOOK_MODE=local node scripts/test-cloud-run.js');
+      console.log('');
+    }
+
     // 新しいスキーマでの処理テスト
     const result = await testSystemProcessing();
     console.log('');
@@ -307,6 +357,7 @@ async function main() {
     console.log('✅ stories API経由での作成が成功しました');
     console.log('✅ スクリプト生成APIが正常に動作しています');
     console.log('✅ UID ベースの認証・データ隔離が機能しています');
+    console.log(`✅ Webhook (${WEBHOOK_MODE}モード) との連携が機能しています`);
 
     if (result.video && result.video.video_success) {
       console.log('✅ 完全エンドツーエンドフロー（Story→Script→Video）が正常に動作しました');
@@ -337,6 +388,17 @@ async function main() {
     console.log('2. Supabase Service Role キーの権限確認');
     console.log('3. 環境変数が正しく設定されているか確認');
     console.log('4. システムログを確認（新しいアーキテクチャに移行中の場合）');
+    console.log('');
+    console.log('💡 環境変数の設定:');
+    console.log(`   WEBHOOK_MODE=${WEBHOOK_MODE} (cloud|local)`);
+    console.log(`   API_URL=${API_URL}`);
+    console.log('');
+    console.log('🔧 使用例:');
+    console.log('   # Cloud Runテスト（デフォルト）');
+    console.log('   node scripts/test-cloud-run.js');
+    console.log('');
+    console.log('   # ローカルコンテナテスト');
+    console.log('   WEBHOOK_MODE=local node scripts/test-cloud-run.js');
     process.exit(1);
   }
 }

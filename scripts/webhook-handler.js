@@ -241,11 +241,18 @@ async function processVideoGeneration(payload) {
     const { video_id, story_id, uid, title, text_raw, script_json } = payload;
 
     console.log('🚀 動画生成処理を開始します...');
-    console.log(`📹 動画ID: ${video_id}`);
+    console.log('🔍 受信ペイロード:', JSON.stringify(payload, null, 2));
+    console.log(`📹 動画ID: ${video_id} (型: ${typeof video_id}, 長さ: ${video_id ? video_id.length : 'N/A'})`);
     console.log(`📝 ストーリーID: ${story_id}`);
     console.log(`👤 UID: ${uid}`);
     console.log(`📄 タイトル: ${title}`);
     console.log('');
+
+    // UUID形式チェック
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(video_id)) {
+      throw new Error(`無効なvideo_id形式: "${video_id}" - UUID形式である必要があります`);
+    }
 
     // Update video status to 'processing'
     await supabase

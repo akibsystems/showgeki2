@@ -55,8 +55,7 @@ RUN mkdir -p scripts
 # Copy application files
 COPY scripts/ ./scripts/
 
-# Set environment variables for Cloud Run
-ENV NODE_ENV=production
+# Set environment variables
 ENV PORT=8080
 
 # Expose port

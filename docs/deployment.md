@@ -154,16 +154,36 @@ gcloud run services describe showgeki2-auto-process \
 
 ### 基本動作テスト
 
+#### Cloud Runテスト（デフォルト）
 ```bash
-# ハイブリッドテスト（ローカルAPI + 本番Webhook）
+# ローカルAPI + Cloud Run Webhook
 node scripts/test-cloud-run.js
+```
+
+#### ローカルコンテナテスト
+```bash
+# ローカルAPI + ローカルコンテナWebhook
+WEBHOOK_MODE=local node scripts/test-cloud-run.js
+
+# 自動ローカルコンテナテスト（推奨）
+chmod +x test-local-container.sh
+./test-local-container.sh
+```
+
+#### 環境変数による切り替え
+```bash
+# Cloud Runテスト
+WEBHOOK_MODE=cloud node scripts/test-cloud-run.js
+
+# ローカルコンテナテスト
+WEBHOOK_MODE=local node scripts/test-cloud-run.js
 ```
 
 このテストスクリプトは以下を検証します：
 1. ワークスペース作成（ローカルAPI）
 2. ストーリー作成（ローカルAPI）
 3. スクリプト生成（ローカルAPI + OpenAI）
-4. 動画生成（本番Cloud Run Webhook）
+4. 動画生成（指定されたWebhook：Cloud Run / ローカル）
 5. 動画完了待機とURL検証
 
 ### 個別エンドポイントテスト

@@ -93,43 +93,110 @@ story_text IS NOT NULL AND length(story_text) > 10
 
 ## 処理フロー
 
-### 1. 自動処理（推奨）
+### 1. 明示的API呼び出し（現在の実装）
 ```mermaid
 graph LR
-    A[ユーザー投稿] --> B[Supabase INSERT]
-    B --> C[Database Webhook]
-    C --> D[Cloud Run処理]
+    A[ユーザー操作] --> B[POST /api/stories/[id]/generate-video]
+    B --> C[videosテーブル作成]
+    C --> D[Cloud Run Webhook呼び出し]
     D --> E[動画生成完了]
 ```
 
 **フロントエンド実装例**:
 ```javascript
-// ストーリー投稿
-const { data, error } = await supabase
-  .from('stories')
-  .insert({
-    story_text: 'ユーザーのストーリー',
-    is_completed: false
-  });
-// → 自動的にWebhookが発火
+// 動画生成を明示的にリクエスト
+const response = await fetch(`/api/stories/${storyId}/generate-video`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-uid': uid
+  }
+});
+// → 明示的にCloud Run Webhookが呼び出される
 ```
 
-### 2. 手動テスト（開発用）
+### 2. 直接Webhook呼び出し（開発用）
 ```bash
 curl -X POST \
   https://showgeki2-auto-process-598866385095.asia-northeast1.run.app/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "INSERT",
-    "table": "stories",
-    "record": {
-      "id": "test-story-123",
-      "story_text": "テスト用ストーリー",
-      "created_at": "2025-06-25T23:00:00Z",
-      "is_completed": false
+    "type": "video_generation",
+    "payload": {
+      "video_id": "01234567-89ab-cdef-0123-456789abcdef",
+      "story_id": "ABCD1234",
+      "uid": "12345678-1234-1234-1234-123456789abc",
+      "title": "テスト動画",
+      "text_raw": "テスト用のストーリーです。"
     }
   }'
 ```
+
+### 3. ローカルデバッグ方法
+
+明示的API呼び出し方式により、**Supabase自動webhookの問題は解決済み**です。ローカルでのデバッグは以下の方法で簡単に行えます：
+
+#### 完全ローカル環境でのエンドツーエンドテスト
+
+**1. ローカルコンテナ起動 & ログ監視**
+```bash
+# バックエンドコンテナ起動
+docker-compose up -d
+
+# ログを別ターミナルで監視
+docker-compose logs -f
+```
+
+**2. フロントエンド開発サーバー起動**
+```bash
+# 別ターミナルで Next.js 開発サーバー起動
+npm run dev
+```
+
+**3. エンドツーエンドテスト実行**
+```bash
+# ローカル環境テスト（ローカルAPI + ローカルWebhook）
+WEBHOOK_MODE=local node scripts/test-cloud-run.js
+```
+
+このテストは以下を自動実行します：
+1. ワークスペース作成（ローカルAPI）
+2. ストーリー作成（ローカルAPI）
+3. スクリプト生成（ローカルAPI + OpenAI）
+4. 動画生成（ローカルWebhook）
+5. 動画完了確認とURL検証
+
+#### 環境変数による切り替え設定
+
+`.env.local` に以下を設定：
+```bash
+# ローカルデバッグ用設定
+CLOUD_RUN_WEBHOOK_URL=http://localhost:8080/webhook
+OPENAI_API_KEY=your_openai_key
+```
+
+#### 直接ローカルコンテナをテスト
+```bash
+curl -X POST \
+  http://localhost:8080/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "video_generation",
+    "payload": {
+      "video_id": "01234567-89ab-cdef-0123-456789abcdef",
+      "story_id": "ABCD1234",
+      "uid": "12345678-1234-1234-1234-123456789abc",
+      "title": "ローカルテスト",
+      "text_raw": "ローカルデバッグ用ストーリー"
+    }
+  }'
+```
+
+#### デバッグのメリット
+- **リアルタイム開発**: フロントエンド変更を即座に確認
+- **ログ監視**: `docker-compose logs -f` でリアルタイムログ確認
+- **完全制御**: Cloud Runを経由せずローカルで完結
+- **高速テスト**: ネットワーク遅延なしで高速テスト
 
 ## セキュリティ考慮事項
 
