@@ -8,7 +8,9 @@ set -e
 PROJECT_ID="showgeki2"
 SERVICE_NAME="showgeki2-auto-process"
 REGION="asia-northeast1"
-IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+# Use timestamp for unique image tags to force Cloud Run updates
+IMAGE_TAG="$(date +%Y%m%d-%H%M%S)"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_TAG}"
 
 # Color output
 RED='\033[0;31m'
@@ -44,23 +46,30 @@ echo -e "${GREEN}🔄 Pushing image to Google Container Registry...${NC}"
 docker push $IMAGE_NAME
 
 echo -e "${GREEN}🔐 Creating secrets (if not exist)...${NC}"
-# Create secrets for environment variables
-gcloud secrets create supabase-config --data-file=<(echo -n "url=YOUR_SUPABASE_URL
-service_key=YOUR_SUPABASE_SERVICE_KEY") --project=$PROJECT_ID 2>/dev/null || echo "Secret supabase-config already exists"
-
-gcloud secrets create openai-config --data-file=<(echo -n "api_key=YOUR_OPENAI_API_KEY") --project=$PROJECT_ID 2>/dev/null || echo "Secret openai-config already exists"
+# Create secrets with correct names that match the deployment
+gcloud secrets create supabase-url --data-file=<(echo -n "YOUR_SUPABASE_URL") --project=$PROJECT_ID 2>/dev/null || echo "Secret supabase-url already exists"
+gcloud secrets create supabase-service-key --data-file=<(echo -n "YOUR_SUPABASE_SERVICE_KEY") --project=$PROJECT_ID 2>/dev/null || echo "Secret supabase-service-key already exists"
+gcloud secrets create openai-api-key --data-file=<(echo -n "YOUR_OPENAI_API_KEY") --project=$PROJECT_ID 2>/dev/null || echo "Secret openai-api-key already exists"
 
 echo -e "${GREEN}☁️  Deploying to Cloud Run...${NC}"
-# Update the clouddeploy.yaml with the correct PROJECT_ID
-sed "s/PROJECT_ID/$PROJECT_ID/g" clouddeploy.yaml > clouddeploy-temp.yaml
+echo -e "${GREEN}📋 Using image: ${IMAGE_NAME}${NC}"
 
-# Deploy using gcloud
-gcloud run services replace clouddeploy-temp.yaml \
+# Deploy using gcloud run deploy (more reliable than YAML)
+gcloud run deploy $SERVICE_NAME \
+    --image=$IMAGE_NAME \
     --region=$REGION \
-    --project=$PROJECT_ID
-
-# Clean up temporary file
-rm clouddeploy-temp.yaml
+    --project=$PROJECT_ID \
+    --platform=managed \
+    --memory=2Gi \
+    --cpu=1 \
+    --timeout=3600 \
+    --concurrency=10 \
+    --max-instances=10 \
+    --min-instances=0 \
+    --port=8080 \
+    --set-env-vars="NODE_ENV=production" \
+    --update-secrets="SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,OPENAI_API_KEY=openai-api-key:latest" \
+    --allow-unauthenticated
 
 echo -e "${GREEN}🎉 Deployment completed!${NC}"
 
@@ -70,7 +79,10 @@ echo -e "${GREEN}🔗 Service URL: ${SERVICE_URL}${NC}"
 
 echo -e "${YELLOW}📝 Next steps:${NC}"
 echo -e "1. Update the secrets with your actual values:"
-echo -e "   gcloud secrets versions add supabase-config --data-file=supabase.env --project=$PROJECT_ID"
-echo -e "   gcloud secrets versions add openai-config --data-file=openai.env --project=$PROJECT_ID"
-echo -e "2. Grant necessary permissions to the service account"
-echo -e "3. Monitor the logs: gcloud logs tail --follow --project=$PROJECT_ID"
+echo -e "   echo 'YOUR_ACTUAL_SUPABASE_URL' | gcloud secrets versions add supabase-url --data-file=- --project=$PROJECT_ID"
+echo -e "   echo 'YOUR_ACTUAL_SUPABASE_SERVICE_KEY' | gcloud secrets versions add supabase-service-key --data-file=- --project=$PROJECT_ID"  
+echo -e "   echo 'YOUR_ACTUAL_OPENAI_API_KEY' | gcloud secrets versions add openai-api-key --data-file=- --project=$PROJECT_ID"
+echo -e "2. Test the webhook endpoint:"
+echo -e "   curl ${SERVICE_URL}/health"
+echo -e "3. Monitor the logs:"
+echo -e "   gcloud logging read \"resource.type=cloud_run_revision\" --limit=20 --project=$PROJECT_ID"
