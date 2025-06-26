@@ -1,32 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, CardFooter, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor } from '@/components/editor';
 import { VideoModal } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
-
-// ================================================================
-// Types
-// ================================================================
-
-interface Story {
-  id: string;
-  title: string;
-  text_raw: string;
-  script_json?: any;
-  status: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
-  created_at: string;
-  updated_at: string;
-  video?: {
-    id: string;
-    url?: string;
-    status: 'queued' | 'processing' | 'completed' | 'failed';
-    duration_sec?: number;
-  };
-}
+import { useStory, useVideos } from '@/hooks';
 
 // ================================================================
 // Story Editor Page Component
@@ -39,8 +20,10 @@ const StoryEditorPage: React.FC = () => {
   const { state } = useApp();
   const { success, error } = useToast();
   
-  const [story, setStory] = useState<Story | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use SWR hooks for data fetching
+  const { story, isLoading, mutate: mutateStory, updateStory, deleteStory, generateScript } = useStory(storyId);
+  const { videos } = useVideos({ storyId });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
@@ -50,60 +33,19 @@ const StoryEditorPage: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'content' | 'script'>('content');
   
   const [formData, setFormData] = useState({
-    title: '',
-    text_raw: '',
+    title: story?.title || '',
+    text_raw: story?.text_raw || '',
   });
 
-  // Mock data - will be replaced with API calls
-  useEffect(() => {
-    const loadStory = async () => {
-      try {
-        setIsLoading(true);
-        // TODO: Replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-        
-        const mockStory: Story = {
-          id: storyId,
-          title: 'Product Introduction Video',
-          text_raw: 'Welcome to our revolutionary new product that will change the way you work. Our innovative solution combines cutting-edge technology with user-friendly design to deliver unprecedented results. Join thousands of satisfied customers who have already transformed their workflow.',
-          script_json: storyId === 'story1' ? {
-            scenes: [
-              { text: 'Welcome to our revolutionary new product', duration: 3 },
-              { text: 'Cutting-edge technology meets user-friendly design', duration: 4 },
-              { text: 'Join thousands of satisfied customers', duration: 3 }
-            ]
-          } : undefined,
-          status: storyId === 'story1' ? 'completed' : storyId === 'story2' ? 'processing' : 'draft',
-          created_at: '2024-01-25T09:15:00Z',
-          updated_at: '2024-01-25T10:30:00Z',
-          video: storyId === 'story1' ? {
-            id: 'video1',
-            url: 'https://example.com/video.mp4',
-            status: 'completed',
-            duration_sec: 120,
-          } : storyId === 'story2' ? {
-            id: 'video2',
-            status: 'processing',
-          } : undefined,
-        };
-        
-        setStory(mockStory);
-        setFormData({
-          title: mockStory.title,
-          text_raw: mockStory.text_raw,
-        });
-      } catch (err) {
-        console.error('Failed to load story:', err);
-        error('Failed to load story');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (storyId) {
-      loadStory();
+  // Update form data when story is loaded
+  React.useEffect(() => {
+    if (story) {
+      setFormData({
+        title: story.title,
+        text_raw: story.text_raw,
+      });
     }
-  }, [storyId, error]);
+  }, [story]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -121,17 +63,10 @@ const StoryEditorPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // TODO: Implement API call to save story
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      
-      if (story) {
-        setStory({
-          ...story,
-          title: formData.title,
-          text_raw: formData.text_raw,
-          updated_at: new Date().toISOString(),
-        });
-      }
+      await updateStory(storyId, {
+        title: formData.title,
+        text_raw: formData.text_raw,
+      });
       
       setIsEditing(false);
       success('Story saved successfully');
@@ -146,24 +81,7 @@ const StoryEditorPage: React.FC = () => {
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
     try {
-      // TODO: Implement API call to generate script
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Mock delay
-      
-      if (story) {
-        setStory({
-          ...story,
-          status: 'script_generated',
-          script_json: {
-            scenes: [
-              { text: 'Generated scene 1', duration: 3 },
-              { text: 'Generated scene 2', duration: 4 },
-              { text: 'Generated scene 3', duration: 3 }
-            ]
-          },
-          updated_at: new Date().toISOString(),
-        });
-      }
-      
+      await generateScript(storyId);
       success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
@@ -177,19 +95,8 @@ const StoryEditorPage: React.FC = () => {
     setIsGeneratingVideo(true);
     try {
       // TODO: Implement API call to generate video
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay
-      
-      if (story) {
-        setStory({
-          ...story,
-          status: 'processing',
-          video: {
-            id: 'video_' + Date.now(),
-            status: 'processing',
-          },
-          updated_at: new Date().toISOString(),
-        });
-      }
+      // This would call /api/stories/[id]/generate-video
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay until API is ready
       
       success('Video generation started');
     } catch (err) {
@@ -202,9 +109,7 @@ const StoryEditorPage: React.FC = () => {
 
   const handleDelete = async () => {
     try {
-      // TODO: Implement API call to delete story
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      
+      await deleteStory(storyId);
       success('Story deleted successfully');
       router.push('/dashboard');
     } catch (err) {
@@ -215,17 +120,7 @@ const StoryEditorPage: React.FC = () => {
 
   const handleScriptSave = async (script: any) => {
     try {
-      // TODO: Implement API call to save script
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      
-      if (story) {
-        setStory({
-          ...story,
-          script_json: script,
-          updated_at: new Date().toISOString(),
-        });
-      }
-      
+      await updateStory(storyId, { script_json: script });
       success('Script saved successfully');
     } catch (err) {
       console.error('Failed to save script:', err);
@@ -234,13 +129,14 @@ const StoryEditorPage: React.FC = () => {
   };
 
   const handleDownloadVideo = async () => {
-    if (!story?.video?.url) return;
+    const completedVideo = videos?.find(v => v.story_id === storyId && v.status === 'completed');
+    if (!completedVideo?.url) return;
 
     try {
       // Create download link
       const link = document.createElement('a');
-      link.href = story.video.url;
-      link.download = `${story.title}.mp4`;
+      link.href = completedVideo.url;
+      link.download = `${story?.title || 'video'}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -305,6 +201,11 @@ const StoryEditorPage: React.FC = () => {
       </Layout>
     );
   }
+
+  // Get video for this story
+  const storyVideo = videos?.find(v => v.story_id === storyId && v.status === 'completed');
+  const processingVideo = videos?.find(v => v.story_id === storyId && v.status === 'processing');
+  const video = storyVideo || processingVideo || videos?.find(v => v.story_id === storyId);
 
   const wordCount = (isEditing ? formData.text_raw : story.text_raw).split(/\s+/).filter(word => word.length > 0).length;
 
@@ -515,11 +416,12 @@ const StoryEditorPage: React.FC = () => {
                   <ScriptEditor
                     script={story.script_json}
                     onChange={(updatedScript) => {
-                      setStory({
+                      // Optimistic update - will be persisted on save
+                      mutateStory({
                         ...story,
                         script_json: updatedScript,
                         updated_at: new Date().toISOString(),
-                      });
+                      }, false);
                     }}
                     onSave={handleScriptSave}
                     isReadOnly={false}
@@ -575,23 +477,23 @@ const StoryEditorPage: React.FC = () => {
               </Card>
 
               {/* Video Card */}
-              {story.video && (
+              {video && (
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Video</h3>
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${story.video.status === 'completed' ? 'bg-green-400' : story.video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-                        <span className="text-sm capitalize">{story.video.status}</span>
+                        <div className={`w-2 h-2 rounded-full ${video.status === 'completed' ? 'bg-green-400' : video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
+                        <span className="text-sm capitalize">{video.status}</span>
                       </div>
                       
-                      {story.video.duration_sec && (
+                      {video.duration_sec && (
                         <p className="text-sm text-gray-600">
-                          Duration: {Math.floor(story.video.duration_sec / 60)}:{(story.video.duration_sec % 60).toString().padStart(2, '0')}
+                          Duration: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
                         </p>
                       )}
                       
-                      {story.video.status === 'completed' && story.video.url && (
+                      {video.status === 'completed' && video.url && (
                         <div className="space-y-2">
                           <Button size="sm" className="w-full" onClick={() => setShowVideoModal(true)}>
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -638,14 +540,14 @@ const StoryEditorPage: React.FC = () => {
       </div>
 
       {/* Video Modal */}
-      {story?.video?.url && (
+      {video?.url && (
         <VideoModal
           isOpen={showVideoModal}
           onClose={() => setShowVideoModal(false)}
-          videoUrl={story.video.url}
+          videoUrl={video.url}
           title={story.title}
           storyTitle={story.title}
-          duration={story.video.duration_sec}
+          duration={video.duration_sec}
           onDownload={handleDownloadVideo}
         />
       )}

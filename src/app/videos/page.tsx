@@ -1,30 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { VideoModal, VideoThumbnail } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
+import { useVideos } from '@/hooks';
+import type { VideoStatus, Video } from '@/types';
 
 // ================================================================
 // Types
 // ================================================================
 
-interface Video {
-  id: string;
-  story_id: string;
-  story_title: string;
-  url?: string;
-  duration_sec?: number;
-  resolution?: string;
-  size_mb?: number;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  error_msg?: string;
-  created_at: string;
-}
-
-type StatusFilter = 'all' | 'queued' | 'processing' | 'completed' | 'failed';
+type StatusFilter = 'all' | VideoStatus;
 
 // ================================================================
 // Videos Page Component
@@ -34,83 +23,20 @@ const VideosPage: React.FC = () => {
   const { state } = useApp();
   const { error, success } = useToast();
   
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  
+  // Fetch videos using SWR hook
+  const { videos, isLoading } = useVideos();
 
-  // Mock data - will be replaced with API calls
-  useEffect(() => {
-    const loadVideos = async () => {
-      try {
-        setIsLoading(true);
-        // TODO: Replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-        
-        const mockVideos: Video[] = [
-          {
-            id: 'video1',
-            story_id: 'story1',
-            story_title: 'Product Introduction Video',
-            url: 'https://example.com/videos/video1.mp4',
-            duration_sec: 120,
-            resolution: '1920x1080',
-            size_mb: 45.2,
-            status: 'completed',
-            created_at: '2024-01-25T10:00:00Z',
-          },
-          {
-            id: 'video2',
-            story_id: 'story2',
-            story_title: 'Tutorial: Getting Started',
-            status: 'processing',
-            created_at: '2024-01-24T17:00:00Z',
-          },
-          {
-            id: 'video3',
-            story_id: 'story3',
-            story_title: 'Customer Testimonial',
-            url: 'https://example.com/videos/video3.mp4',
-            duration_sec: 85,
-            resolution: '1920x1080',
-            size_mb: 32.1,
-            status: 'completed',
-            created_at: '2024-01-23T15:30:00Z',
-          },
-          {
-            id: 'video4',
-            story_id: 'story5',
-            story_title: 'Feature Walkthrough',
-            status: 'failed',
-            error_msg: 'Script generation failed',
-            created_at: '2024-01-21T13:00:00Z',
-          },
-          {
-            id: 'video5',
-            story_id: 'story6',
-            story_title: 'Company Values',
-            status: 'queued',
-            created_at: '2024-01-20T09:15:00Z',
-          }
-        ];
-        
-        setVideos(mockVideos);
-      } catch (err) {
-        console.error('Failed to load videos:', err);
-        error('Failed to load videos');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadVideos();
-  }, [error]);
 
   // Filter and search videos
-  const filteredVideos = videos.filter(video => {
-    const matchesSearch = video.story_title.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredVideos = (videos || []).filter(video => {
+    // Note: Video schema doesn't have story_title, need to use story data for title
+    const searchText = video.story_id.toLowerCase();
+    const matchesSearch = searchText.includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || video.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -153,12 +79,13 @@ const VideosPage: React.FC = () => {
   };
 
   const getStatusCounts = () => {
+    const videoList = videos || [];
     return {
-      all: videos.length,
-      queued: videos.filter(v => v.status === 'queued').length,
-      processing: videos.filter(v => v.status === 'processing').length,
-      completed: videos.filter(v => v.status === 'completed').length,
-      failed: videos.filter(v => v.status === 'failed').length,
+      all: videoList.length,
+      queued: videoList.filter(v => v.status === 'queued').length,
+      processing: videoList.filter(v => v.status === 'processing').length,
+      completed: videoList.filter(v => v.status === 'completed').length,
+      failed: videoList.filter(v => v.status === 'failed').length,
     };
   };
 
@@ -177,7 +104,7 @@ const VideosPage: React.FC = () => {
       // Create download link
       const link = document.createElement('a');
       link.href = video.url;
-      link.download = `${video.story_title}.mp4`;
+      link.download = `video-${video.story_id}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -191,19 +118,8 @@ const VideosPage: React.FC = () => {
 
   const handleRetryVideo = async (video: Video) => {
     try {
-      // TODO: Implement API call to retry video generation
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      
-      // Update video status to queued
-      setVideos(prevVideos => 
-        prevVideos.map(v => 
-          v.id === video.id 
-            ? { ...v, status: 'queued' as const, error_msg: undefined }
-            : v
-        )
-      );
-      
-      success('Video generation restarted');
+      // TODO: Implement API call to retry video generation when backend supports it
+      success('Video retry will be available when backend supports it');
     } catch (err) {
       console.error('Failed to retry video:', err);
       error('Failed to retry video generation');
@@ -326,7 +242,7 @@ const VideosPage: React.FC = () => {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
-                      {video.story_title}
+                      Video {video.story_id}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(video.status)} ml-2 flex-shrink-0`}>
                       {video.status}
@@ -345,7 +261,7 @@ const VideosPage: React.FC = () => {
                           width={320}
                           height={180}
                           timeOffset={2}
-                          alt={`Thumbnail for ${video.story_title}`}
+                          alt={`Thumbnail for video ${video.story_id}`}
                           className="w-full h-full"
                         />
                       </div>
@@ -463,8 +379,8 @@ const VideosPage: React.FC = () => {
             setSelectedVideo(null);
           }}
           videoUrl={selectedVideo.url}
-          title={selectedVideo.story_title}
-          storyTitle={selectedVideo.story_title}
+          title={`Video ${selectedVideo.story_id}`}
+          storyTitle={`Video ${selectedVideo.story_id}`}
           duration={selectedVideo.duration_sec}
           onDownload={() => handleDownloadVideo(selectedVideo)}
         />

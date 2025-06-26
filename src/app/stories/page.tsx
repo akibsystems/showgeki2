@@ -1,26 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
+import { useStories } from '@/hooks';
+import type { StoryStatus } from '@/types';
 
 // ================================================================
 // Types
 // ================================================================
 
-interface Story {
-  id: string;
-  title: string;
-  text_raw: string;
-  status: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
-  created_at: string;
-  updated_at: string;
-  word_count: number;
-}
-
-type StatusFilter = 'all' | 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
+type StatusFilter = 'all' | StoryStatus;
 
 // ================================================================
 // Stories List Page Component
@@ -30,81 +22,14 @@ const StoriesPage: React.FC = () => {
   const { state } = useApp();
   const { error } = useToast();
   
-  const [stories, setStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Mock data - will be replaced with API calls
-  useEffect(() => {
-    const loadStories = async () => {
-      try {
-        setIsLoading(true);
-        // TODO: Replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-        
-        const mockStories: Story[] = [
-          {
-            id: 'story1',
-            title: 'Product Introduction Video',
-            text_raw: 'Welcome to our revolutionary new product that will change the way you work...',
-            status: 'completed',
-            created_at: '2024-01-25T09:15:00Z',
-            updated_at: '2024-01-25T10:30:00Z',
-            word_count: 45,
-          },
-          {
-            id: 'story2',
-            title: 'Tutorial: Getting Started',
-            text_raw: 'In this comprehensive tutorial, we will walk you through the basics...',
-            status: 'processing',
-            created_at: '2024-01-24T16:45:00Z',
-            updated_at: '2024-01-24T17:00:00Z',
-            word_count: 120,
-          },
-          {
-            id: 'story3',
-            title: 'Customer Testimonial',
-            text_raw: 'Our customers love the innovative features and seamless experience...',
-            status: 'script_generated',
-            created_at: '2024-01-23T11:20:00Z',
-            updated_at: '2024-01-23T14:15:00Z',
-            word_count: 67,
-          },
-          {
-            id: 'story4',
-            title: 'Company Overview',
-            text_raw: 'Founded in 2020, our company has been at the forefront of innovation...',
-            status: 'draft',
-            created_at: '2024-01-22T14:30:00Z',
-            updated_at: '2024-01-22T14:30:00Z',
-            word_count: 89,
-          },
-          {
-            id: 'story5',
-            title: 'Feature Walkthrough',
-            text_raw: 'Let us show you the powerful features that make our product stand out...',
-            status: 'error',
-            created_at: '2024-01-21T10:15:00Z',
-            updated_at: '2024-01-21T12:45:00Z',
-            word_count: 156,
-          }
-        ];
-        
-        setStories(mockStories);
-      } catch (err) {
-        console.error('Failed to load stories:', err);
-        error('Failed to load stories');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadStories();
-  }, [error]);
+  // Fetch stories using SWR hook
+  const { stories, isLoading } = useStories();
 
   // Filter and search stories
-  const filteredStories = stories.filter(story => {
+  const filteredStories = (stories || []).filter(story => {
     const matchesSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          story.text_raw.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || story.status === statusFilter;
@@ -136,13 +61,14 @@ const StoriesPage: React.FC = () => {
   };
 
   const getStatusCounts = () => {
+    const storyList = stories || [];
     return {
-      all: stories.length,
-      draft: stories.filter(s => s.status === 'draft').length,
-      script_generated: stories.filter(s => s.status === 'script_generated').length,
-      processing: stories.filter(s => s.status === 'processing').length,
-      completed: stories.filter(s => s.status === 'completed').length,
-      error: stories.filter(s => s.status === 'error').length,
+      all: storyList.length,
+      draft: storyList.filter(s => s.status === 'draft').length,
+      script_generated: storyList.filter(s => s.status === 'script_generated').length,
+      processing: storyList.filter(s => s.status === 'processing').length,
+      completed: storyList.filter(s => s.status === 'completed').length,
+      error: storyList.filter(s => s.status === 'error').length,
     };
   };
 
@@ -279,7 +205,7 @@ const StoriesPage: React.FC = () => {
                     
                     <div className="flex justify-between items-center text-xs text-gray-500">
                       <div className="flex items-center space-x-3">
-                        <span>{story.word_count} words</span>
+                        <span>{story.text_raw.split(/\s+/).filter(word => word.length > 0).length} words</span>
                         <span>Updated {formatDate(story.updated_at)}</span>
                       </div>
                       
