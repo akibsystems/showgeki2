@@ -32,7 +32,8 @@ export interface ScriptGenerationOptions {
   templateId?: string;
   targetDuration?: number;
   stylePreference?: 'dramatic' | 'comedic' | 'adventure' | 'romantic' | 'mystery';
-  language?: 'japanese' | 'english';
+  language?: 'ja' | 'en';
+  beats?: number;
   retryCount?: number;
 }
 
@@ -114,6 +115,7 @@ export async function generateMulmoscriptWithOpenAI(
       targetDuration: options.targetDuration,
       stylePreference: options.stylePreference,
       language: options.language,
+      beats: options.beats,
     });
 
     const promptHash = createPromptHash(promptData.messages[1].content);
@@ -291,7 +293,8 @@ function generateEnhancedMockMulmoscript(
   options: ScriptGenerationOptions = {}
 ): Mulmoscript {
   const style = options.stylePreference || 'dramatic';
-  const language = options.language || 'japanese';
+  const language = options.language || 'ja';
+  const beatsCount = options.beats || 5;
 
   // Style-based content variations
   const styleVariations = {
@@ -324,59 +327,73 @@ function generateEnhancedMockMulmoscript(
 
   const variation = styleVariations[style];
 
-  // Create beats with proper mulmocast format
-  const beats = [
-    {
-      speaker: 'Narrator',
-      text: variation.opening,
-      imagePrompt: `Opening scene: ${variation.imageStyle}, establishing shot of the story world`,
-    },
-    {
-      speaker: 'Character',
-      text: story.text_raw.slice(0, Math.min(150, story.text_raw.length)) + (story.text_raw.length > 150 ? '...' : ''),
-      imagePrompt: `Main character introduction: ${variation.imageStyle}, character portrait or action scene`,
-    },
-    {
-      speaker: 'Narrator',
-      text: `The story unfolds with unexpected twists and meaningful moments...`,
-      imagePrompt: `Story development: ${variation.imageStyle}, visual representation of the main plot`,
-    },
-    {
-      speaker: 'WiseCharacter',
-      text: `The heart of the story reveals its deeper meaning and purpose...`,
-      imagePrompt: `Emotional climax: ${variation.imageStyle}, dramatic moment of realization`,
-    },
-    {
+  // Create beats with proper mulmocast format - dynamic based on beatsCount
+  const beats = [];
+  
+  // Always start with opening
+  beats.push({
+    speaker: 'Narrator',
+    text: variation.opening,
+    imagePrompt: `Opening scene: ${variation.imageStyle}, establishing shot of the story world`,
+  });
+
+  // Add middle beats based on beatsCount
+  if (beatsCount > 1) {
+    for (let i = 1; i < beatsCount - 1; i++) {
+      const speakers = ['Character', 'Narrator', 'WiseCharacter'];
+      const speaker = speakers[i % speakers.length];
+      
+      let text = '';
+      let imagePrompt = '';
+      
+      if (speaker === 'Character') {
+        text = story.text_raw.slice(0, Math.min(150, story.text_raw.length)) + (story.text_raw.length > 150 ? '...' : '');
+        imagePrompt = `Character scene ${i}: ${variation.imageStyle}, character portrait or action scene`;
+      } else if (speaker === 'Narrator') {
+        text = `The story unfolds with unexpected twists and meaningful moments...`;
+        imagePrompt = `Story development ${i}: ${variation.imageStyle}, visual representation of the main plot`;
+      } else {
+        text = `The heart of the story reveals its deeper meaning and purpose...`;
+        imagePrompt = `Emotional moment ${i}: ${variation.imageStyle}, dramatic moment of realization`;
+      }
+      
+      beats.push({ speaker, text, imagePrompt });
+    }
+  }
+
+  // Always end with closing (unless beatsCount is 1)
+  if (beatsCount > 1) {
+    beats.push({
       speaker: 'Narrator',
       text: variation.closing,
       imagePrompt: `Conclusion scene: ${variation.imageStyle}, peaceful resolution showing the outcome`,
-    },
-  ];
+    });
+  }
 
   return {
     $mulmocast: {
       version: '1.0' as const,
     },
     title: story.title,
-    lang: language === 'japanese' ? 'ja' : 'en',
+    lang: language === 'ja' ? 'ja' : 'en',
     speechParams: {
       provider: 'openai',
       speakers: {
         Narrator: {
           voiceId: 'shimmer',
-          displayName: language === 'japanese'
+          displayName: language === 'ja'
             ? { ja: '語り手', en: 'Narrator' }
             : { en: 'Narrator', ja: '語り手' },
         },
         Character: {
           voiceId: 'alloy',
-          displayName: language === 'japanese'
+          displayName: language === 'ja'
             ? { ja: '主人公', en: 'Main Character' }
             : { en: 'Main Character', ja: '主人公' },
         },
         WiseCharacter: {
           voiceId: 'echo',
-          displayName: language === 'japanese'
+          displayName: language === 'ja'
             ? { ja: '賢者', en: 'Wise Character' }
             : { en: 'Wise Character', ja: '賢者' },
         },

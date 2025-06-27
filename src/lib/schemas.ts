@@ -22,7 +22,7 @@ export const WorkspaceSchema = z.object({
 // ストーリーステータス
 export const StoryStatusSchema = z.enum([
   'draft',
-  'script_generated', 
+  'script_generated',
   'processing',
   'completed',
   'error'
@@ -39,6 +39,7 @@ export const StorySchema = z.object({
   text_raw: z.string().min(1, 'Story text is required'),
   script_json: z.record(z.any()).optional(),
   status: StoryStatusSchema,
+  beats: z.number().min(1).max(20).default(5),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -190,6 +191,7 @@ export const CreateStoryRequestSchema = z.object({
   workspace_id: z.string().uuid(),
   title: z.string().min(1).max(255),
   text_raw: z.string().min(1),
+  beats: z.number().min(1).max(20).default(5),
 });
 
 // ストーリー更新リクエスト
@@ -197,18 +199,21 @@ export const UpdateStoryRequestSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   text_raw: z.string().min(1).optional(),
   script_json: z.record(z.any()).optional(),
+  beats: z.number().min(1).max(20).optional(),
 });
 
 // スクリプト生成レスポンス
 export const GenerateScriptResponseSchema = z.object({
   script_json: MulmoscriptSchema,
   status: StoryStatusSchema,
+  story: StorySchema,
   generated_with_ai: z.boolean().optional(),
   generation_options: z.object({
     templateId: z.string().optional(),
     targetDuration: z.number().optional(),
     stylePreference: z.enum(['dramatic', 'comedic', 'adventure', 'romantic', 'mystery']).optional(),
-    language: z.enum(['japanese', 'english']).optional(),
+    language: z.enum(['ja', 'en']).optional(),
+    beats: z.number().optional(),
     retryCount: z.number().optional(),
   }).optional(),
 });
@@ -262,17 +267,17 @@ export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): {
   errors?: ValidationError[];
 } {
   const result = schema.safeParse(data);
-  
+
   if (result.success) {
     return { success: true, data: result.data };
   }
-  
+
   const errors = result.error.errors.map(err => ({
     field: err.path.join('.'),
     message: err.message,
     code: err.code,
   }));
-  
+
   return { success: false, errors };
 }
 

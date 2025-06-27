@@ -22,7 +22,7 @@ interface UseStoriesReturn {
   createStory: (data: CreateStoryRequest) => Promise<Story>;
   updateStory: (id: string, data: UpdateStoryRequest) => Promise<Story>;
   deleteStory: (id: string) => Promise<void>;
-  generateScript: (id: string) => Promise<Story>;
+  generateScript: (id: string, options?: { beats?: number }) => Promise<Story>;
 }
 
 interface UseStoryReturn {
@@ -32,7 +32,7 @@ interface UseStoryReturn {
   mutate: () => void;
   updateStory: (data: UpdateStoryRequest) => Promise<Story>;
   deleteStory: () => Promise<void>;
-  generateScript: () => Promise<Story>;
+  generateScript: (options?: { beats?: number }) => Promise<Story>;
 }
 
 // ================================================================
@@ -99,9 +99,10 @@ export function useStories(params?: StoriesQueryParams): UseStoriesReturn {
   };
 
   // Generate script for a story
-  const generateScript = async (id: string): Promise<Story> => {
+  const generateScript = async (id: string, options?: { beats?: number }): Promise<Story> => {
     try {
-      const updatedStory = await apiClient.post<Story>(swrKeys.storyScript(id), {});
+      const response = await apiClient.generateScript(id, options);
+      const updatedStory = response.story;
       
       // Update cache
       await mutate(swrKeys.story(id), updatedStory, false);
@@ -172,9 +173,10 @@ export function useStory(id: string): UseStoryReturn {
   };
 
   // Generate script for the story
-  const generateScript = async (): Promise<Story> => {
+  const generateScript = async (options?: { beats?: number }): Promise<Story> => {
     try {
-      const updatedStory = await apiClient.post<Story>(swrKeys.storyScript(id), {});
+      const response = await apiClient.generateScript(id, options);
+      const updatedStory = response.story;
       
       // Update cache
       await mutate(swrKeys.story(id), updatedStory, false);

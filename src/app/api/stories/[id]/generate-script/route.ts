@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, SupabaseStoryUpdate } from '@/lib/supabase';
 import { withAuth, type AuthContext } from '@/lib/auth';
-import { 
+import {
   StorySchema,
   MulmoscriptSchema,
   GenerateScriptResponseSchema,
@@ -10,10 +10,10 @@ import {
   type Story
 } from '@/lib/schemas';
 import { ErrorType } from '@/types';
-import { 
-  generateMulmoscriptWithFallback, 
+import {
+  generateMulmoscriptWithFallback,
   testOpenAIConnection,
-  type ScriptGenerationOptions 
+  type ScriptGenerationOptions
 } from '@/lib/openai-client';
 
 // ================================================================
@@ -42,7 +42,7 @@ function isValidStoryId(id: string): boolean {
  */
 async function getStoryWithAuth(storyId: string, uid: string) {
   const supabase = createAdminClient();
-  
+
   const { data, error } = await supabase
     .from('stories')
     .select('*')
@@ -59,14 +59,15 @@ async function getStoryWithAuth(storyId: string, uid: string) {
 async function parseScriptGenerationOptions(request: NextRequest): Promise<ScriptGenerationOptions> {
   try {
     const body = await request.json();
-    
+
     return {
       templateId: body.template_id,
       targetDuration: typeof body.target_duration === 'number' ? body.target_duration : 20,
-      stylePreference: ['dramatic', 'comedic', 'adventure', 'romantic', 'mystery'].includes(body.style_preference) 
-        ? body.style_preference 
+      stylePreference: ['dramatic', 'comedic', 'adventure', 'romantic', 'mystery'].includes(body.style_preference)
+        ? body.style_preference
         : 'dramatic',
-      language: ['japanese', 'english'].includes(body.language) ? body.language : 'japanese',
+      language: ['ja', 'en'].includes(body.language) ? body.language : 'ja',
+      beats: typeof body.beats === 'number' ? body.beats : 5,
       retryCount: typeof body.retry_count === 'number' ? Math.min(body.retry_count, 3) : 2,
     };
   } catch {
@@ -74,7 +75,7 @@ async function parseScriptGenerationOptions(request: NextRequest): Promise<Scrip
     return {
       targetDuration: 20,
       stylePreference: 'dramatic',
-      language: 'japanese',
+      language: 'ja',
       retryCount: 2,
     };
   }
@@ -122,7 +123,7 @@ async function generateScript(
     // Check if script already exists
     if (story.script_json && story.status === 'script_generated') {
       // Script already exists, return it
-      
+
       // Validate existing script
       const scriptValidation = validateSchema(MulmoscriptSchema, story.script_json);
       if (scriptValidation.success) {
@@ -150,7 +151,7 @@ async function generateScript(
 
     // Generate script using OpenAI integration with fallback
     const { script: generatedScript, generated_with_ai } = await generateMulmoscriptWithFallback(
-      story, 
+      story,
       generationOptions
     );
 
@@ -227,15 +228,15 @@ async function generateScript(
     return NextResponse.json({
       success: true,
       data: responseData,
-      message: generated_with_ai 
-        ? 'Script generated successfully with AI' 
+      message: generated_with_ai
+        ? 'Script generated successfully with AI'
         : 'Script generated successfully with fallback method',
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Generate script error:', error);
-    
+
     // Handle specific error types
     if (error instanceof SyntaxError) {
       return NextResponse.json(
