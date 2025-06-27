@@ -73,6 +73,12 @@ function generateMovie(scriptPath, outputPath) {
       throw new Error('mulmocast-cli が見つかりません');
     }
 
+    // 出力ディレクトリを確保 (Video IDごとのユニークディレクトリ)
+    const outputDir = path.dirname(outputPath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
     // システム情報をログ出力
     console.log('📊 システム情報:');
     console.log(`  - Node.js: ${process.version}`);
@@ -81,6 +87,7 @@ function generateMovie(scriptPath, outputPath) {
     console.log(`  - Mulmocast Path: ${mulmocastPath}`);
     console.log(`  - Script Path: ${scriptPath}`);
     console.log(`  - Output Path: ${outputPath}`);
+    console.log(`  - Unique Output Dir: ${outputDir}`);
 
     // ディスク容量チェック
     try {
@@ -91,16 +98,11 @@ function generateMovie(scriptPath, outputPath) {
       console.log('  - Disk Usage: Could not check');
     }
 
-    // 出力ディレクトリを確保
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
     try {
-      // 相対パスでスクリプトを指定 (mulmocast-cliから見た相対パス)
+      // 相対パスでスクリプトと出力ディレクトリを指定 (mulmocast-cliから見た相対パス)
       const relativeScriptPath = path.relative(mulmocastPath, scriptPath);
-      const command = `yarn movie "${relativeScriptPath}" -f`;
+      const relativeOutputDir = path.relative(mulmocastPath, outputDir);
+      const command = `yarn movie "${relativeScriptPath}" -f -o "${relativeOutputDir}"`;
       console.log(`実行コマンド: ${command}`);
       console.log('🚀 mulmocast-cli 実行開始...');
 
@@ -115,11 +117,11 @@ function generateMovie(scriptPath, outputPath) {
       const executionTime = Date.now() - startTime;
       console.log(`⏱️ mulmocast-cli 実行完了: ${Math.round(executionTime / 1000)}秒`);
 
-      // mulmocast-cliの実際の出力パスを確認
+      // mulmocast-cliの出力パスを確認 (ユニークディレクトリ内)
       const actualOutputPaths = [
-        path.join(mulmocastPath, 'output', 'script.mp4'),
-        path.join(mulmocastPath, 'output.mp4'),
-        path.join(mulmocastPath, 'script.mp4')
+        path.join(outputDir, 'script.mp4'),
+        path.join(outputDir, 'output.mp4'),
+        outputPath // 既に正しいパス
       ];
 
       let foundOutputPath = null;
@@ -132,8 +134,11 @@ function generateMovie(scriptPath, outputPath) {
       }
 
       if (foundOutputPath) {
-        fs.copyFileSync(foundOutputPath, outputPath);
-        fs.unlinkSync(foundOutputPath); // 元ファイルを削除
+        // ファイルが既に正しい場所にある場合はコピー不要
+        if (foundOutputPath !== outputPath) {
+          fs.copyFileSync(foundOutputPath, outputPath);
+          fs.unlinkSync(foundOutputPath); // 元ファイルを削除
+        }
         console.log('✅ 動画生成完了');
         return outputPath;
       } else {
