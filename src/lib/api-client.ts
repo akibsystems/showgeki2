@@ -377,8 +377,8 @@ export class ApiClient {
   // Script Generation API Methods
   // ================================================================
 
-  async generateScript(storyId: string): Promise<GenerateScriptResponse> {
-    return this.post<GenerateScriptResponse>(`/api/stories/${storyId}/generate-script`);
+  async generateScript(storyId: string, options?: { beats?: number }): Promise<GenerateScriptResponse> {
+    return this.post<GenerateScriptResponse>(`/api/stories/${storyId}/generate-script`, options || {});
   }
 
   // ================================================================

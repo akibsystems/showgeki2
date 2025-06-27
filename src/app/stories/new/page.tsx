@@ -23,6 +23,7 @@ const NewStoryPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     text_raw: '',
+    beats: 5,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,7 +31,7 @@ const NewStoryPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'beats' ? parseInt(value) || 5 : value,
     }));
   };
 
@@ -55,6 +56,7 @@ const NewStoryPage: React.FC = () => {
         workspace_id: workspace.id,
         title: formData.title.trim(),
         text_raw: formData.text_raw.trim(),
+        beats: formData.beats,
       });
       
       console.log('Created story:', newStory); // Debug log
@@ -130,6 +132,27 @@ const NewStoryPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     disabled={isLoading}
                   />
+                </div>
+
+                {/* Beats Input */}
+                <div className="mb-6">
+                  <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
+                    Beats (絵の枚数)
+                  </label>
+                  <input
+                    type="number"
+                    id="beats"
+                    name="beats"
+                    value={formData.beats}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="20"
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={isLoading}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Number of images in the video (1-20, default: 5)
+                  </p>
                 </div>
 
                 {/* Content Input */}

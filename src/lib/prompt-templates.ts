@@ -32,7 +32,8 @@ export interface PromptContext {
   target_duration?: number;
   style_preference?: 'dramatic' | 'comedic' | 'adventure' | 'romantic' | 'mystery';
   voice_count?: number;
-  language?: 'japanese' | 'english';
+  language?: 'ja' | 'en';
+  beats?: number;
 }
 
 export interface PromptGenerationResult {
@@ -60,100 +61,12 @@ export interface PromptPerformanceLog {
 // ================================================================
 
 /**
- * Base template for story-to-mulmoscript conversion (公式フォーマット準拠)
+ * Base template for story-to-mulmoscript conversion (English version)
  */
 const BASE_MULMOSCRIPT_TEMPLATE: PromptTemplate = {
   id: 'base_mulmoscript_v1',
-  name: 'Base Mulmoscript Generator',
-  description: 'Converts user stories into official mulmocast format with 5 beats',
-  version: 'v2.0',
-  content: `You are an expert storyteller and video script writer. Your task is to convert a user story into a structured mulmocast format for video generation.
-
-## Input Story
-Title: "{{story_title}}"
-Content: {{story_text}}
-
-## Requirements
-- Create exactly 5 beats that tell a complete story
-- Target total duration: approximately {{target_duration}} seconds
-- Make it engaging and cinematic
-- Language: {{language}}
-- Style: {{style_preference}}
-- Use appropriate speakers and image prompts
-
-## Output Format
-You must respond with a valid JSON object in this exact mulmocast format:
-
-\`\`\`json
-{
-  "$mulmocast": {
-    "version": "1.0"
-  },
-  "title": "{{story_title}}",
-  "lang": "{{language}}",
-  "speechParams": {
-    "provider": "openai",
-    "speakers": {
-      "Narrator": {
-        "voiceId": "shimmer",
-        "displayName": {
-          "en": "Narrator",
-          "ja": "語り手"
-        }
-      },
-      "Character": {
-        "voiceId": "alloy",
-        "displayName": {
-          "en": "Character", 
-          "ja": "登場人物"
-        }
-      }
-    }
-  },
-  "imageParams": {
-    "style": "Ghibli style anime, soft pastel colors, magical atmosphere"
-  },
-  "beats": [
-    {
-      "speaker": "Narrator",
-      "text": "Opening narration that sets the scene...",
-      "imagePrompt": "Visual description for this beat"
-    },
-    {
-      "speaker": "Character",
-      "text": "Character dialogue or action...",
-      "imagePrompt": "Visual description for this beat"
-    }
-  ]
-}
-\`\`\`
-
-## Important Guidelines
-1. Use "beats" not "scenes" - this is the official mulmocast terminology
-2. Each beat should have meaningful text and imagePrompt
-3. Use appropriate speakers (Narrator, Character, etc.)
-4. Image prompts should be vivid and descriptive
-5. Total video will be approximately {{target_duration}} seconds
-6. JSON must be valid and parseable
-7. Follow the mulmocast schema exactly
-
-Convert the story now:`,
-  variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language'],
-  metadata: {
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-12-26T00:00:00Z',
-    usage_count: 0,
-    success_rate: 0
-  }
-};
-
-/**
- * Enhanced template with detailed beat descriptions (公式フォーマット準拠)
- */
-const ENHANCED_MULMOSCRIPT_TEMPLATE: PromptTemplate = {
-  id: 'enhanced_mulmoscript_v1',
-  name: 'Enhanced Mulmoscript Generator',
-  description: 'Enhanced converter with detailed beat descriptions and character development',
+  name: 'Base Mulmoscript Generator (English)',
+  description: 'Converts user stories into official mulmocast format with detailed beats and character development',
   version: 'v2.0',
   content: `You are a master storyteller specializing in creating compelling short-form video content. Transform the given story into a cinematic mulmocast script.
 
@@ -264,7 +177,133 @@ Respond with ONLY the JSON mulmocast script (no additional text):
 7. JSON must be valid and parseable
 
 Generate the mulmocast script:`,
-  variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count'],
+  variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count', 'beats'],
+  metadata: {
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-12-26T00:00:00Z',
+    usage_count: 0,
+    success_rate: 0
+  }
+};
+
+/**
+ * Base template for story-to-mulmoscript conversion (Japanese version) - デフォルト
+ */
+const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
+  id: 'base_mulmoscript_jp_v1',
+  name: 'ベース Mulmoscript ジェネレーター (日本語)',
+  description: '物語を詳細なビートとキャラクター開発を含む公式mulmocastフォーマットに変換します',
+  version: 'v2.0',
+  content: `あなたは魅力的なショートフォーム動画コンテンツの制作を専門とするマスターストーリーテラーです。与えられた物語をシネマティックなmulmocastスクリプトに変換してください。
+
+## 物語分析
+タイトル: "{{story_title}}"
+内容: {{story_text}}
+希望スタイル: {{style_preference}}
+対象言語: {{language}}
+
+## 創作指針
+{{target_duration}}秒の動画を制作してください:
+- 元の物語のエッセンスと感情を捉える
+- 多様なペーシングと話者で視覚的な興味を演出
+- 魅力的なキャラクターの声と詳細な画像プロンプトを含む
+- セットアップ、展開、解決の明確な物語の弧に従う
+
+## 技術仕様
+- 正確に{{beats}}ビート
+- 総時間: 約{{target_duration}}秒
+- 音声数: 最大{{voice_count}}人の異なる話者
+- 各ビートの豊かな視覚的描写
+
+## 話者ガイド
+- **Narrator**: 権威的で明確な語り手の声
+- **Character**: 主人公、感情豊かな表現
+- **WiseCharacter**: 賢者的存在、思慮深い語り
+- **Child**: 無邪気で好奇心旺盛、エネルギッシュ
+- **Elder**: 経験豊富で計算された、しばしば瞑想的
+
+## 応答フォーマット
+JSONのmulmocastスクリプトのみで応答してください（追加テキストなし）:
+
+\`\`\`json
+{
+  "$mulmocast": {
+    "version": "1.0"
+  },
+  "title": "{{story_title}}",
+  "lang": "{{language}}",
+  "speechParams": {
+    "provider": "openai",
+    "speakers": {
+      "Narrator": {
+        "voiceId": "shimmer",
+        "displayName": {
+          "en": "Narrator",
+          "ja": "語り手"
+        }
+      },
+      "Character": {
+        "voiceId": "alloy",
+        "displayName": {
+          "en": "Main Character",
+          "ja": "主人公"
+        }
+      },
+      "WiseCharacter": {
+        "voiceId": "echo",
+        "displayName": {
+          "en": "Wise Character",
+          "ja": "賢者"
+        }
+      }
+    }
+  },
+  "imageParams": {
+    "style": "ジブリ風アニメ、ソフトパステルカラー、繊細な線画、シネマティック照明",
+    "model": "gpt-image-1",
+    "quality": "low"
+  },
+  "beats": [
+    {
+      "speaker": "Narrator",
+      "text": "視聴者を惹きつける魅力的なオープニングナレーション...",
+      "imagePrompt": "雰囲気のあるオープニングシーンで、ムードを設定し世界観を紹介"
+    },
+    {
+      "speaker": "Character",
+      "text": "キャラクター紹介または動機を明かす重要な台詞...",
+      "imagePrompt": "キャラクターの肖像またはその性格を示すアクションシーン"
+    },
+    {
+      "speaker": "Narrator",
+      "text": "プロットを進展させる物語の展開...",
+      "imagePrompt": "物語の主要な葛藤や旅路の視覚的表現"
+    },
+    {
+      "speaker": "WiseCharacter", 
+      "text": "感情のピーク、啓示、または共有される知恵...",
+      "imagePrompt": "ドラマティックな瞬間またはキャラクター間の意味深い交流"
+    },
+    {
+      "speaker": "Narrator",
+      "text": "すべてを結び付ける満足のいく結論...",
+      "imagePrompt": "平和で解決的なシーン、結果や変化を示す"
+    }
+  ]
+}
+\`\`\`
+
+## 重要なガイドライン
+1. "scenes"ではなく"beats"を使用 - 公式mulmocast用語
+2. 各ビートには意味のあるテキストと詳細なimagePromptの両方が必要
+3. 画像プロンプトはシネマティックで視覚的に豊かであること
+4. 話者は内容に適合させる（Narratorは説明、Characterは個人的な瞬間）
+5. 全体のスクリプトは完全で満足のいく物語を語ること
+6. mulmocastスキーマに正確に従うこと
+7. JSONは有効で解析可能でなければならない
+
+mulmocastスクリプトを生成してください:`,
+  variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count', 'beats'],
   metadata: {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-12-26T00:00:00Z',
@@ -278,7 +317,7 @@ Generate the mulmocast script:`,
  */
 const TEMPLATE_REGISTRY: Record<string, PromptTemplate> = {
   [BASE_MULMOSCRIPT_TEMPLATE.id]: BASE_MULMOSCRIPT_TEMPLATE,
-  [ENHANCED_MULMOSCRIPT_TEMPLATE.id]: ENHANCED_MULMOSCRIPT_TEMPLATE,
+  [BASE_MULMOSCRIPT_TEMPLATE_JP.id]: BASE_MULMOSCRIPT_TEMPLATE_JP,
 };
 
 // ================================================================
@@ -303,7 +342,7 @@ export function getTemplate(templateId: string): PromptTemplate | null {
  * Get the default template for mulmoscript generation
  */
 export function getDefaultTemplate(): PromptTemplate {
-  return ENHANCED_MULMOSCRIPT_TEMPLATE;
+  return BASE_MULMOSCRIPT_TEMPLATE_JP;
 }
 
 /**
@@ -337,7 +376,7 @@ export function substituteVariables(
     target_duration: '20.0',
     style_preference: 'dramatic',
     voice_count: '3',
-    language: 'japanese'
+    language: 'ja'
   };
 
   // Combine context with defaults
@@ -347,7 +386,8 @@ export function substituteVariables(
     target_duration: (context.target_duration || 20).toString(),
     style_preference: context.style_preference || defaults.style_preference,
     voice_count: (context.voice_count || 3).toString(),
-    language: context.language || defaults.language
+    language: context.language || defaults.language,
+    beats: (context.beats !== undefined ? context.beats : 5).toString()
   };
 
   // Replace all variables
@@ -398,6 +438,7 @@ export function generatePrompt(
     targetDuration?: number;
     stylePreference?: PromptContext['style_preference'];
     language?: PromptContext['language'];
+    beats?: number;
   } = {}
 ): PromptGenerationResult {
   const template = options.templateId
@@ -414,7 +455,8 @@ export function generatePrompt(
     target_duration: options.targetDuration || 20,
     style_preference: options.stylePreference || 'dramatic',
     voice_count: 3,
-    language: options.language || 'japanese'
+    language: options.language || 'ja',
+    beats: options.beats !== undefined ? options.beats : 5
   };
 
   // Validate context

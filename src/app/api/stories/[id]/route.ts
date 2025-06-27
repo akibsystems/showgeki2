@@ -200,6 +200,9 @@ async function updateStory(
     if (updateData.script_json) {
       updatePayload.script_json = updateData.script_json;
     }
+    if (updateData.beats !== undefined) {
+      updatePayload.beats = updateData.beats;
+    }
 
     // Set updated_at timestamp
     updatePayload.updated_at = new Date().toISOString();

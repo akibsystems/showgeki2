@@ -1,6 +1,14 @@
 -- ================================================================
--- TOBE ストーリー動画生成 データベースマイグレーション
--- 既存storiesテーブル削除 → 新スキーマで再作成
+-- Migration 000: Initial Schema Recreation (Complete Database Reset)
+-- ================================================================
+-- Description: TOBE ストーリー動画生成 データベースマイグレーション
+--              既存storiesテーブル削除 → 新スキーマで再作成 + beats カラム追加
+-- Author: Original system + Claude (beats addition)
+-- Date: 2024-12-26
+-- Dependencies: None (Full recreation)
+-- ================================================================
+-- ⚠️  WARNING: This script will DROP ALL EXISTING DATA!
+-- ⚠️  Use only for fresh installations or when data loss is acceptable
 -- ================================================================
 
 -- 1. 既存データのバックアップ（必要に応じて実行）
@@ -34,7 +42,7 @@ CREATE POLICY "Allow all operations on workspaces" ON workspaces
 FOR ALL USING (true);
 
 -- ================================================================
--- stories テーブル（新スキーマ）
+-- stories テーブル（新スキーマ + beats カラム）
 -- ================================================================
 CREATE TABLE stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -44,6 +52,7 @@ CREATE TABLE stories (
   text_raw TEXT NOT NULL,
   script_json JSONB,
   status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  beats INTEGER NOT NULL DEFAULT 5 CHECK (beats >= 1 AND beats <= 20),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -158,12 +167,12 @@ INSERT INTO workspaces (id, uid, name) VALUES
   ('00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 'サンプルワークスペース'),
   ('00000000-0000-0000-0000-000000000002', '550e8400-e29b-41d4-a716-446655440001', 'テストワークスペース');
 
--- サンプルストーリー
-INSERT INTO stories (id, workspace_id, uid, title, text_raw, status) VALUES 
+-- サンプルストーリー（beats カラム含む）
+INSERT INTO stories (id, workspace_id, uid, title, text_raw, status, beats) VALUES 
   ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
-   'カフェ経営の夢', '10年後に理想のカフェを経営していたい。地域の人々が集まる温かい場所を作りたい。', 'draft'),
+   'カフェ経営の夢', '10年後に理想のカフェを経営していたい。地域の人々が集まる温かい場所を作りたい。', 'draft', 5),
   ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 
-   '家族との幸せな時間', '家族と幸せに暮らしたい。子供たちの成長を見守り、一緒に過ごす時間を大切にしたい。', 'draft');
+   '家族との幸せな時間', '家族と幸せに暮らしたい。子供たちの成長を見守り、一緒に過ごす時間を大切にしたい。', 'draft', 7);
 
 -- ================================================================
 -- データベース設定の確認クエリ

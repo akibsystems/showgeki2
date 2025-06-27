@@ -183,7 +183,7 @@ async function createStory(
       );
     }
 
-    const { workspace_id, title, text_raw } = validation.data!;
+    const { workspace_id, title, text_raw, beats } = validation.data!;
     const supabase = createAdminClient();
 
     // Verify workspace ownership
@@ -211,7 +211,8 @@ async function createStory(
       uid: auth.uid,
       title: title.trim(),
       text_raw: text_raw.trim(),
-      status: 'draft'
+      status: 'draft',
+      beats: beats || 5
     };
 
     // Create story

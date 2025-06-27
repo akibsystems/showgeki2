@@ -100,6 +100,37 @@ node scripts/upload-video.js /path/to/video.mp4 STORY_ID
 Environment variables are stored in Google Cloud Secret Manager:
 - `supabase-url`, `supabase-service-key`, `openai-api-key`
 
+## Database Management
+
+### Schema Migrations
+Database schema changes are managed through SQL migration files in the `migrations/` directory:
+
+```bash
+migrations/
+├── README.md                         # Migration management guide
+├── 000_initial_schema_recreation.sql # Complete database recreation (with beats)
+├── 001_add_beats_column.sql         # Incremental beats column addition
+└── 999_template.sql                  # Template for new migrations
+```
+
+### Running Migrations
+Execute migrations through Supabase Dashboard:
+1. Open [Supabase Dashboard](https://app.supabase.com) → SQL Editor
+2. Copy migration file content and execute
+3. Verify using the built-in verification queries
+
+### Database Schema
+- **`stories`**: `id` (UUID), `workspace_id`, `uid`, `title`, `text_raw`, `script_json`, `status`, `beats` (1-20), `created_at`, `updated_at`
+- **`workspaces`**: `id` (UUID), `uid`, `name`, `created_at`
+- **`videos`**: `id` (UUID), `story_id`, `uid`, `status`, `video_url`, `created_at`, `updated_at`
+- **`reviews`**: `story_id`, `review_text`, `rating` (1-5), `created_at`
+
+### Key Database Features
+- **UUID Primary Keys**: All tables use UUID for better distribution
+- **Row Level Security**: Enabled with uid-based access control
+- **Constraints**: beats field constrained to 1-20 range
+- **Indexes**: Optimized for uid-based queries and status filtering
+
 ## mulmocast-cli Integration
 
 The video generation uses mulmocast-cli with quality parameters. A patch is applied during Docker build to add image quality control:

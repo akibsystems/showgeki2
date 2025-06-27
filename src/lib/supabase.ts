@@ -52,6 +52,7 @@ export interface Database {
           text_raw: string;
           script_json?: any;
           status: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
+          beats: number;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +64,7 @@ export interface Database {
           text_raw: string;
           script_json?: any;
           status?: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
+          beats?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -74,6 +76,7 @@ export interface Database {
           text_raw?: string;
           script_json?: any;
           status?: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
+          beats?: number;
           created_at?: string;
           updated_at?: string;
         };

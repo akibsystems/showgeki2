@@ -35,6 +35,7 @@ const StoryEditorPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: story?.title || '',
     text_raw: story?.text_raw || '',
+    beats: 5,
   });
 
   // Update form data when story is loaded
@@ -43,6 +44,7 @@ const StoryEditorPage: React.FC = () => {
       setFormData({
         title: story.title || '',
         text_raw: story.text_raw || '',
+        beats: story.beats || 5, // Use story's beats value or default to 5
       });
     }
   }, [story]);
@@ -51,7 +53,7 @@ const StoryEditorPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'beats' ? parseInt(value) || 5 : value,
     }));
   };
 
@@ -66,6 +68,7 @@ const StoryEditorPage: React.FC = () => {
       await updateStory({
         title: formData.title,
         text_raw: formData.text_raw,
+        beats: formData.beats,
       });
       
       setIsEditing(false);
@@ -81,7 +84,7 @@ const StoryEditorPage: React.FC = () => {
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
     try {
-      await generateScript();
+      await generateScript({ beats: formData.beats });
       success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
@@ -386,11 +389,39 @@ const StoryEditorPage: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                           />
                         </div>
+                        
+                        <div>
+                          <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
+                            Beats (絵の枚数)
+                          </label>
+                          <input
+                            type="number"
+                            id="beats"
+                            name="beats"
+                            value={formData.beats}
+                            onChange={handleInputChange}
+                            min="1"
+                            max="20"
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Number of images in the video (1-20, default: 5)
+                          </p>
+                        </div>
                       </div>
                     ) : (
-                      <div className="prose max-w-none">
-                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                          {story.text_raw}
+                      <div className="space-y-4">
+                        <div className="prose max-w-none">
+                          <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                            {story.text_raw}
+                          </div>
+                        </div>
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <span className="font-medium">Beats (絵の枚数):</span>
+                            <span>{formData.beats}</span>
+                            <span className="text-gray-400">images</span>
+                          </div>
                         </div>
                       </div>
                     )}
