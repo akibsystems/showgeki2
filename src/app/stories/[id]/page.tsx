@@ -137,11 +137,8 @@ const StoryEditorPage: React.FC = () => {
       
       if (result.success) {
         success('Video generation started');
-        // Refresh videos data to show the new video
-        if (videos) {
-          // Trigger revalidation of videos
-          window.location.reload();
-        }
+        // Navigate to videos page to see generation progress
+        router.push('/videos');
       } else {
         throw new Error(result.error || 'Unknown error');
       }
