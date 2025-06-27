@@ -129,7 +129,7 @@ describe('Schemas Validation Tests', () => {
 
   describe('StorySchema', () => {
     const validStory = {
-      id: 'ABCD1234',
+      id: '123e4567-e89b-12d3-a456-426614174000',
       workspace_id: '123e4567-e89b-12d3-a456-426614174000',
       uid: '987fcdeb-51a2-43d1-9f12-345678901234',
       title: 'Test Story',
@@ -154,9 +154,9 @@ describe('Schemas Validation Tests', () => {
       expect(StorySchema.parse(story)).toEqual(story)
     })
 
-    it('rejects story with invalid ID length', () => {
-      expect(() => StorySchema.parse({ ...validStory, id: 'SHORT' })).toThrow('Story ID must be 8 characters')
-      expect(() => StorySchema.parse({ ...validStory, id: 'TOOLONG123' })).toThrow('Story ID must be 8 characters')
+    it('rejects story with invalid ID format', () => {
+      expect(() => StorySchema.parse({ ...validStory, id: 'invalid-id' })).toThrow()
+      expect(() => StorySchema.parse({ ...validStory, id: '12345678' })).toThrow()
     })
 
     it('rejects story with empty title', () => {
@@ -200,7 +200,7 @@ describe('Schemas Validation Tests', () => {
   describe('VideoSchema', () => {
     const validVideo = {
       id: '123e4567-e89b-12d3-a456-426614174000',
-      story_id: 'ABCD1234',
+      story_id: '123e4567-e89b-12d3-a456-426614174000',
       uid: '987fcdeb-51a2-43d1-9f12-345678901234',
       url: 'https://example.com/video.mp4',
       duration_sec: 30,
@@ -218,7 +218,7 @@ describe('Schemas Validation Tests', () => {
     it('validates video with minimal required fields', () => {
       const minimalVideo = {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        story_id: 'ABCD1234',
+        story_id: '123e4567-e89b-12d3-a456-426614174000',
         uid: '987fcdeb-51a2-43d1-9f12-345678901234',
         status: 'queued',
         created_at: '2024-01-01T00:00:00.000Z',
@@ -252,7 +252,7 @@ describe('Schemas Validation Tests', () => {
   describe('ReviewSchema', () => {
     const validReview = {
       id: '123e4567-e89b-12d3-a456-426614174000',
-      story_id: 'ABCD1234',
+      story_id: '123e4567-e89b-12d3-a456-426614174000',
       review_text: 'This is a great story!',
       rating: 5,
       created_at: '2024-01-01T00:00:00.000Z',

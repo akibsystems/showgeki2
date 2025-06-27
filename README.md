@@ -110,6 +110,29 @@ node scripts/auto-process.js -w
 - `SUPABASE_SERVICE_KEY`: Supabaseのサービスキー
 - `OPENAI_API_KEY`: OpenAI APIキー（自動処理用）
 
+## 🧪 テスト
+
+本プロジェクトではVitest + Playwrightを使用した包括的なテストフレームワークを採用しています。
+
+### クイックスタート
+```bash
+# 全テスト実行
+npm test
+
+# カバレッジ付きテスト
+npm run test:coverage
+
+# UIモードでテスト（ブラウザ表示）
+npm run test:ui
+```
+
+### テストの種類
+- **ユニットテスト**: 個別機能の単体テスト
+- **統合テスト**: API・データベース連携テスト
+- **E2Eテスト**: ブラウザでのエンドツーエンドテスト
+
+詳細は **[テストドキュメント](./docs/testing/README.md)** を参照してください。
+
 ## API エンドポイント
 
 ### ユーザー向け

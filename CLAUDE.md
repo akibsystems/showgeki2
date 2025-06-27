@@ -46,14 +46,21 @@ gcloud run services replace clouddeploy.yaml --region=asia-northeast1 --project=
 
 ### Testing & Monitoring
 ```bash
-# Test production Cloud Run service
-node scripts/test-cloud-run.js
+# Unit and integration tests (Vitest)
+npm test                                  # Run all tests in watch mode
+npm run test:run                          # Run tests once
+npm run test:coverage                     # Generate coverage report
+npm run test:ui                           # Run tests in browser UI
 
-# Check service health and status
-./scripts/check-cloudrun-status.sh
+# Production deployment tests
+node scripts/test-cloud-run.js           # Test production Cloud Run service
+./scripts/check-cloudrun-status.sh       # Check service health and status
 
-# Export stories data
-node scripts/export-stories-excel.js
+# Development tests
+node scripts/test-local.js               # Test local webhook server
+
+# Data export
+node scripts/export-stories-excel.js    # Export stories data
 ```
 
 ### Manual Video Upload
