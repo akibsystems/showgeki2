@@ -35,26 +35,34 @@ const openai = new OpenAI({ apiKey: openaiApiKey });
 const WORK_DIR = process.env.NODE_ENV === 'development'
   ? '/app/mulmocast-cli'
   : '/app/mulmocast-cli';
-const SCHOOL_JSON_PATH = path.join(WORK_DIR, 'scripts', 'school.json');
-const OUTPUT_VIDEO_PATH = path.join(WORK_DIR, 'output', 'school.mp4');
 
-function writeSchoolJson(jsonContent) {
+// Create unique paths for each request to avoid conflicts
+function createUniquePaths(videoId) {
+  const uniqueDir = path.join(WORK_DIR, 'temp', videoId);
+  return {
+    tempDir: uniqueDir,
+    scriptPath: path.join(uniqueDir, 'script.json'),
+    outputPath: path.join(uniqueDir, 'output.mp4')
+  };
+}
+
+function writeScriptJson(jsonContent, scriptPath) {
   try {
-    console.log('school.jsonに書き込み中...');
+    console.log('script.jsonに書き込み中...');
     // ディレクトリが存在しない場合は作成
-    const dir = path.dirname(SCHOOL_JSON_PATH);
+    const dir = path.dirname(scriptPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    fs.writeFileSync(SCHOOL_JSON_PATH, jsonContent, 'utf8');
-    console.log(`✅ ${SCHOOL_JSON_PATH} に書き込み完了`);
+    fs.writeFileSync(scriptPath, jsonContent, 'utf8');
+    console.log(`✅ ${scriptPath} に書き込み完了`);
   } catch (error) {
     throw new Error(`ファイル書き込みエラー: ${error.message}`);
   }
 }
 
-function generateMovie() {
+function generateMovie(scriptPath, outputPath) {
   try {
     console.log('mulmocast-cliで動画生成中...');
     console.log('🎬 実際のmulmocast-cliで動画生成を開始...');
@@ -71,6 +79,8 @@ function generateMovie() {
     console.log(`  - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
     console.log(`  - Working Directory: ${process.cwd()}`);
     console.log(`  - Mulmocast Path: ${mulmocastPath}`);
+    console.log(`  - Script Path: ${scriptPath}`);
+    console.log(`  - Output Path: ${outputPath}`);
 
     // ディスク容量チェック
     try {
@@ -82,14 +92,15 @@ function generateMovie() {
     }
 
     // 出力ディレクトリを確保
-    const outputDir = path.dirname(OUTPUT_VIDEO_PATH);
+    const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
     try {
-      // 実際のmulmocast-cliコマンドを実行
-      const command = 'yarn movie scripts/school.json -f';
+      // 相対パスでスクリプトを指定 (mulmocast-cliから見た相対パス)
+      const relativeScriptPath = path.relative(mulmocastPath, scriptPath);
+      const command = `yarn movie "${relativeScriptPath}" -f`;
       console.log(`実行コマンド: ${command}`);
       console.log('🚀 mulmocast-cli 実行開始...');
 
@@ -104,20 +115,38 @@ function generateMovie() {
       const executionTime = Date.now() - startTime;
       console.log(`⏱️ mulmocast-cli 実行完了: ${Math.round(executionTime / 1000)}秒`);
 
-      // 出力ファイルの存在確認
-      if (!fs.existsSync(OUTPUT_VIDEO_PATH)) {
-        throw new Error(`出力動画ファイルが見つかりません: ${OUTPUT_VIDEO_PATH}`);
+      // mulmocast-cliの実際の出力パスを確認
+      const actualOutputPaths = [
+        path.join(mulmocastPath, 'output', 'script.mp4'),
+        path.join(mulmocastPath, 'output.mp4'),
+        path.join(mulmocastPath, 'script.mp4')
+      ];
+
+      let foundOutputPath = null;
+      for (const checkPath of actualOutputPaths) {
+        if (fs.existsSync(checkPath)) {
+          foundOutputPath = checkPath;
+          console.log(`✅ 動画ファイル発見: ${checkPath}`);
+          break;
+        }
       }
 
-      console.log('✅ 動画生成完了');
-      return OUTPUT_VIDEO_PATH; // Return video path for upload
+      if (foundOutputPath) {
+        fs.copyFileSync(foundOutputPath, outputPath);
+        fs.unlinkSync(foundOutputPath); // 元ファイルを削除
+        console.log('✅ 動画生成完了');
+        return outputPath;
+      } else {
+        console.error('❌ 動画ファイルが見つかりません。確認した場所:');
+        actualOutputPaths.forEach(checkPath => {
+          console.error(`  - ${checkPath}: ${fs.existsSync(checkPath) ? '存在' : '存在しない'}`);
+        });
+        throw new Error(`出力動画ファイルが見つかりません`);
+      }
 
     } catch (execError) {
       console.error('mulmocast-cli実行エラー:', execError.message);
-      // フォールバック: ダミーファイルを作成
-      console.log('⚠️ フォールバック: ダミーファイルを作成');
-      fs.writeFileSync(OUTPUT_VIDEO_PATH, 'dummy video content - mulmocast failed', 'utf8');
-      return OUTPUT_VIDEO_PATH;
+      throw execError; // フォールバック処理を削除し、エラーを上位に伝播
     }
 
   } catch (error) {
@@ -164,9 +193,10 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 }
 
 async function processVideoGeneration(payload) {
+  const { video_id, story_id, uid, title, text_raw, script_json } = payload;
+  let uniquePaths = null;
+  
   try {
-    const { video_id, story_id, uid, title, text_raw, script_json } = payload;
-
     console.log('🚀 動画生成処理を開始します...');
     console.log('🔍 受信ペイロード:', JSON.stringify(payload, null, 2));
     console.log(`📹 動画ID: ${video_id} (型: ${typeof video_id}, 長さ: ${video_id ? video_id.length : 'N/A'})`);
@@ -183,6 +213,10 @@ async function processVideoGeneration(payload) {
     if (!uuidRegex.test(story_id)) {
       throw new Error(`無効なstory_id形式: "${story_id}" - UUID形式である必要があります`);
     }
+
+    // Create unique paths for this request to avoid conflicts
+    uniquePaths = createUniquePaths(video_id);
+    console.log(`🗂️ ユニーク作業ディレクトリ: ${uniquePaths.tempDir}`);
 
     // Update video status to 'processing'
     await supabase
@@ -209,15 +243,21 @@ async function processVideoGeneration(payload) {
     }
     console.log('');
 
-    // 3. school.jsonに書き込み
-    console.log('3. school.jsonファイルに書き込み中...');
-    writeSchoolJson(jsonContent);
+    // 3. script.jsonに書き込み (ユニークなパス)
+    console.log('3. script.jsonファイルに書き込み中...');
+    writeScriptJson(jsonContent, uniquePaths.scriptPath);
     console.log('');
 
-    // 4. mulmocast-cliで動画生成
+    // 4. mulmocast-cliで動画生成 (ユニークなパス)
     console.log('4. mulmocast-cliで動画生成中...');
-    const videoPath = generateMovie();
-    console.log('');
+    let videoPath;
+    try {
+      videoPath = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath);
+      console.log('');
+    } catch (movieError) {
+      console.error('❌ 動画生成に失敗しました:', movieError.message);
+      throw new Error(`動画生成失敗: ${movieError.message}`);
+    }
 
     // 5. 動画をSupabase Storageにアップロード
     console.log('5. 動画をSupabase Storageにアップロード中...');
@@ -263,18 +303,33 @@ async function processVideoGeneration(payload) {
     console.error('❌ 処理中にエラーが発生しました:', error.message);
 
     // Update video status to failed
-    if (payload.video_id && payload.uid) {
+    if (video_id && uid) {
       await supabase
         .from('videos')
         .update({
           status: 'failed',
           error_msg: error.message
         })
-        .eq('id', payload.video_id)
-        .eq('uid', payload.uid);
+        .eq('id', video_id)
+        .eq('uid', uid);
     }
 
     return false; // エラーのため処理失敗
+  } finally {
+    // Clean up temporary files and directories
+    if (uniquePaths && uniquePaths.tempDir) {
+      try {
+        console.log('🧹 一時ファイルをクリーンアップ中...');
+        if (fs.existsSync(uniquePaths.tempDir)) {
+          // Recursively remove temporary directory
+          fs.rmSync(uniquePaths.tempDir, { recursive: true, force: true });
+          console.log(`✅ 一時ディレクトリを削除: ${uniquePaths.tempDir}`);
+        }
+      } catch (cleanupError) {
+        console.error('⚠️ クリーンアップエラー:', cleanupError.message);
+        // Don't throw error for cleanup failure
+      }
+    }
   }
 }
 

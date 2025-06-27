@@ -67,7 +67,7 @@ gcloud run deploy $SERVICE_NAME \
     --max-instances=10 \
     --min-instances=0 \
     --port=8080 \
-    --set-env-vars="NODE_ENV=production" \
+    --set-env-vars="NODE_ENV=production,OPENAI_IMAGE_QUALITY_DEFAULT=medium" \
     --update-secrets="SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,OPENAI_API_KEY=openai-api-key:latest" \
     --allow-unauthenticated
 
