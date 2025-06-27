@@ -34,18 +34,30 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   const [jsonValue, setJsonValue] = useState('');
   const [isValidJson, setIsValidJson] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Initialize JSON value when script changes
+  // Initialize JSON value when script changes (but not while editing)
   useEffect(() => {
-    if (script) {
+    if (script && !isEditing) {
       setJsonValue(JSON.stringify(script, null, 2));
+      setIsValidJson(true);
     }
-  }, [script]);
+  }, [script, isEditing]);
+
+  // Initialize when component mounts
+  useEffect(() => {
+    if (script && jsonValue === '') {
+      setJsonValue(JSON.stringify(script, null, 2));
+      setIsValidJson(true);
+      setIsEditing(false);
+    }
+  }, [script, jsonValue]);
 
 
   // Handle JSON code changes
   const handleJsonChange = (newValue: string) => {
     setJsonValue(newValue);
+    setIsEditing(true);
     try {
       const parsed = JSON.parse(newValue);
       onChange(parsed);
@@ -69,6 +81,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
       // Parse the current JSON value to get the edited script
       const parsedScript = JSON.parse(jsonValue);
       await onSave(parsedScript);
+      // Reset editing state after successful save
+      setIsEditing(false);
     } catch (error) {
       console.error('Failed to save script:', error);
     } finally {
