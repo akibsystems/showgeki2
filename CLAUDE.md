@@ -80,6 +80,42 @@ node scripts/upload-video.js /path/to/video.mp4 STORY_ID
 - **`/watch`**: Video viewing with registration ID input
 - **`/mgmt-x7k9n2p8q5`**: Admin management interface (secure URL)
 
+### Frontend Components
+
+#### ScriptDirector Component
+**Location**: `/src/components/editor/script-director/`
+
+A comprehensive, mobile-friendly visual editor for MulmoScript structure that serves as an intuitive alternative to JSON-based script editing. The component provides three main editing areas:
+
+**Core Features**:
+- **Title Editor**: Real-time validation with character count
+- **Image Settings**: Style preset selection and face reference management
+- **Speech Settings**: Speaker management with OpenAI voice selection
+- **Beat Editor**: Interactive beat management with speaker assignment
+
+**Architecture**:
+- **Main Component**: `index.tsx` - Orchestrates all sub-components and state
+- **Hooks**: Custom state management hooks for different aspects
+  - `useScriptDirector.ts`: Main state management and tab switching
+  - `useSpeakerManager.ts`: Speaker CRUD operations and voice assignment
+  - `useBeatsManager.ts`: Beat list management with add/delete/reorder
+  - `useImageManager.ts`: Face reference image management
+- **Components**: Modular UI components for each editing section
+  - `TitleEditor.tsx`: Title input with validation
+  - `SpeechSettings.tsx`: Speaker list and management interface
+  - `BeatsEditor.tsx`: Beat editing with speaker/image selection
+  - `ImageSettings.tsx`: Style and face reference management
+- **Modals**: `SpeakerModal.tsx`, `ImageModal.tsx` for detailed editing
+- **Styling**: `ScriptDirector.module.css` - Mobile-first responsive design
+
+**Integration**: Replaced the original "Story Content" tab in the story editor page (`/src/app/stories/[id]/page.tsx`), providing seamless script editing within the existing story management workflow.
+
+**Technical Notes**:
+- Built with TypeScript for full type safety
+- Supports all OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
+- Compatible with MulmoScript schema while extending it for face references
+- Responsive design optimized for both mobile and desktop use
+
 ## Environment Configuration
 
 ### Required Environment Variables
