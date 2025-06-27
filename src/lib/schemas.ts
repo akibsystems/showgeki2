@@ -189,9 +189,10 @@ export const CreateWorkspaceRequestSchema = z.object({
 // ストーリー作成リクエスト
 export const CreateStoryRequestSchema = z.object({
   workspace_id: z.string().uuid(),
-  title: z.string().min(1).max(255),
+  title: z.string().min(1).max(255).optional(),
   text_raw: z.string().min(1),
   beats: z.number().min(1).max(20).default(5),
+  auto_generate_script: z.boolean().default(false),
 });
 
 // ストーリー更新リクエスト

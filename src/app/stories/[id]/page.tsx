@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor } from '@/components/editor';
@@ -16,9 +16,13 @@ import { useStory, useVideos } from '@/hooks';
 const StoryEditorPage: React.FC = () => {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const storyId = params.id as string;
   const { } = useApp();
   const { success, error } = useToast();
+  
+  // Get initial tab from URL parameter
+  const initialTab = searchParams.get('tab') === 'script' ? 'script' : 'content';
   
   // Use SWR hooks for data fetching
   const { story, isLoading, mutate: mutateStory, updateStory, deleteStory, generateScript } = useStory(storyId);
@@ -30,7 +34,7 @@ const StoryEditorPage: React.FC = () => {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'content' | 'script'>('content');
+  const [currentTab, setCurrentTab] = useState<'content' | 'script'>(initialTab);
   
   const [formData, setFormData] = useState({
     title: story?.title || '',
@@ -48,6 +52,23 @@ const StoryEditorPage: React.FC = () => {
       });
     }
   }, [story]);
+
+  // Update tab when URL parameter changes
+  React.useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'script' || tabParam === 'content') {
+      setCurrentTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Handle tab switching with URL update
+  const handleTabChange = (tab: 'content' | 'script') => {
+    setCurrentTab(tab);
+    // Update URL without causing full page refresh
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('tab', tab);
+    window.history.pushState({}, '', newUrl.toString());
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -318,7 +339,7 @@ const StoryEditorPage: React.FC = () => {
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8">
                 <button
-                  onClick={() => setCurrentTab('content')}
+                  onClick={() => handleTabChange('content')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
                     currentTab === 'content'
                       ? 'border-blue-500 text-blue-600'
@@ -333,7 +354,7 @@ const StoryEditorPage: React.FC = () => {
                 
                 {story.script_json && (
                   <button
-                    onClick={() => setCurrentTab('script')}
+                    onClick={() => handleTabChange('script')}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
                       currentTab === 'script'
                         ? 'border-blue-500 text-blue-600'
@@ -437,7 +458,7 @@ const StoryEditorPage: React.FC = () => {
                         <Button 
                           variant="secondary" 
                           size="sm"
-                          onClick={() => setCurrentTab('script')}
+                          onClick={() => handleTabChange('script')}
                         >
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />

@@ -1,13 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, SupabaseStoryInsert } from '@/lib/supabase';
+import { createAdminClient, SupabaseStoryInsert, SupabaseStoryUpdate } from '@/lib/supabase';
 import { withAuth, type AuthContext } from '@/lib/auth';
 import { 
   StorySchema,
   CreateStoryRequestSchema,
+  MulmoscriptSchema,
   validateSchema,
   isValidUid
 } from '@/lib/schemas';
 import { ErrorType } from '@/types';
+import OpenAI from 'openai';
+import {
+  generateMulmoscriptWithFallback,
+  type ScriptGenerationOptions
+} from '@/lib/openai-client';
+
+// ================================================================
+// OpenAI Client Configuration
+// ================================================================
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// ================================================================
+// Helper Functions
+// ================================================================
+
+/**
+ * Generate title from story content using OpenAI
+ */
+async function generateTitle(text_raw: string): Promise<string> {
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `あなたは創作支援AIです。ユーザーが提供するストーリー内容から、魅力的で適切なタイトルを日本語で生成してください。
+
+タイトル生成の要件：
+- 日本語で生成
+- 10-30文字程度
+- ストーリーの核心を表現
+- 魅力的で読み手の興味を引く
+- 簡潔で覚えやすい
+- 夢や希望的な内容の場合は前向きな表現を使用
+- タイトル全体を引用符で囲まない
+
+応答は、生成されたタイトルのみを返してください。説明や前置きは不要です。引用符は使用しないでください。`,
+      },
+      {
+        role: 'user',
+        content: `以下のストーリー内容から適切なタイトルを生成してください：
+
+${text_raw}`,
+      },
+    ],
+    max_tokens: 100,
+    temperature: 0.7,
+  });
+
+  let generatedTitle = completion.choices[0]?.message?.content?.trim();
+
+  if (!generatedTitle) {
+    throw new Error('Failed to generate title from OpenAI');
+  }
+
+  // Remove surrounding quotes if present
+  generatedTitle = generatedTitle.replace(/^["「『]|["」』]$/g, '');
+
+  return generatedTitle;
+}
 
 // ================================================================
 // GET /api/stories
@@ -183,7 +246,7 @@ async function createStory(
       );
     }
 
-    const { workspace_id, title, text_raw, beats } = validation.data!;
+    const { workspace_id, title, text_raw, beats, auto_generate_script } = validation.data!;
     const supabase = createAdminClient();
 
     // Verify workspace ownership
@@ -205,11 +268,29 @@ async function createStory(
       );
     }
 
+    // Generate title if not provided
+    let finalTitle = title?.trim();
+    if (!finalTitle) {
+      try {
+        finalTitle = await generateTitle(text_raw);
+      } catch (error) {
+        console.error('Title generation failed:', error);
+        return NextResponse.json(
+          {
+            error: 'Failed to generate title',
+            type: ErrorType.INTERNAL,
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     // Prepare insert data
     const insertData: SupabaseStoryInsert = {
       workspace_id,
       uid: auth.uid,
-      title: title.trim(),
+      title: finalTitle,
       text_raw: text_raw.trim(),
       status: 'draft',
       beats: beats || 5
@@ -260,11 +341,113 @@ async function createStory(
 
     // Validate response data
     const storyValidation = validateSchema(StorySchema, data);
+    let finalStory = storyValidation.success ? storyValidation.data : data;
 
+    // If auto_generate_script is true, generate script immediately
+    if (auto_generate_script) {
+      try {
+        console.log(`[Script Generation] Auto-generating script for story ${finalStory.id}`);
+
+        const generationOptions: ScriptGenerationOptions = {
+          targetDuration: 20,
+          stylePreference: 'dramatic',
+          language: 'ja',
+          beats: beats || 5,
+          retryCount: 2,
+        };
+
+        // Generate script using OpenAI integration
+        const { script: generatedScript, generated_with_ai } = await generateMulmoscriptWithFallback(
+          finalStory,
+          generationOptions
+        );
+
+        // Validate generated script
+        const scriptValidation = validateSchema(MulmoscriptSchema, generatedScript);
+        if (!scriptValidation.success) {
+          console.error('Generated script validation failed:', scriptValidation.errors);
+          // Return story without script rather than failing completely
+          return NextResponse.json(
+            {
+              success: true,
+              data: finalStory,
+              message: 'Story created but script generation failed',
+              timestamp: new Date().toISOString()
+            },
+            { status: 201 }
+          );
+        }
+
+        // Update story with generated script
+        const updatePayload: SupabaseStoryUpdate = {
+          script_json: scriptValidation.data,
+          status: 'script_generated',
+          updated_at: new Date().toISOString()
+        };
+
+        const { data: updatedStory, error: updateError } = await supabase
+          .from('stories')
+          .update(updatePayload)
+          .eq('id', finalStory.id)
+          .eq('uid', auth.uid)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Database error updating story with script:', updateError);
+          // Return story without script rather than failing completely
+          return NextResponse.json(
+            {
+              success: true,
+              data: finalStory,
+              message: 'Story created but script save failed',
+              timestamp: new Date().toISOString()
+            },
+            { status: 201 }
+          );
+        }
+
+        // Return story with generated script
+        const finalStoryValidation = validateSchema(StorySchema, updatedStory);
+        finalStory = finalStoryValidation.success ? finalStoryValidation.data : updatedStory;
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              story: finalStory,
+              script_json: scriptValidation.data,
+              generated_with_ai: generated_with_ai,
+              generation_options: generationOptions
+            },
+            message: generated_with_ai 
+              ? 'Story created and script generated successfully with AI'
+              : 'Story created and script generated successfully with fallback method',
+            timestamp: new Date().toISOString()
+          },
+          { status: 201 }
+        );
+
+      } catch (error) {
+        console.error('Script generation failed during story creation:', error);
+        // Return story without script rather than failing completely
+        return NextResponse.json(
+          {
+            success: true,
+            data: finalStory,
+            message: 'Story created but script generation failed',
+            timestamp: new Date().toISOString()
+          },
+          { status: 201 }
+        );
+      }
+    }
+
+    // Return story only (no script generation requested)
     return NextResponse.json(
       {
         success: true,
-        data: storyValidation.success ? storyValidation.data : data,
+        data: finalStory,
         timestamp: new Date().toISOString()
       },
       { status: 201 }

@@ -21,7 +21,6 @@ const NewStoryPage: React.FC = () => {
   const { createStory } = useStories();
   
   const [formData, setFormData] = useState({
-    title: '',
     text_raw: '',
     beats: 5,
   });
@@ -35,12 +34,8 @@ const NewStoryPage: React.FC = () => {
     }));
   };
 
-  const handleSave = async () => {
-    if (!formData.title.trim()) {
-      error('Title is required');
-      return;
-    }
-    
+
+  const handleGenerateScript = async () => {
     if (!formData.text_raw.trim()) {
       error('Story content is required');
       return;
@@ -51,25 +46,36 @@ const NewStoryPage: React.FC = () => {
       // Ensure workspace exists for the user
       const workspace = await ensureWorkspace();
       
-      // Create the story
-      const newStory = await createStory({
+      // Create story with auto script generation
+      const result = await createStory({
         workspace_id: workspace.id,
-        title: formData.title.trim(),
         text_raw: formData.text_raw.trim(),
         beats: formData.beats,
+        auto_generate_script: true,
       });
       
-      console.log('Created story:', newStory); // Debug log
+      console.log('Created story with script:', result); // Debug log
       
-      if (!newStory || !newStory.id) {
+      // Check if result contains story data
+      // When auto_generate_script is true, the response structure might be different
+      let storyData: any;
+      if (result && typeof result === 'object' && 'story' in result) {
+        storyData = (result as any).story;
+      } else {
+        storyData = result;
+      }
+      
+      if (!storyData || !storyData.id) {
         throw new Error('Invalid story response - missing ID');
       }
       
-      success('Story created successfully');
-      router.push(`/stories/${newStory.id}`);
+      success('Story and script generated successfully');
+      
+      // Navigate to content tab (default view)
+      router.push(`/stories/${storyData.id}?tab=content`);
     } catch (err) {
-      console.error('Failed to create story:', err);
-      error('Failed to create story');
+      console.error('Failed to create story and generate script:', err);
+      error('Failed to create story and generate script');
     } finally {
       setIsLoading(false);
     }
@@ -91,21 +97,21 @@ const NewStoryPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Create New Story</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Write your story content and we'll help you turn it into a video.
+                ストーリー内容を書いて「Generate Script」を押すだけで、AIが自動でタイトルと台本を生成し、動画を作成します。
               </p>
             </div>
             <div className="flex space-x-3">
               <Button variant="secondary" onClick={handleCancel} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={isLoading || !formData.title.trim() || !formData.text_raw.trim()}>
+              <Button onClick={handleGenerateScript} disabled={isLoading || !formData.text_raw.trim()}>
                 {isLoading ? (
                   <>
                     <Spinner size="sm" color="white" className="mr-2" />
-                    Saving...
+                    Generating Script...
                   </>
                 ) : (
-                  'Save Story'
+                  'Generate Script'
                 )}
               </Button>
             </div>
@@ -117,46 +123,9 @@ const NewStoryPage: React.FC = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-6">
-                {/* Title Input */}
-                <div className="mb-6">
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Story Title
-                  </label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="Enter a compelling title for your story..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    disabled={isLoading}
-                  />
-                </div>
-
-                {/* Beats Input */}
-                <div className="mb-6">
-                  <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
-                    Beats (絵の枚数)
-                  </label>
-                  <input
-                    type="number"
-                    id="beats"
-                    name="beats"
-                    value={formData.beats}
-                    onChange={handleInputChange}
-                    min="1"
-                    max="20"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    disabled={isLoading}
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Number of images in the video (1-20, default: 5)
-                  </p>
-                </div>
 
                 {/* Content Input */}
-                <div>
+                <div className="mb-6">
                   <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
                     Story Content
                   </label>
@@ -179,6 +148,27 @@ const NewStoryPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Image Count Input */}
+                <div>
+                  <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
+                    絵の枚数
+                  </label>
+                  <input
+                    type="number"
+                    id="beats"
+                    name="beats"
+                    value={formData.beats}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="20"
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={isLoading}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    動画に使用する画像の枚数 (1-20枚、デフォルト: 5枚)
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -199,7 +189,7 @@ const NewStoryPage: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">
-                          <strong>Be specific:</strong> Include details about characters, settings, and actions.
+                          <strong>AIタイトル生成:</strong> Generate Script時に、ストーリー内容からAIが自動でタイトルを生成します。
                         </p>
                       </div>
                     </div>
@@ -243,7 +233,7 @@ const NewStoryPage: React.FC = () => {
                       <span className="text-sm text-gray-600">Draft</span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Your story will be saved as a draft. You can generate a script and video once it's saved.
+                      Generate Script時に、タイトル生成 → ストーリー保存 → 台本生成が自動実行されます。
                     </p>
                   </div>
                 </CardContent>
@@ -256,11 +246,11 @@ const NewStoryPage: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <span className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-xs font-medium">1</span>
-                      <span>Save your story</span>
+                      <span>Generate script (タイトル自動生成含む)</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-400">
                       <span className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium">2</span>
-                      <span>Generate script</span>
+                      <span>Review & edit script</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-400">
                       <span className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium">3</span>
