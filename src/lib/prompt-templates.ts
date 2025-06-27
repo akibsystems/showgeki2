@@ -134,8 +134,7 @@ Respond with ONLY the JSON mulmocast script (no additional text):
   },
   "imageParams": {
     "style": "Ghibli style anime, soft pastel colors, delicate line art, cinematic lighting",
-    "model": "gpt-image-1",
-    "quality": "low"
+    "model": "gpt-image-1"
   },
   "beats": [
     {
@@ -254,8 +253,7 @@ JSONのmulmocastスクリプトのみで応答してください（追加テキ�
   },
   "imageParams": {
     "style": "ジブリ風アニメ、ソフトパステルカラー、繊細な線画、シネマティック照明",
-    "model": "gpt-image-1",
-    "quality": "low"
+    "model": "gpt-image-1"
   },
   "beats": [
     {

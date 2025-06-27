@@ -96,6 +96,11 @@ node scripts/upload-video.js /path/to/video.mp4 STORY_ID
 - **`NEXT_PUBLIC_SUPABASE_URL`**: Frontend database URL
 - **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**: Frontend database key
 
+### Optional Environment Variables
+- **`OPENAI_IMAGE_QUALITY_DEFAULT`**: OpenAI image quality (`high`/`medium`/`low`)
+  - Production: `medium` (balanced quality/cost)
+  - Development: `low` (cost optimization)
+
 ### Cloud Run Secrets
 Environment variables are stored in Google Cloud Secret Manager:
 - `supabase-url`, `supabase-service-key`, `openai-api-key`
@@ -139,12 +144,16 @@ The video generation uses mulmocast-cli with quality parameters. A patch is appl
 // Applied to mulmocast-cli during build
 type OpenAIImageQuality = "high" | "medium" | "low";
 imageParams: {
-  quality: "medium"  // Default for cost optimization
+  quality: process.env.OPENAI_IMAGE_QUALITY_DEFAULT || "low"
 }
 ```
 
+### Quality Settings by Environment
+- **Production (Vercel/Cloud Run)**: `OPENAI_IMAGE_QUALITY_DEFAULT=medium`
+- **Development**: `OPENAI_IMAGE_QUALITY_DEFAULT=low` (cost optimization)
+
 ### Development Environment
-Use `Dockerfile.dev` and `docker-compose.yml` for local development with actual mulmocast-cli:
+Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - Includes canvas build dependencies (cairo, pango, etc.)
 - FFmpeg and ImageMagick for media processing
 - Full mulmocast-cli installation with quality patch
