@@ -165,6 +165,8 @@ const StoryEditorPage: React.FC = () => {
     try {
       await updateStory({ script_json: script as Record<string, any> });
       success('Script saved successfully');
+      // Refresh story data after successful save
+      mutateStory();
     } catch (err) {
       console.error('Failed to save script:', err);
       error('Failed to save script');
@@ -486,9 +488,8 @@ const StoryEditorPage: React.FC = () => {
                 {story.script_json ? (
                   <ScriptEditor
                     script={story.script_json as any}
-                    onChange={(updatedScript: unknown) => {
-                      // Revalidate story data when script changes
-                      mutateStory();
+                    onChange={() => {
+                      // No action needed - Script Editor handles internal state management
                     }}
                     onSave={handleScriptSave}
                     isReadOnly={false}
