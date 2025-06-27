@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
-import { ScriptEditor } from '@/components/editor';
+import { ScriptEditor, ScriptDirector } from '@/components/editor';
 import { VideoModal } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
 import { useStory, useVideos } from '@/hooks';
@@ -21,8 +21,10 @@ const StoryEditorPage: React.FC = () => {
   const { } = useApp();
   const { success, error } = useToast();
   
-  // Get initial tab from URL parameter
-  const initialTab = searchParams.get('tab') === 'script' ? 'script' : 'content';
+  // Get initial tab from URL parameter (but fallback to content if script editor is disabled)
+  const initialTab = searchParams.get('tab') === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' 
+    ? 'script' 
+    : 'content';
   
   // Use SWR hooks for data fetching
   const { story, isLoading, mutate: mutateStory, updateStory, deleteStory, generateScript } = useStory(storyId);
@@ -63,6 +65,11 @@ const StoryEditorPage: React.FC = () => {
 
   // Handle tab switching with URL update
   const handleTabChange = (tab: 'content' | 'script') => {
+    // Script Editorタブが無効の場合は'script'タブに切り替えできない
+    if (tab === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR !== 'true') {
+      return;
+    }
+    
     setCurrentTab(tab);
     // Update URL without causing full page refresh
     const newUrl = new URL(window.location.href);
@@ -208,6 +215,7 @@ const StoryEditorPage: React.FC = () => {
     }
   };
 
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -346,12 +354,12 @@ const StoryEditorPage: React.FC = () => {
                   }`}
                 >
                   <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Story Content
+                  Script Director
                 </button>
                 
-                {story.script_json && (
+                {process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' && story.script_json && (
                   <button
                     onClick={() => handleTabChange('script')}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -374,115 +382,12 @@ const StoryEditorPage: React.FC = () => {
 
             {/* Tab Content */}
             {currentTab === 'content' ? (
-              <>
-                {/* Story Content */}
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Story Content</h3>
-                    
-                    {isEditing ? (
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                            Title
-                          </label>
-                          <input
-                            type="text"
-                            id="title"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
-                            Content
-                          </label>
-                          <textarea
-                            id="text_raw"
-                            name="text_raw"
-                            value={formData.text_raw}
-                            onChange={handleInputChange}
-                            rows={10}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
-                            Beats (絵の枚数)
-                          </label>
-                          <input
-                            type="number"
-                            id="beats"
-                            name="beats"
-                            value={formData.beats}
-                            onChange={handleInputChange}
-                            min="1"
-                            max="20"
-                            className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <p className="mt-1 text-xs text-gray-500">
-                            Number of images in the video (1-20, default: 5)
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="prose max-w-none">
-                          <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                            {story.text_raw}
-                          </div>
-                        </div>
-                        <div className="pt-4 border-t border-gray-200">
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <span className="font-medium">Beats (絵の枚数):</span>
-                            <span>{formData.beats}</span>
-                            <span className="text-gray-400">images</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Generated Script Preview */}
-                {story.script_json && (
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">Script Preview</h3>
-                        <Button 
-                          variant="secondary" 
-                          size="sm"
-                          onClick={() => handleTabChange('script')}
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                          Edit Script
-                        </Button>
-                      </div>
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {((story.script_json as any)?.beats || []).map((scene: any, index: number) => (
-                          <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                              {index + 1}
-                            </span>
-                            <div className="flex-1">
-                              <p className="text-gray-700">{scene.text || scene.content}</p>
-                              <p className="text-xs text-gray-500 mt-1">{scene.duration}s • {scene.type}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            ) : (
+              <ScriptDirector
+                script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
+                onChange={handleScriptSave}
+                isReadOnly={isEditing}
+              />
+            ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
               /* Script Editor */
               <div className="script-editor-container">
                 {story.script_json ? (
@@ -516,6 +421,13 @@ const StoryEditorPage: React.FC = () => {
                   </Card>
                 )}
               </div>
+            ) : (
+              /* Script Editor is disabled, show Script Director instead */
+              <ScriptDirector
+                script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
+                onChange={handleScriptSave}
+                isReadOnly={isEditing}
+              />
             )}
           </div>
 

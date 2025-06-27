@@ -322,6 +322,57 @@ export async function getVideoMetadata(filePath: string) {
   return data?.[0];
 }
 
+/**
+ * Upload face reference image to Supabase Storage
+ */
+export async function uploadFaceReferenceToStorage(
+  imageBuffer: Buffer,
+  fileName: string,
+  contentType: string,
+  uid: string
+): Promise<{ url: string; path: string }> {
+  const adminClient = createAdminClient();
+  
+  // Create path with user ID for organization
+  const filePath = `${uid}/${fileName}`;
+  
+  const { data, error } = await adminClient.storage
+    .from('face-reference')
+    .upload(filePath, imageBuffer, {
+      contentType,
+      upsert: true, // Allow overwriting for updates
+    });
+
+  if (error) {
+    throw new SupabaseError(`Failed to upload face reference: ${error.message}`, error.name);
+  }
+
+  // Get public URL
+  const { data: urlData } = adminClient.storage
+    .from('face-reference')
+    .getPublicUrl(filePath);
+
+  return {
+    url: urlData.publicUrl,
+    path: filePath,
+  };
+}
+
+/**
+ * Delete face reference image from Supabase Storage
+ */
+export async function deleteFaceReferenceFromStorage(filePath: string): Promise<void> {
+  const adminClient = createAdminClient();
+  
+  const { error } = await adminClient.storage
+    .from('face-reference')
+    .remove([filePath]);
+
+  if (error) {
+    throw new SupabaseError(`Failed to delete face reference: ${error.message}`, error.name);
+  }
+}
+
 // ================================================================
 // Configuration
 // ================================================================
@@ -332,5 +383,6 @@ export const supabaseConfig = {
   hasServiceRole: !!supabaseServiceRoleKey,
   storage: {
     videoBucket: 'videos',
+    faceReferenceBucket: 'face-reference',
   },
 } as const;
