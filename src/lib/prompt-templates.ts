@@ -83,6 +83,12 @@ Create a {{target_duration}}-second video that:
 - Includes compelling character voices and detailed image prompts
 - Follows a clear narrative arc with setup, development, and resolution
 
+## Validation Requirements
+⚠️ MUST check before generation:
+1. Create a list of character names defined in speechParams.speakers
+2. Verify each beat's speaker is in this list
+3. NEVER use character names not defined in speechParams.speakers
+
 ## Technical Specifications
 - Exactly {{beats}} beats
 - Total duration: ~{{target_duration}} seconds
@@ -136,8 +142,9 @@ The following is a structure example. Generate actual characters and beats dynam
   "beats": [
     // Generate {{beats}} beats dynamically following the story flow
     // Select appropriate speaker and create compelling text and image prompts
+    // NOTE: speaker must use names defined in speechParams.speakers only!
     {
-      "speaker": "[Character name defined in speakers]",
+      "speaker": "[Character name from speechParams.speakers only]",
       "text": "[Dialogue or narration appropriate for the scene]",
       "imagePrompt": "[Detailed visual prompt to represent the scene]"
     }
@@ -170,6 +177,7 @@ The following is a structure example. Generate actual characters and beats dynam
    - Create exactly {{beats}} beats
    - Each beat needs compelling text and detailed image prompt
    - Structure with clear beginning, middle, and end
+   - **IMPORTANT**: beat speakers must only use names defined in speechParams.speakers
 
 5. **Other Requirements**
    - Include specific proper nouns, numbers, and concrete examples
@@ -210,6 +218,12 @@ const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
 台詞の数が台本全体で{{beats}}個となるようにカウントする。
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
+
+## 検証の重要事項
+⚠️ 生成前に必ず確認：
+1. speechParams.speakersで定義したキャラクター名のリストを作成
+2. 各beatのspeakerがこのリストに含まれることを確認
+3. 定義していないキャラクター名は絶対に使用しない
 
 ## 技術仕様
 - 正確に{{beats}} beatsで構成する
@@ -264,8 +278,9 @@ JSONのmulmocastスクリプトのみで応答してください（追加テキ�
   "beats": [
     // {{beats}}個のbeatsを物語の流れに沿って動的に生成
     // 各beatで適切なspeakerを選択し、魅力的なテキストと画像プロンプトを作成
+    // 注意: speakerは必ずspeechParams.speakersで定義した名前を使用すること！
     {
-      "speaker": "[speakersに定義したキャラクター名]",
+      "speaker": "[speechParams.speakersに定義したキャラクター名のみ]",
       "text": "[そのシーンに適した台詞やナレーション]",
       "imagePrompt": "[シーンを視覚的に表現する詳細な画像プロンプト]"
     }
@@ -298,6 +313,7 @@ JSONのmulmocastスクリプトのみで応答してください（追加テキ�
    - 正確に{{beats}}個のbeatsを作成
    - 各beatには魅力的なテキストと詳細な画像プロンプト
    - 物語の起承転結を意識した構成
+   - **重要**: beatのspeakerは必ずspeechParams.speakersに定義した名前のみを使用すること
 
 5. **その他の要件**
    - 【重要】固有名詞や詳細な数値、具体的な事例を含める
@@ -661,8 +677,16 @@ export function validateGeneratedScript(scriptData: any): {
       errors.push('At least one beat is required');
     }
 
+    // Get defined speakers
+    const definedSpeakers = scriptData.speechParams?.speakers ? Object.keys(scriptData.speechParams.speakers) : [];
+
     scriptData.beats.forEach((beat: any, index: number) => {
-      if (!beat.speaker) errors.push(`Beat ${index + 1}: Missing speaker`);
+      if (!beat.speaker) {
+        errors.push(`Beat ${index + 1}: Missing speaker`);
+      } else if (definedSpeakers.length > 0 && !definedSpeakers.includes(beat.speaker)) {
+        errors.push(`Beat ${index + 1}: Speaker "${beat.speaker}" is not defined in speechParams.speakers`);
+      }
+      
       if (!beat.text && typeof beat.text !== 'string') errors.push(`Beat ${index + 1}: Missing or invalid text`);
       // imagePrompt is optional but should be string if present
       if (beat.imagePrompt && typeof beat.imagePrompt !== 'string') {

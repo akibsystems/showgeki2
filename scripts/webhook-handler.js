@@ -253,8 +253,22 @@ async function processVideoGeneration(payload) {
       // クレジットbeatを最後に追加
       const scriptWithCredit = { ...script_json };
       if (Array.isArray(scriptWithCredit.beats)) {
+        // speechParamsから最初のspeakerを取得
+        let creditSpeaker = "";
+        if (scriptWithCredit.speechParams && scriptWithCredit.speechParams.speakers) {
+          const speakerNames = Object.keys(scriptWithCredit.speechParams.speakers);
+          if (speakerNames.length > 0) {
+            creditSpeaker = speakerNames[0]; // 最初のspeakerを使用
+          }
+        }
+        
+        // もしspeakerが見つからない場合は、beatsから最初のspeakerを探す
+        if (!creditSpeaker && scriptWithCredit.beats.length > 0) {
+          creditSpeaker = scriptWithCredit.beats[0].speaker || "";
+        }
+        
         const creditBeat = {
-          "speaker": "Narrator",
+          "speaker": creditSpeaker,
           "text": "",
           "duration": 1,
           "image": {
@@ -267,7 +281,7 @@ async function processVideoGeneration(payload) {
         };
 
         scriptWithCredit.beats.push(creditBeat);
-        console.log('✅ クレジットbeat追加完了');
+        console.log(`✅ クレジットbeat追加完了 (speaker: ${creditSpeaker})`);
       }
 
       jsonContent = JSON.stringify(scriptWithCredit, null, 2);

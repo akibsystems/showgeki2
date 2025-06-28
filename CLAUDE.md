@@ -209,10 +209,12 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 ## AI Processing Details
 
 ### Script Generation
-- **Model**: GPT-4 mini (o4-mini) for cost efficiency
-- **Format**: JSON with 5 beats (acts), characters, dialogue, image prompts
+- **Model**: GPT-4.1 (最新モデル - gpt-4oより高性能で安価)
+  - **重要**: gpt-4oは古いモデルなので使用しないでください
+  - gpt-4.1の方が性能が良く、料金も安いです
+- **Format**: JSON with dynamic beats (1-20 scenes), characters, dialogue, image prompts
 - **Style**: Shakespeare-style Japanese dialogue with Ghibli anime visuals
-- **Voices**: Automatic assignment from OpenAI TTS voices (alloy, echo, fable, onyx, nova, shimmer)
+- **Voices**: Dynamic assignment from OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
 
 ### Video Output
 - **Duration**: Typically 30-60 seconds
