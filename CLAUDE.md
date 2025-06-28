@@ -41,7 +41,7 @@ docker-compose exec showgeki2-dev node scripts/test-mulmocast.js
 # Alternative manual deployment
 docker build --platform linux/amd64 -t gcr.io/showgeki2/showgeki2-auto-process .
 docker push gcr.io/showgeki2/showgeki2-auto-process
-gcloud run services replace clouddeploy.yaml --region=asia-northeast1 --project=showgeki2
+# Note: clouddeploy.yaml has been removed. Use deploy.sh or gcloud run deploy directly
 ```
 
 ### Testing & Monitoring
@@ -234,6 +234,16 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - Medium quality images (vs high) to reduce OpenAI costs
 - Efficient resource allocation for video generation
 
+### Watch Mode (Local Development)
+The system supports two operation modes:
+- **Production Mode**: Cloud Run receives webhooks and processes videos
+- **Watch Mode**: Local development mode for testing without Cloud Run
+  - Set `WATCH_MODE=true` in webhook-handler.js environment
+  - Set `DISABLE_WEBHOOK=true` in frontend to disable Cloud Run calls
+  - The webhook handler polls the database for queued videos
+  - Processes videos locally using the same pipeline
+  - Useful for development and testing without deploying to Cloud Run
+
 ## Development Notes
 
 ### Local Development Setup
@@ -259,4 +269,3 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - **`src/app/`**: Next.js App Router pages and API routes
 - **`src/components/`**: Reusable React components
 - **Docker files**: `Dockerfile` (production), `Dockerfile.dev` (development)
-- **`clouddeploy.yaml`**: Cloud Run service configuration

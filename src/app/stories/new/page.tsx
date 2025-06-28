@@ -69,7 +69,7 @@ const NewStoryPage: React.FC = () => {
         throw new Error('Invalid story response - missing ID');
       }
       
-      success('Story and script generated successfully');
+      // success('Story and script generated successfully');
       
       // Navigate to content tab (default view)
       router.push(`/stories/${storyData.id}?tab=content`);

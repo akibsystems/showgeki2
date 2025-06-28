@@ -100,7 +100,7 @@ const StoryEditorPage: React.FC = () => {
       });
       
       setIsEditing(false);
-      success('Story saved successfully');
+      // success('Story saved successfully');
     } catch (err) {
       console.error('Failed to save story:', err);
       error('Failed to save story');
@@ -113,7 +113,7 @@ const StoryEditorPage: React.FC = () => {
     setIsGeneratingScript(true);
     try {
       await generateScript({ beats: formData.beats });
-      success('Script generated successfully');
+      // success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
       error('Failed to generate script');
@@ -143,7 +143,7 @@ const StoryEditorPage: React.FC = () => {
       const result = await response.json();
       
       if (result.success) {
-        success('Video generation started');
+        // success('Video generation started');
         // Navigate to videos page to see generation progress
         router.push('/videos');
       } else {
@@ -160,7 +160,7 @@ const StoryEditorPage: React.FC = () => {
   const handleDelete = async () => {
     try {
       await deleteStory();
-      success('Story deleted successfully');
+      // success('Story deleted successfully');
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to delete story:', err);
@@ -171,7 +171,7 @@ const StoryEditorPage: React.FC = () => {
   const handleScriptSave = async (script: unknown) => {
     try {
       await updateStory({ script_json: script as Record<string, any> });
-      success('Script saved successfully');
+      // success('Script saved successfully');
       // Refresh story data after successful save
       mutateStory();
     } catch (err) {
@@ -193,7 +193,7 @@ const StoryEditorPage: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       
-      success('Video download started');
+      // success('Video download started');
     } catch (err) {
       console.error('Failed to download video:', err);
       error('Failed to download video');
