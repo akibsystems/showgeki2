@@ -87,7 +87,7 @@ const StoryEditorPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.text_raw.trim()) {
-      error('Title and content are required');
+      error('タイトルと内容は必須です');
       return;
     }
 
@@ -103,7 +103,7 @@ const StoryEditorPage: React.FC = () => {
       // success('Story saved successfully');
     } catch (err) {
       console.error('Failed to save story:', err);
-      error('Failed to save story');
+      error('ストーリーの保存に失敗しました');
     } finally {
       setIsSaving(false);
     }
@@ -116,7 +116,7 @@ const StoryEditorPage: React.FC = () => {
       // success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
-      error('Failed to generate script');
+      error('台本の生成に失敗しました');
     } finally {
       setIsGeneratingScript(false);
     }
@@ -151,7 +151,7 @@ const StoryEditorPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to generate video:', err);
-      error(err instanceof Error ? err.message : 'Failed to generate video');
+      error(err instanceof Error ? err.message : '動画の生成に失敗しました');
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -164,7 +164,7 @@ const StoryEditorPage: React.FC = () => {
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to delete story:', err);
-      error('Failed to delete story');
+      error('ストーリーの削除に失敗しました');
     }
   };
 
@@ -176,7 +176,7 @@ const StoryEditorPage: React.FC = () => {
       mutateStory();
     } catch (err) {
       console.error('Failed to save script:', err);
-      error('Failed to save script');
+      error('台本の保存に失敗しました');
     }
   };
 
@@ -196,7 +196,7 @@ const StoryEditorPage: React.FC = () => {
       // success('Video download started');
     } catch (err) {
       console.error('Failed to download video:', err);
-      error('Failed to download video');
+      error('動画のダウンロードに失敗しました');
     }
   };
 
@@ -215,15 +215,31 @@ const StoryEditorPage: React.FC = () => {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return '完了';
+      case 'processing':
+        return '処理中';
+      case 'script_generated':
+        return '台本生成済み';
+      case 'error':
+        return 'エラー';
+      case 'draft':
+        return '下書き';
+      default:
+        return status;
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const year = date.getFullYear();
-    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const month = date.getMonth() + 1;
     const day = date.getDate();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month} ${day}, ${year} at ${hours}:${minutes}`;
+    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
   };
 
   if (isLoading) {
@@ -232,7 +248,7 @@ const StoryEditorPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading story...</p>
+            <p className="mt-4 text-gray-600">読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -244,10 +260,10 @@ const StoryEditorPage: React.FC = () => {
       <Layout>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Story Not Found</h2>
-            <p className="text-gray-600 mb-6">The story you&apos;re looking for doesn&apos;t exist.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">ストーリーが見つかりません</h2>
+            <p className="text-gray-600 mb-6">お探しのストーリーは存在しません。</p>
             <Button onClick={() => router.push('/dashboard')}>
-              Back to Dashboard
+              ダッシュボードに戻る
             </Button>
           </div>
         </div>
@@ -261,75 +277,73 @@ const StoryEditorPage: React.FC = () => {
   const video = storyVideo || processingVideo || videos?.find(v => v.story_id === storyId);
 
   const wordCount = (isEditing ? formData.text_raw : story.text_raw || '').split(/\s+/).filter(word => word.length > 0).length;
+  const charCount = (isEditing ? formData.text_raw : story.text_raw || '').length;
 
   return (
     <Layout>
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-start">
+      <div className="p-4 sm:p-6">
+        {/* Header - Mobile optimized */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {isEditing ? formData.title || 'Untitled Story' : story.title}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+                  {isEditing ? formData.title || '無題のストーリー' : story.title}
                 </h1>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(story.status || 'draft')}`}>
-                  {(story.status || 'draft').replace('_', ' ')}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(story.status || 'draft')}`}>
+                  {getStatusText(story.status || 'draft')}
                 </span>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <span>Created {formatDate(story.created_at)}</span>
-                <span>Updated {formatDate(story.updated_at)}</span>
-                <span>{wordCount} words</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                <span>作成: {formatDate(story.created_at)}</span>
+                <span>更新: {formatDate(story.updated_at)}</span>
+                <span>{charCount} 文字</span>
               </div>
             </div>
             
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {isEditing ? (
                 <>
-                  <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                    Cancel
+                  <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving} className="text-sm sm:text-base">
+                    キャンセル
                   </Button>
-                  <Button onClick={handleSave} disabled={isSaving}>
+                  <Button onClick={handleSave} disabled={isSaving} className="text-sm sm:text-base">
                     {isSaving ? (
                       <>
                         <Spinner size="sm" color="white" className="mr-2" />
-                        Saving...
+                        保存中...
                       </>
                     ) : (
-                      'Save Changes'
+                      '変更を保存'
                     )}
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" onClick={() => setShowDeleteModal(true)}>
-                    Delete
-                  </Button>
-                  <Button variant="secondary" onClick={() => setIsEditing(true)}>
-                    Edit Story
+                  <Button variant="ghost" onClick={() => setShowDeleteModal(true)} className="text-sm sm:text-base">
+                    削除
                   </Button>
                   {story.status === 'draft' && (
-                    <Button onClick={handleGenerateScript} disabled={isGeneratingScript}>
+                    <Button onClick={handleGenerateScript} disabled={isGeneratingScript} className="text-sm sm:text-base">
                       {isGeneratingScript ? (
                         <>
                           <Spinner size="sm" color="white" className="mr-2" />
-                          Generating...
+                          生成中...
                         </>
                       ) : (
-                        'Generate Script'
+                        '台本を生成'
                       )}
                     </Button>
                   )}
                   {story.status === 'script_generated' && (
-                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo}>
+                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
                       {isGeneratingVideo ? (
                         <>
                           <Spinner size="sm" color="white" className="mr-2" />
-                          Starting...
+                          開始中...
                         </>
                       ) : (
-                        'Generate Video'
+                        '動画を生成'
                       )}
                     </Button>
                   )}
@@ -339,41 +353,41 @@ const StoryEditorPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Tab Navigation */}
-            <div className="border-b border-gray-200">
-              <nav className="flex space-x-8">
+            <div className="border-b border-gray-200 overflow-x-auto">
+              <nav className="flex space-x-4 sm:space-x-8 min-w-max">
                 <button
                   onClick={() => handleTabChange('content')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     currentTab === 'content'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Script Director
+                  台本ディレクター
                 </button>
                 
                 {process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' && story.script_json && (
                   <button
                     onClick={() => handleTabChange('script')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                       currentTab === 'script'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
-                    Script Editor
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {(story.script_json as any)?.beats?.length || 0} beats
+                    台本エディター
+                    <span className="ml-2 inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {(story.script_json as any)?.beats?.length || 0} シーン
                     </span>
                   </button>
                 )}
@@ -385,7 +399,7 @@ const StoryEditorPage: React.FC = () => {
               <ScriptDirector
                 script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
                 onChange={handleScriptSave}
-                isReadOnly={isEditing}
+                isReadOnly={false}
               />
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
               /* Script Editor */
@@ -401,20 +415,20 @@ const StoryEditorPage: React.FC = () => {
                   />
                 ) : (
                   <Card>
-                    <CardContent className="p-8 text-center">
-                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <CardContent className="p-6 sm:p-8 text-center">
+                      <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Script Generated</h3>
-                      <p className="text-gray-600 mb-4">Generate a script first to start editing</p>
-                      <Button onClick={handleGenerateScript} disabled={isGeneratingScript}>
+                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">台本がありません</h3>
+                      <p className="text-sm text-gray-600 mb-4">先に台本を生成してください</p>
+                      <Button onClick={handleGenerateScript} disabled={isGeneratingScript} className="text-sm sm:text-base">
                         {isGeneratingScript ? (
                           <>
                             <Spinner size="sm" color="white" className="mr-2" />
-                            Generating...
+                            生成中...
                           </>
                         ) : (
-                          'Generate Script'
+                          '台本を生成'
                         )}
                       </Button>
                     </CardContent>
@@ -426,95 +440,77 @@ const StoryEditorPage: React.FC = () => {
               <ScriptDirector
                 script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
                 onChange={handleScriptSave}
-                isReadOnly={isEditing}
+                isReadOnly={false}
               />
+            )}
+
+            {/* Bottom Action Button - Generate Video */}
+            {story.status === 'script_generated' && (
+              <div className="mt-8 flex justify-center">
+                <Button 
+                  onClick={handleGenerateVideo} 
+                  disabled={isGeneratingVideo} 
+                  size="lg"
+                  className="w-full sm:w-auto text-base sm:text-lg px-8 py-3"
+                >
+                  {isGeneratingVideo ? (
+                    <>
+                      <Spinner size="sm" color="white" className="mr-2" />
+                      動画を生成中...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      動画を生成する
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - Video only */}
           <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Status Card */}
+            {video && (
               <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Status</h3>
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">動画</h3>
                   <div className="space-y-3">
-                    <div className={`p-3 rounded-lg border ${getStatusColor(story.status || 'draft')}`}>
-                      <div className="flex items-center space-x-2">
-                        {story.status === 'processing' && <Spinner size="sm" />}
-                        <span className="font-medium capitalize">
-                          {(story.status || 'draft').replace('_', ' ')}
-                        </span>
-                      </div>
-                      {story.status === 'processing' && (
-                        <p className="text-xs mt-1 opacity-75">
-                          Video generation in progress...
-                        </p>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${video.status === 'completed' ? 'bg-green-400' : video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
+                      <span className="text-sm capitalize">
+                        {video.status === 'completed' ? '完了' : video.status === 'processing' ? '処理中' : video.status}
+                      </span>
                     </div>
+                    
+                    {video.duration_sec && (
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        再生時間: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
+                      </p>
+                    )}
+                    
+                    {video.status === 'completed' && video.url && (
+                      <div className="space-y-2">
+                        <Button size="sm" className="w-full text-xs sm:text-sm" onClick={() => setShowVideoModal(true)}>
+                          <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          動画を見る
+                        </Button>
+                        <Button variant="secondary" size="sm" className="w-full text-xs sm:text-sm" onClick={handleDownloadVideo}>
+                          <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          ダウンロード
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Video Card */}
-              {video && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Video</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${video.status === 'completed' ? 'bg-green-400' : video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-                        <span className="text-sm capitalize">{video.status}</span>
-                      </div>
-                      
-                      {video.duration_sec && (
-                        <p className="text-sm text-gray-600">
-                          Duration: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
-                        </p>
-                      )}
-                      
-                      {video.status === 'completed' && video.url && (
-                        <div className="space-y-2">
-                          <Button size="sm" className="w-full" onClick={() => setShowVideoModal(true)}>
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Watch Video
-                          </Button>
-                          <Button variant="secondary" size="sm" className="w-full" onClick={handleDownloadVideo}>
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Download
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Actions Card */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
-                  <div className="space-y-2">
-                    <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push('/dashboard')}>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                      </svg>
-                      Back to Dashboard
-                    </Button>
-                    <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push('/stories/new')}>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Create New Story
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -535,19 +531,19 @@ const StoryEditorPage: React.FC = () => {
       {/* Delete Confirmation Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <ModalHeader>
-          <h3 className="text-lg font-medium text-gray-900">Delete Story</h3>
+          <h3 className="text-lg font-medium text-gray-900">ストーリーを削除</h3>
         </ModalHeader>
         <ModalBody>
           <p className="text-sm text-gray-600">
-            Are you sure you want to delete this story? This action cannot be undone.
+            このストーリーを削除してもよろしいですか？この操作は取り消せません。
           </p>
         </ModalBody>
         <ModalFooter>
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
+            キャンセル
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            Delete Story
+            削除する
           </Button>
         </ModalFooter>
       </Modal>

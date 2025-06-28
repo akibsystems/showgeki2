@@ -61,8 +61,7 @@ export function BeatItem({
   };
 
   const getBeatTitle = (index: number) => {
-    const actNames = ['第1幕', '第2幕', '第3幕', '第4幕', '第5幕'];
-    return actNames[index] || `ビート ${index + 1}`;
+    return `シーン ${index + 1}`;
   };
 
   const getSpeakerDisplayName = (speakerId: string) => {

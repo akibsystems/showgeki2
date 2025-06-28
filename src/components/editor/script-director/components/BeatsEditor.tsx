@@ -44,7 +44,7 @@ export function BeatsEditor({
             onClick={onAddBeat}
             type="button"
           >
-            ➕ 新しいビートを追加
+            ➕ 新しいシーンを追加
           </button>
         )}
       </div>
@@ -52,8 +52,8 @@ export function BeatsEditor({
       <div className={styles.beatsList}>
         {beats.length === 0 ? (
           <div className={styles.emptyBeats}>
-            <p>まだビートが作成されていません。</p>
-            <p>「新しいビートを追加」ボタンで台本を作成してください。</p>
+            <p>まだシーンが作成されていません。</p>
+            <p>「新しいシーンを追加」ボタンで台本を作成してください。</p>
           </div>
         ) : (
           beats.map((beat, index) => (
@@ -74,15 +74,15 @@ export function BeatsEditor({
         )}
       </div>
 
-      {/* ビート作成のヒント */}
+      {/* シーン作成のヒント */}
       {!isReadOnly && beats.length < 5 && (
         <div className={styles.beatsHint}>
-          <h4>💡 ビート作成のコツ</h4>
+          <h4>💡 シーン作成のコツ</h4>
           <ul>
-            <li>各ビートは物語の1つの場面を表します</li>
+            <li>各シーンは物語の1つの場面を表します</li>
             <li>話者を使い分けて、会話に変化をつけましょう</li>
             <li>画像の指示は具体的で視覚的に書きましょう</li>
-            <li>シェイクスピア風の5幕構成がおすすめです</li>
+            <li>シェイクスピア風の物語構成がおすすめです</li>
           </ul>
         </div>
       )}

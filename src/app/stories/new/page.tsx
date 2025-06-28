@@ -30,7 +30,7 @@ const NewStoryPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'beats' ? parseInt(value) || 5 : value,
+      [name]: name === 'beats' ? Math.max(2, Math.min(20, parseInt(value) || 5)) : value,
     }));
   };
 
@@ -136,8 +136,8 @@ const NewStoryPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, beats: Math.max(1, prev.beats - 1) }))}
-                  disabled={isLoading || formData.beats <= 1}
+                  onClick={() => setFormData(prev => ({ ...prev, beats: Math.max(2, prev.beats - 1) }))}
+                  disabled={isLoading || formData.beats <= 2}
                   className="w-10 h-10 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center justify-center"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +150,7 @@ const NewStoryPage: React.FC = () => {
                   name="beats"
                   value={formData.beats}
                   onChange={handleInputChange}
-                  min="1"
+                  min="2"
                   max="20"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -169,7 +169,7 @@ const NewStoryPage: React.FC = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                動画に使用するシーンの数 (1-20シーン、デフォルト: 5シーン)
+                動画に使用するシーンの数 (2-20シーン、デフォルト: 5シーン)
               </p>
             </div>
 
