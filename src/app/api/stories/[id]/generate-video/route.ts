@@ -182,21 +182,30 @@ async function generateVideo(
       );
     }
 
-    // Start video generation process (async)
-    // In production, this would trigger a Cloud Run Job
-    // For now, we'll do a simple async mock generation
-    generateVideoAsync(newVideo.id, story, auth.uid).catch(error => {
-      console.error('Video generation failed:', error);
-    });
+    // webhook処理（DISABLE_WEBHOOK=trueの場合はスキップ）
+    const DISABLE_WEBHOOK = process.env.DISABLE_WEBHOOK === 'true';
+    
+    if (!DISABLE_WEBHOOK) {
+      // webhook有効時のみ非同期処理開始
+      generateVideoAsync(newVideo.id, story, auth.uid).catch(error => {
+        console.error('Video generation setup failed:', error);
+      });
+    } else {
+      console.log('Webhook disabled - video queued for local processing:', newVideo.id);
+    }
 
-    // Return immediate response with video ID and queued status
+    // 即座にレスポンス返却
+    const message = DISABLE_WEBHOOK 
+      ? 'Video queued for local processing' 
+      : 'Video generation started via Cloud Run';
+      
     return NextResponse.json({
       success: true,
       data: {
         video_id: newVideo.id,
         status: newVideo.status as 'queued'
       },
-      message: 'Video generation started',
+      message,
       timestamp: new Date().toISOString()
     });
 
@@ -230,17 +239,21 @@ async function generateVideo(
 // ================================================================
 
 /**
- * Generate video asynchronously via Cloud Run webhook
+ * Generate video asynchronously via Cloud Run webhook (if enabled)
  */
 async function generateVideoAsync(videoId: string, story: Story, uid: string): Promise<void> {
   const supabase = createAdminClient();
   
   try {
+    // webhook有効時：Cloud Run呼び出し処理
+    console.log('Webhook enabled - calling Cloud Run for video generation:', videoId);
+    
     // Update status to 'processing'
     await supabase
       .from('videos')
       .update({ 
-        status: 'processing'
+        status: 'processing',
+        updated_at: new Date().toISOString()
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);
@@ -269,7 +282,8 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
       .from('videos')
       .update({ 
         status: 'failed',
-        error_msg: error instanceof Error ? error.message : 'Unknown error occurred'
+        error_msg: error instanceof Error ? error.message : 'Unknown error occurred',
+        updated_at: new Date().toISOString()
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);
