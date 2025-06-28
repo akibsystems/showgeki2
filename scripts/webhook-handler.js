@@ -249,7 +249,28 @@ async function processVideoGeneration(payload) {
     // Check if script_json already exists - REQUIRED
     if (script_json && typeof script_json === 'object') {
       console.log('2. 既存のスクリプトを使用...');
-      jsonContent = JSON.stringify(script_json, null, 2);
+
+      // クレジットbeatを最後に追加
+      const scriptWithCredit = { ...script_json };
+      if (Array.isArray(scriptWithCredit.beats)) {
+        const creditBeat = {
+          "speaker": "Narrator",
+          "text": "",
+          "duration": 1,
+          "image": {
+            "type": "image",
+            "source": {
+              "kind": "url",
+              "url": "https://showgeki2-git-main-tobe-tokyo.vercel.app/TSAS_credit.png"
+            }
+          }
+        };
+
+        scriptWithCredit.beats.push(creditBeat);
+        console.log('✅ クレジットbeat追加完了');
+      }
+
+      jsonContent = JSON.stringify(scriptWithCredit, null, 2);
       console.log('✅ スクリプト準備完了');
     } else {
       // script_jsonが存在しない場合はエラーで終了
