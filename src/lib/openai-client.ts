@@ -101,7 +101,7 @@ export async function generateMulmoscriptWithOpenAI(
 
   // Default configuration
   const config = {
-    model: 'gpt-4.1', // Cost-effective model for script generation
+    model: 'gpt-4.1', // Latest GPT-4 model for script generation
     maxTokens: 2000,
     temperature: 0.7, // Balanced creativity and consistency
   };
@@ -329,7 +329,7 @@ function generateEnhancedMockMulmoscript(
 
   // Create beats with proper mulmocast format - dynamic based on beatsCount
   const beats = [];
-  
+
   // Always start with opening
   beats.push({
     speaker: 'Narrator',
@@ -342,10 +342,10 @@ function generateEnhancedMockMulmoscript(
     for (let i = 1; i < beatsCount - 1; i++) {
       const speakers = ['Character', 'Narrator', 'WiseCharacter'];
       const speaker = speakers[i % speakers.length];
-      
+
       let text = '';
       let imagePrompt = '';
-      
+
       if (speaker === 'Character') {
         text = story.text_raw.slice(0, Math.min(150, story.text_raw.length)) + (story.text_raw.length > 150 ? '...' : '');
         imagePrompt = `Character scene ${i}: ${variation.imageStyle}, character portrait or action scene`;
@@ -356,7 +356,7 @@ function generateEnhancedMockMulmoscript(
         text = `The heart of the story reveals its deeper meaning and purpose...`;
         imagePrompt = `Emotional moment ${i}: ${variation.imageStyle}, dramatic moment of realization`;
       }
-      
+
       beats.push({ speaker, text, imagePrompt });
     }
   }
@@ -370,6 +370,22 @@ function generateEnhancedMockMulmoscript(
     });
   }
 
+  // Dynamic speaker generation based on beats
+  const speakers: Record<string, any> = {};
+  const uniqueSpeakers = [...new Set(beats.map(b => b.speaker))];
+
+  // Assign voices dynamically
+  const availableVoices = ['shimmer', 'alloy', 'echo', 'nova', 'fable', 'onyx'];
+  uniqueSpeakers.forEach((speaker, index) => {
+    const voiceIndex = index % availableVoices.length;
+    speakers[speaker] = {
+      voiceId: availableVoices[voiceIndex],
+      displayName: language === 'ja'
+        ? { ja: speaker === 'Narrator' ? '語り手' : speaker, en: speaker }
+        : { en: speaker, ja: speaker === 'Narrator' ? '語り手' : speaker },
+    };
+  });
+
   return {
     $mulmocast: {
       version: '1.0' as const,
@@ -378,26 +394,7 @@ function generateEnhancedMockMulmoscript(
     lang: language === 'ja' ? 'ja' : 'en',
     speechParams: {
       provider: 'openai',
-      speakers: {
-        Narrator: {
-          voiceId: 'shimmer',
-          displayName: language === 'ja'
-            ? { ja: '語り手', en: 'Narrator' }
-            : { en: 'Narrator', ja: '語り手' },
-        },
-        Character: {
-          voiceId: 'alloy',
-          displayName: language === 'ja'
-            ? { ja: '主人公', en: 'Main Character' }
-            : { en: 'Main Character', ja: '主人公' },
-        },
-        WiseCharacter: {
-          voiceId: 'echo',
-          displayName: language === 'ja'
-            ? { ja: '賢者', en: 'Wise Character' }
-            : { en: 'Wise Character', ja: '賢者' },
-        },
-      },
+      speakers,
     },
     imageParams: {
       style: `Ghibli style anime, ${variation.imageStyle}, soft pastel colors, high quality`,
@@ -423,7 +420,7 @@ export async function testOpenAIConnection(): Promise<{
 
     // Simple test request (must mention "JSON" when using json_object format)
     const completion = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{
         role: 'user',
         content: 'Test connection. Please respond with valid JSON format: {"status": "ok"}'

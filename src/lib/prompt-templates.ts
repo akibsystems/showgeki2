@@ -86,18 +86,26 @@ Create a {{target_duration}}-second video that:
 ## Technical Specifications
 - Exactly {{beats}} beats
 - Total duration: ~{{target_duration}} seconds
-- Voice count: {{voice_count}} different speakers maximum
 - Rich visual descriptions for each beat
 
-## Speaker Guide
-- **Narrator**: Authoritative, clear, storytelling voice
-- **Character**: Main character, emotional range
-- **WiseCharacter**: Mentor figure, thoughtful delivery
-- **Child**: Innocent, curious, high energy
-- **Elder**: Experienced, measured, often contemplative
+## Important: Dynamic Character and Voice Generation
+1. **Analyze the story to identify necessary characters**
+   - Main characters, supporting roles, narrators as needed
+   - Create only essential characters for efficient casting
+
+2. **Assign optimal OpenAI voices to each character**
+   - Available voices: alloy, echo, fable, nova, onyx, shimmer
+   - Choose based on character personality, age, and role
+   - Example: young protagonist=nova, wise mentor=echo, narrator=shimmer
+
+3. **Define speakers dynamically based on the story**
+   - Not limited to template characters
+   - Create appropriate displayNames for each character
 
 ## Response Format
-Respond with ONLY the JSON mulmocast script (no additional text):
+Respond with ONLY the JSON mulmocast script (no additional text).
+
+The following is a structure example. Generate actual characters and beats dynamically based on the story:
 
 \`\`\`json
 {
@@ -109,25 +117,14 @@ Respond with ONLY the JSON mulmocast script (no additional text):
   "speechParams": {
     "provider": "openai",
     "speakers": {
-      "Narrator": {
-        "voiceId": "shimmer",
+      // Define necessary characters dynamically based on the story
+      // Examples: "Narrator", "Hero", "Villain", "Friend" etc.
+      // Set appropriate voiceId and displayName for each
+      "[CharacterName]": {
+        "voiceId": "[choose from: alloy|echo|fable|nova|onyx|shimmer]",
         "displayName": {
-          "en": "Narrator",
-          "ja": "語り手"
-        }
-      },
-      "Character": {
-        "voiceId": "alloy",
-        "displayName": {
-          "en": "Main Character",
-          "ja": "主人公"
-        }
-      },
-      "WiseCharacter": {
-        "voiceId": "echo",
-        "displayName": {
-          "en": "Wise Character",
-          "ja": "賢者"
+          "en": "[English Name]",
+          "ja": "[Japanese Name]"
         }
       }
     }
@@ -137,43 +134,48 @@ Respond with ONLY the JSON mulmocast script (no additional text):
     "model": "gpt-image-1"
   },
   "beats": [
+    // Generate {{beats}} beats dynamically following the story flow
+    // Select appropriate speaker and create compelling text and image prompts
     {
-      "speaker": "Narrator",
-      "text": "Compelling opening narration that hooks the viewer...",
-      "imagePrompt": "Atmospheric opening scene that sets the mood and introduces the world"
-    },
-    {
-      "speaker": "Character",
-      "text": "Character introduction or key dialogue that reveals motivation...",
-      "imagePrompt": "Character portrait or action scene showing their personality"
-    },
-    {
-      "speaker": "Narrator",
-      "text": "Story development that advances the plot...",
-      "imagePrompt": "Visual representation of the story's main conflict or journey"
-    },
-    {
-      "speaker": "WiseCharacter", 
-      "text": "Emotional peak, revelation, or wisdom shared...",
-      "imagePrompt": "Dramatic moment or meaningful interaction between characters"
-    },
-    {
-      "speaker": "Narrator",
-      "text": "Satisfying conclusion that ties everything together...",
-      "imagePrompt": "Peaceful, resolution scene that shows the outcome or transformation"
+      "speaker": "[Character name defined in speakers]",
+      "text": "[Dialogue or narration appropriate for the scene]",
+      "imagePrompt": "[Detailed visual prompt to represent the scene]"
     }
   ]
 }
 \`\`\`
 
 ## Important Guidelines
-1. Use "beats" not "scenes" - official mulmocast terminology
-2. Each beat must have both meaningful text and detailed imagePrompt
-3. Image prompts should be cinematic and visually rich
-4. Speakers should match the content (Narrator for exposition, Character for personal moments)
-5. Total script should tell a complete, satisfying story
-6. Follow the mulmocast schema exactly
-7. JSON must be valid and parseable
+1. **Dynamic Generation Principles**
+   - Create characters dynamically based on story content
+   - Not bound to fixed character names (Narrator, Character, etc.)
+   - Design optimal speaker configuration for the story
+
+2. **Character Creation**
+   - Use minimum necessary characters for effective presentation
+   - Give each character clear role and personality
+   - Set appropriate displayNames in both languages
+
+3. **Voice Selection**
+   - Available voiceIds: alloy, echo, fable, nova, onyx, shimmer
+   - Match voice to character personality:
+     - alloy: neutral, friendly
+     - echo: masculine, calm
+     - fable: masculine, storytelling
+     - nova: feminine, energetic
+     - onyx: masculine, deep
+     - shimmer: feminine, soft
+
+4. **beats Composition**
+   - Create exactly {{beats}} beats
+   - Each beat needs compelling text and detailed image prompt
+   - Structure with clear beginning, middle, and end
+
+5. **Other Requirements**
+   - Include specific proper nouns, numbers, and concrete examples
+   - Follow mulmocast schema exactly
+   - JSON must be valid and parseable
+   - Do not include comments (//) in actual JSON
 
 Generate the mulmocast script:`,
   variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count', 'beats'],
@@ -203,20 +205,35 @@ const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
 - 対象言語: {{language}}
 
 ## 創作指針
-この物語をもとに、シェイクスピア風の５幕の悲喜劇として台本を考えてください。
+この物語をもとに、シェイクスピア風の５幕構成の悲喜劇として台本を考えてください
 台詞には現代的で少しカジュアルな日本語を使う。
 台詞の数が台本全体で{{beats}}個となるようにカウントする。
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
 
 ## 技術仕様
-- 正確に{{beats}} beats
+- 正確に{{beats}} beatsで構成する
 - 総時間: 約{{target_duration}}秒
-- 音声数: 最大{{voice_count}}人の異なる話者
 - 各beatに詳細で豊かな視覚的描写を行う
 
+## 重要：キャラクターと音声の動的生成
+1. **物語を分析して必要なキャラクターを特定する**
+   - 主人公、脇役、語り手など、物語に必要な役割を見極める
+   - 不要なキャラクターは作らない（効率的なキャスティング）
+
+2. **各キャラクターに最適なOpenAI音声を割り当てる**
+   - 利用可能な音声: alloy, echo, fable, nova, onyx, shimmer
+   - キャラクターの性格、年齢、役割に基づいて選択
+   - 例: 若い主人公=nova、賢者=echo、語り手=shimmer
+
+3. **speechParamsのspeakersは物語に合わせて自由に定義する**
+   - 固定のテンプレートに縛られず、必要なキャラクターだけ作成
+   - 各キャラクターに適切なdisplayNameを設定
+
 ## 応答フォーマット
-JSONのmulmocastスクリプトのみで応答してください（追加テキストなし）:
+JSONのmulmocastスクリプトのみで応答してください（追加テキストなし）。
+
+以下は構造の例です。実際のキャラクターとbeatsは物語に基づいて動的に生成してください:
 
 \`\`\`json
 {
@@ -228,25 +245,14 @@ JSONのmulmocastスクリプトのみで応答してください（追加テキ�
   "speechParams": {
     "provider": "openai",
     "speakers": {
-      "Narrator": {
-        "voiceId": "shimmer",
+      // 物語に基づいて必要なキャラクターを動的に定義
+      // 例: "Narrator", "Hero", "Villain", "Friend" など
+      // 各キャラクターに適切なvoiceIdとdisplayNameを設定
+      "[CharacterName]": {
+        "voiceId": "[alloy|echo|fable|nova|onyx|shimmer から選択]",
         "displayName": {
-          "en": "Narrator",
-          "ja": "語り手"
-        }
-      },
-      "Character": {
-        "voiceId": "alloy",
-        "displayName": {
-          "en": "Main Character",
-          "ja": "主人公"
-        }
-      },
-      "WiseCharacter": {
-        "voiceId": "echo",
-        "displayName": {
-          "en": "Wise Character",
-          "ja": "賢者"
+          "en": "[English Name]",
+          "ja": "[日本語名]"
         }
       }
     }
@@ -256,42 +262,48 @@ JSONのmulmocastスクリプトのみで応答してください（追加テキ�
     "model": "gpt-image-1"
   },
   "beats": [
+    // {{beats}}個のbeatsを物語の流れに沿って動的に生成
+    // 各beatで適切なspeakerを選択し、魅力的なテキストと画像プロンプトを作成
     {
-      "speaker": "Narrator",
-      "text": "視聴者を惹きつける魅力的なオープニングナレーション...",
-      "imagePrompt": "雰囲気のあるオープニングシーンで、ムードを設定し世界観を紹介"
-    },
-    {
-      "speaker": "Character",
-      "text": "キャラクター紹介または動機を明かす重要な台詞...",
-      "imagePrompt": "キャラクターの肖像またはその性格を示すアクションシーン"
-    },
-    {
-      "speaker": "Narrator",
-      "text": "プロットを進展させる物語の展開...",
-      "imagePrompt": "物語の主要な葛藤や旅路の視覚的表現"
-    },
-    {
-      "speaker": "WiseCharacter", 
-      "text": "感情のピーク、啓示、または共有される知恵...",
-      "imagePrompt": "ドラマティックな瞬間またはキャラクター間の意味深い交流"
-    },
-    {
-      "speaker": "Narrator",
-      "text": "すべてを結び付ける満足のいく結論...",
-      "imagePrompt": "平和で解決的なシーン、結果や変化を示す"
+      "speaker": "[speakersに定義したキャラクター名]",
+      "text": "[そのシーンに適した台詞やナレーション]",
+      "imagePrompt": "[シーンを視覚的に表現する詳細な画像プロンプト]"
     }
   ]
 }
 \`\`\`
 
 ## 重要なガイドライン
-1. 各beatには意味のあるテキストと詳細なimagePromptの両方が必要
-2. 画像プロンプトはシネマティックで視覚的に豊かであること
-3. 話者は内容に適合させる
-4. 全体のスクリプトは完全で満足のいく物語を語ること
-5. mulmocastスキーマに正確に従うこと
-6. JSONは有効で解析可能でなければならない
+1. **動的生成の原則**
+   - 物語の内容に基づいてキャラクターを動的に作成する
+   - 固定のキャラクター名（Narrator, Character等）に縛られない
+   - 物語に最適な話者構成を考える
+
+2. **キャラクター作成**
+   - 必要最小限のキャラクターで効果的な演出を行う
+   - 各キャラクターには明確な役割と個性を与える
+   - displayNameは日本語と英語の両方を適切に設定
+
+3. **音声選択**
+   - 利用可能なvoiceId: alloy, echo, fable, nova, onyx, shimmer
+   - キャラクターの性格に合った音声を選択:
+     - alloy: 中性的、フレンドリー
+     - echo: 男性的、落ち着いた
+     - fable: 男性的、物語調
+     - nova: 女性的、エネルギッシュ
+     - onyx: 男性的、深みのある
+     - shimmer: 女性的、柔らかい
+
+4. **beats構成**
+   - 正確に{{beats}}個のbeatsを作成
+   - 各beatには魅力的なテキストと詳細な画像プロンプト
+   - 物語の起承転結を意識した構成
+
+5. **その他の要件**
+   - 【重要】固有名詞や詳細な数値、具体的な事例を含める
+   - mulmocastスキーマに正確に従う
+   - JSONは有効で解析可能である必要がある
+   - コメント（//）は実際のJSONには含めない
 
 mulmocastスクリプトを生成してください:`,
   variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count', 'beats'],
