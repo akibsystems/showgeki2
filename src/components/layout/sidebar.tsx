@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          className="fixed inset-0 z-40 bg-black bg-opacity-80 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -124,18 +124,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
+          fixed inset-y-0 left-0 z-50 w-64 bg-gray-900/95 backdrop-blur-md border-r border-purple-500/20 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           ${className}
         `}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 lg:hidden">
-            <span className="text-lg font-semibold text-gray-900">メニュー</span>
+          <div className="flex items-center justify-between h-16 px-4 border-b border-purple-500/20 lg:hidden">
+            <span className="text-lg font-semibold bg-gradient-to-r from-amber-400 to-purple-400 bg-clip-text text-transparent">メニュー</span>
             <button
               onClick={onClose}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              className="p-2 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -160,8 +160,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
                     ${
                       item.current
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'bg-purple-500/20 text-purple-300 border-r-2 border-purple-400'
+                        : 'text-gray-300 hover:text-white hover:bg-purple-500/10'
                     }
                   `}
                   onClick={onClose}
@@ -169,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Icon
                     className={`
                       mr-3 h-5 w-5 flex-shrink-0
-                      ${item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
+                      ${item.current ? 'text-purple-400' : 'text-gray-500 group-hover:text-purple-300'}
                     `}
                   />
                   {item.name}
@@ -179,11 +179,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-purple-500/20 p-4">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20">
                 <svg
-                  className="w-5 h-5 text-gray-600"
+                  className="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -197,8 +197,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">匿名ユーザー</p>
-                <p className="text-xs text-gray-500 truncate">ローカルセッション</p>
+                <p className="text-sm font-medium text-gray-100 truncate">匿名ユーザー</p>
+                <p className="text-xs text-gray-400 truncate">ローカルセッション</p>
               </div>
             </div>
           </div>

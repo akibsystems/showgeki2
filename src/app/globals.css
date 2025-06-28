@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Shakespeare Dark Theme Colors */
+  --background: #0a0a0a;
+  --foreground: #e0e0e0;
+  
+  /* Modern Shakespeare Color Palette */
+  --shakespeare-purple: #8b5cf6;
+  --shakespeare-gold: #f59e0b;
+  --shakespeare-crimson: #dc2626;
+  --shakespeare-emerald: #10b981;
+  --shakespeare-navy: #1e293b;
+  --shakespeare-midnight: #0f172a;
+  
+  /* Gradient Colors */
+  --gradient-purple-start: #7c3aed;
+  --gradient-purple-end: #a855f7;
+  --gradient-gold-start: #f59e0b;
+  --gradient-gold-end: #fbbf24;
 }
 
 @theme inline {
@@ -12,15 +27,76 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background Pattern for Shakespeare Theme */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(220, 38, 38, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--shakespeare-midnight);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--shakespeare-purple);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gradient-purple-end);
+}
+
+/* Shakespeare Text Effects */
+.shakespeare-title {
+  background: linear-gradient(135deg, var(--shakespeare-gold), var(--shakespeare-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+}
+
+/* Glow Effects */
+.shakespeare-glow {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
+              0 0 40px rgba(139, 92, 246, 0.2),
+              0 0 60px rgba(139, 92, 246, 0.1);
+}
+
+/* Button Hover Effects */
+.shakespeare-button-hover {
+  transition: all 0.3s ease;
+}
+
+.shakespeare-button-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
 }

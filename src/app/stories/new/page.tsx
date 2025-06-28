@@ -22,7 +22,7 @@ const NewStoryPage: React.FC = () => {
   
   const [formData, setFormData] = useState({
     text_raw: '',
-    beats: 5,
+    beats: 10,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,7 +30,7 @@ const NewStoryPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'beats' ? Math.max(2, Math.min(20, parseInt(value) || 5)) : value,
+      [name]: name === 'beats' ? Math.max(2, Math.min(20, parseInt(value) || 10)) : value,
     }));
   };
 
@@ -93,10 +93,10 @@ const NewStoryPage: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         {/* Header - Mobile optimized */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">
             ストーリーから台本を作成
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-400">
             ストーリーを入力して台本を作成すると、AIが自動でシェイクスピア風の動画を生成します
           </p>
         </div>
@@ -105,7 +105,7 @@ const NewStoryPage: React.FC = () => {
           <CardContent className="p-4 sm:p-6">
             {/* Content Input */}
             <div className="mb-6">
-              <label htmlFor="text_raw" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="text_raw" className="block text-sm font-medium text-gray-300 mb-2">
                 ストーリー内容
               </label>
               <textarea
@@ -115,12 +115,12 @@ const NewStoryPage: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="あなたの物語をここに書いてください。&#10;&#10;場面や情景が目に浮かぶような視覚的な表現を心がけ、始まり・展開・結末がはっきりした構成にすると、より良い動画が生成されます。"
                 rows={12}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical text-sm sm:text-base"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-purple-500/20 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-vertical text-sm sm:text-base text-gray-100"
                 disabled={isLoading}
               />
               
               {/* Word/Character Count */}
-              <div className="mt-2 flex flex-col sm:flex-row sm:justify-between text-xs text-gray-500">
+              <div className="mt-2 flex flex-col sm:flex-row sm:justify-between text-xs text-gray-400">
                 <span>{charCount} 文字</span>
                 <span className={charCount > 5000 ? 'text-orange-500 mt-1 sm:mt-0' : ''}>
                   {charCount > 5000 ? '文字数が多いです。より短くすることをお勧めします' : ''}
@@ -130,7 +130,7 @@ const NewStoryPage: React.FC = () => {
 
             {/* Scene Count Input */}
             <div className="mb-6">
-              <label htmlFor="beats" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="beats" className="block text-sm font-medium text-gray-300 mb-2">
                 シーンの数
               </label>
               <div className="flex items-center space-x-2">
@@ -138,7 +138,7 @@ const NewStoryPage: React.FC = () => {
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, beats: Math.max(2, prev.beats - 1) }))}
                   disabled={isLoading || formData.beats <= 2}
-                  className="w-10 h-10 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center justify-center"
+                  className="w-10 h-10 rounded-md border border-purple-500/20 bg-gray-800/50 hover:bg-purple-500/10 disabled:bg-gray-900/50 disabled:text-gray-600 transition-colors flex items-center justify-center text-gray-300"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -154,14 +154,14 @@ const NewStoryPage: React.FC = () => {
                   max="20"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="w-16 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base text-center"
+                  className="w-16 px-3 py-2 bg-gray-800/50 border border-purple-500/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm sm:text-base text-center text-gray-100"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, beats: Math.min(20, prev.beats + 1) }))}
                   disabled={isLoading || formData.beats >= 20}
-                  className="w-10 h-10 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center justify-center"
+                  className="w-10 h-10 rounded-md border border-purple-500/20 bg-gray-800/50 hover:bg-purple-500/10 disabled:bg-gray-900/50 disabled:text-gray-600 transition-colors flex items-center justify-center text-gray-300"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -169,7 +169,7 @@ const NewStoryPage: React.FC = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                動画に使用するシーンの数 (2-20シーン、デフォルト: 5シーン)
+                動画に使用するシーンの数 (2-20シーン、デフォルト: 10シーン)
               </p>
             </div>
 

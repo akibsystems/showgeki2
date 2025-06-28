@@ -39,15 +39,15 @@ const StoriesPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 bg-green-100 border-green-200';
+        return 'text-emerald-400 bg-emerald-900/30 border-emerald-500/50';
       case 'processing':
-        return 'text-blue-600 bg-blue-100 border-blue-200';
+        return 'text-blue-400 bg-blue-900/30 border-blue-500/50';
       case 'script_generated':
-        return 'text-purple-600 bg-purple-100 border-purple-200';
+        return 'text-purple-400 bg-purple-900/30 border-purple-500/50';
       case 'error':
-        return 'text-red-600 bg-red-100 border-red-200';
+        return 'text-red-400 bg-red-900/30 border-red-500/50';
       default:
-        return 'text-gray-600 bg-gray-100 border-gray-200';
+        return 'text-gray-400 bg-gray-800/30 border-gray-600/50';
     }
   };
 
@@ -97,7 +97,7 @@ const StoriesPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">台本を読み込み中...</p>
+            <p className="mt-4 text-gray-400">台本を読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -111,8 +111,8 @@ const StoriesPage: React.FC = () => {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">台本一覧</h1>
-              <p className="mt-1 text-xs sm:text-sm text-gray-600">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">台本一覧</h1>
+              <p className="mt-1 text-xs sm:text-sm text-gray-400">
                 AIで台本を生成し、動画を作成できます
               </p>
             </div>
@@ -145,8 +145,8 @@ const StoriesPage: React.FC = () => {
                   onClick={() => setStatusFilter(filter.key as StatusFilter)}
                   className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
                     statusFilter === filter.key
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-400'
+                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:bg-purple-500/10 hover:text-purple-300'
                   }`}
                 >
                   {filter.label} ({filter.count})
@@ -157,7 +157,7 @@ const StoriesPage: React.FC = () => {
             {/* Search */}
             <div className="relative">
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -169,7 +169,7 @@ const StoriesPage: React.FC = () => {
                 placeholder="台本を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="pl-10 pr-4 py-2 w-full sm:w-64 bg-gray-800/50 border border-purple-500/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-100 placeholder-gray-500"
               />
             </div>
           </div>
@@ -179,17 +179,17 @@ const StoriesPage: React.FC = () => {
         {filteredStories.length === 0 ? (
           <div className="text-center py-12">
             <svg
-              className="w-16 h-16 mx-auto mb-4 text-gray-300"
+              className="w-16 h-16 mx-auto mb-4 text-gray-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-100 mb-2">
               {searchQuery || statusFilter !== 'all' ? '台本が見つかりません' : 'まだ台本がありません'}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all' 
                 ? '検索条件やフィルターを変更してみてください'
                 : '最初の台本を作成しましょう'
@@ -208,7 +208,7 @@ const StoriesPage: React.FC = () => {
                 <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer group">
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex justify-between items-start mb-2 sm:mb-3">
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mr-2">
+                      <h3 className="text-base sm:text-lg font-medium text-gray-100 group-hover:text-purple-400 transition-colors line-clamp-2 mr-2">
                         {story.title}
                       </h3>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(story.status)} flex-shrink-0`}>
@@ -216,7 +216,7 @@ const StoriesPage: React.FC = () => {
                       </span>
                     </div>
                     
-                    <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
+                    <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
                       {story.text_raw}
                     </p>
                     
@@ -229,9 +229,9 @@ const StoriesPage: React.FC = () => {
                       
                       <div className="flex items-center justify-end space-x-1">
                         {story.status === 'processing' && (
-                          <Spinner size="sm" className="text-blue-600" />
+                          <Spinner size="sm" className="text-purple-400" />
                         )}
-                        <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>

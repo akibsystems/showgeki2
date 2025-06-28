@@ -65,7 +65,7 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const modalClasses = [
-    'relative bg-white rounded-lg shadow-xl transform transition-all',
+    'relative bg-gray-900/95 backdrop-blur-md rounded-lg shadow-2xl shadow-purple-500/20 transform transition-all border border-purple-500/20',
     sizeStyles[size],
     'w-full mx-4',
     className,
@@ -75,7 +75,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        className="fixed inset-0 bg-black bg-opacity-80 transition-opacity backdrop-blur-sm"
         onClick={handleBackdropClick}
       />
 
@@ -93,15 +93,15 @@ export const Modal: React.FC<ModalProps> = ({
           tabIndex={-1}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900" id="modal-title">
+          <div className="flex items-center justify-between p-4 border-b border-purple-500/20">
+            <h3 className="text-lg font-medium text-gray-100" id="modal-title">
               {title}
             </h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 p-1"
+              className="text-gray-400 hover:text-purple-400 p-1"
               aria-label="Close modal"
             >
               <svg
@@ -157,7 +157,7 @@ export const ModalFooter: React.FC<{ children: React.ReactNode; className?: stri
   children,
   className = '',
 }) => (
-  <div className={`flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 ${className}`}>
+  <div className={`flex items-center justify-end space-x-3 pt-4 border-t border-purple-500/20 ${className}`}>
     {children}
   </div>
 );

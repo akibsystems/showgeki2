@@ -203,15 +203,15 @@ const StoryEditorPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 bg-green-100 border-green-200';
+        return 'text-emerald-400 bg-emerald-900/30 border-emerald-500/50';
       case 'processing':
-        return 'text-blue-600 bg-blue-100 border-blue-200';
+        return 'text-blue-400 bg-blue-900/30 border-blue-500/50';
       case 'script_generated':
-        return 'text-purple-600 bg-purple-100 border-purple-200';
+        return 'text-purple-400 bg-purple-900/30 border-purple-500/50';
       case 'error':
-        return 'text-red-600 bg-red-100 border-red-200';
+        return 'text-red-400 bg-red-900/30 border-red-500/50';
       default:
-        return 'text-gray-600 bg-gray-100 border-gray-200';
+        return 'text-gray-400 bg-gray-800/30 border-gray-600/50';
     }
   };
 
@@ -248,7 +248,7 @@ const StoryEditorPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">読み込み中...</p>
+            <p className="mt-4 text-gray-400">読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -260,8 +260,8 @@ const StoryEditorPage: React.FC = () => {
       <Layout>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">ストーリーが見つかりません</h2>
-            <p className="text-gray-600 mb-6">お探しのストーリーは存在しません。</p>
+            <h2 className="text-2xl font-bold text-gray-100 mb-4">ストーリーが見つかりません</h2>
+            <p className="text-gray-400 mb-6">お探しのストーリーは存在しません。</p>
             <Button onClick={() => router.push('/dashboard')}>
               ダッシュボードに戻る
             </Button>
@@ -287,14 +287,14 @@ const StoryEditorPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-3xl font-bold text-gray-100">
                   {isEditing ? formData.title || '無題のストーリー' : story.title}
                 </h1>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(story.status || 'draft')}`}>
                   {getStatusText(story.status || 'draft')}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
                 <span>作成: {formatDate(story.created_at)}</span>
                 <span>更新: {formatDate(story.updated_at)}</span>
                 <span>{charCount} 文字</span>
@@ -363,8 +363,8 @@ const StoryEditorPage: React.FC = () => {
                   onClick={() => handleTabChange('content')}
                   className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     currentTab === 'content'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-purple-400 text-purple-300'
+                      : 'border-transparent text-gray-400 hover:text-purple-300 hover:border-purple-500/50'
                   }`}
                 >
                   <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ const StoryEditorPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                     台本エディター
-                    <span className="ml-2 inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="ml-2 inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-500/50">
                       {(story.script_json as any)?.beats?.length || 0} シーン
                     </span>
                   </button>
@@ -416,11 +416,11 @@ const StoryEditorPage: React.FC = () => {
                 ) : (
                   <Card>
                     <CardContent className="p-6 sm:p-8 text-center">
-                      <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">台本がありません</h3>
-                      <p className="text-sm text-gray-600 mb-4">先に台本を生成してください</p>
+                      <h3 className="text-base sm:text-lg font-medium text-gray-100 mb-2">台本がありません</h3>
+                      <p className="text-sm text-gray-400 mb-4">先に台本を生成してください</p>
                       <Button onClick={handleGenerateScript} disabled={isGeneratingScript} className="text-sm sm:text-base">
                         {isGeneratingScript ? (
                           <>
@@ -476,7 +476,7 @@ const StoryEditorPage: React.FC = () => {
             {video && (
               <Card>
                 <CardContent className="p-4 sm:p-6">
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">動画</h3>
+                  <h3 className="text-base sm:text-lg font-medium text-gray-100 mb-4">動画</h3>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full ${video.status === 'completed' ? 'bg-green-400' : video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
@@ -486,7 +486,7 @@ const StoryEditorPage: React.FC = () => {
                     </div>
                     
                     {video.duration_sec && (
-                      <p className="text-xs sm:text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-400">
                         再生時間: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
                       </p>
                     )}
@@ -531,10 +531,10 @@ const StoryEditorPage: React.FC = () => {
       {/* Delete Confirmation Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <ModalHeader>
-          <h3 className="text-lg font-medium text-gray-900">ストーリーを削除</h3>
+          <h3 className="text-lg font-medium text-gray-100">ストーリーを削除</h3>
         </ModalHeader>
         <ModalBody>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-400">
             このストーリーを削除してもよろしいですか？この操作は取り消せません。
           </p>
         </ModalBody>

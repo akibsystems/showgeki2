@@ -20,19 +20,19 @@ export const Header: React.FC<HeaderProps> = ({
   className = '',
 }) => {
   return (
-    <header className={`bg-white border-b border-gray-200 shadow-sm ${className}`}>
+    <header className={`bg-gray-900/80 backdrop-blur-md border-b border-purple-500/20 shadow-lg ${className}`}>
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo only */}
           <div className="flex items-center">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2 group">
               <img
                 src="/TSAS_logo.jpg"
                 alt="Tokyo Shakespeare Anime Studio"
-                className="h-10 w-auto"
+                className="h-10 w-auto rounded-lg shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/40 transition-all duration-300"
               />
-              <span className="text-sm sm:text-xl font-semibold text-gray-900">
+              <span className="text-sm sm:text-xl font-bold bg-gradient-to-r from-amber-400 to-purple-400 bg-clip-text text-transparent group-hover:from-amber-300 group-hover:to-purple-300 transition-all duration-300">
                 Tokyo Shakespeare Anime Studio
               </span>
             </Link>

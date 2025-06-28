@@ -17,10 +17,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 // ================================================================
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white border-transparent focus:ring-blue-500',
-  secondary: 'bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-900 border-transparent focus:ring-gray-500',
-  danger: 'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white border-transparent focus:ring-red-500',
-  ghost: 'bg-transparent hover:bg-gray-100 active:bg-gray-200 text-gray-700 border-gray-300 focus:ring-gray-500',
+  primary: 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 active:from-purple-800 active:to-purple-900 text-white border-transparent focus:ring-purple-500 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 transition-all',
+  secondary: 'bg-gray-800/50 hover:bg-gray-700/50 active:bg-gray-600/50 text-gray-100 border-gray-700 focus:ring-gray-500 backdrop-blur-sm',
+  danger: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 active:from-red-800 active:to-red-900 text-white border-transparent focus:ring-red-500 shadow-lg shadow-red-500/25',
+  ghost: 'bg-transparent hover:bg-purple-500/10 active:bg-purple-500/20 text-gray-300 hover:text-purple-300 border-purple-500/20 hover:border-purple-500/40 focus:ring-purple-500',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

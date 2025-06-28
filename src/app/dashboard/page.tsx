@@ -44,7 +44,7 @@ const DashboardPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">ダッシュボードを読み込み中...</p>
+            <p className="mt-4 text-gray-400">ダッシュボードを読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -64,7 +64,7 @@ const DashboardPage: React.FC = () => {
       action: (
         <Link href="/stories/new">
           <Button variant="primary" size="md" className="w-full">
-            ストーリーからつくる
+            台本を作成
           </Button>
         </Link>
       ),
@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
       action: (
         <Link href="/videos">
           <Button variant="secondary" size="md" className="w-full">
-            動画一覧を見る
+            動画一覧
           </Button>
         </Link>
       ),
@@ -112,33 +112,33 @@ const DashboardPage: React.FC = () => {
     switch (color) {
       case 'blue':
         return {
-          bg: 'bg-blue-100',
-          text: 'text-blue-600',
-          border: 'border-blue-200'
+          bg: 'bg-gradient-to-br from-blue-900/50 to-purple-900/50',
+          text: 'text-blue-400',
+          border: 'border-blue-500/50'
         };
       case 'yellow':
         return {
-          bg: 'bg-yellow-100',
-          text: 'text-yellow-600',
-          border: 'border-yellow-200'
+          bg: 'bg-gradient-to-br from-amber-900/50 to-orange-900/50',
+          text: 'text-amber-400',
+          border: 'border-amber-500/50'
         };
       case 'purple':
         return {
-          bg: 'bg-purple-100',
-          text: 'text-purple-600',
-          border: 'border-purple-200'
+          bg: 'bg-gradient-to-br from-purple-900/50 to-pink-900/50',
+          text: 'text-purple-400',
+          border: 'border-purple-500/50'
         };
       case 'green':
         return {
-          bg: 'bg-green-100',
-          text: 'text-green-600',
-          border: 'border-green-200'
+          bg: 'bg-gradient-to-br from-emerald-900/50 to-teal-900/50',
+          text: 'text-emerald-400',
+          border: 'border-emerald-500/50'
         };
       default:
         return {
-          bg: 'bg-gray-100',
-          text: 'text-gray-600',
-          border: 'border-gray-200'
+          bg: 'bg-gray-900/50',
+          text: 'text-gray-400',
+          border: 'border-gray-700'
         };
     }
   };
@@ -148,17 +148,17 @@ const DashboardPage: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 sm:mb-12 text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-            Tokyo Shakespeare Anime Studio
+          <h1 className="text-2xl sm:text-3xl font-bold mb-3">
+            <span className="shakespeare-title">Tokyo Shakespeare Anime Studio</span>
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
+          <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto px-4 sm:px-0">
             あなたの物語をシェイクスピア風のアニメ動画に変換します
           </p>
         </div>
 
         {/* How to Use Section */}
         <div className="mb-8">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 text-center mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 text-center mb-6 sm:mb-8">
             使い方
           </h2>
           
@@ -167,11 +167,11 @@ const DashboardPage: React.FC = () => {
             {steps.map((step, index) => {
               const colors = getColorClasses(step.color);
               return (
-                <Card key={step.number} className="hover:shadow-lg transition-shadow">
+                <Card key={step.number} className="bg-gray-900/50 border-purple-500/20 hover:border-purple-400/40 hover:shadow-purple-500/20 hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       {/* Step Number Circle */}
-                      <div className={`w-16 h-16 rounded-full ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                      <div className={`w-16 h-16 rounded-full ${colors.bg} flex items-center justify-center flex-shrink-0 shadow-lg`}>
                         <span className={`text-2xl font-bold ${colors.text}`}>
                           {step.number}
                         </span>
@@ -183,11 +183,11 @@ const DashboardPage: React.FC = () => {
                           <div className={colors.text}>
                             {step.icon}
                           </div>
-                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-100">
                             {step.title}
                           </h3>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                        <p className="text-xs sm:text-sm text-gray-400 mb-4">
                           {step.description}
                         </p>
                         <div>
@@ -212,33 +212,33 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 sm:mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 sm:p-8 text-center">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
+        <div className="mt-8 sm:mt-12 bg-gradient-to-r from-purple-900/30 to-amber-900/30 rounded-lg p-6 sm:p-8 text-center border border-purple-500/20 shadow-xl shakespeare-glow">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-100 mb-3 sm:mb-4">
             準備はいいですか？
           </h3>
-          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+          <p className="text-sm sm:text-base text-gray-300 mb-4 sm:mb-6">
             今すぐあなたの物語をアニメ動画にしましょう
           </p>
           <Link href="/stories/new">
-            <Button variant="primary" size="lg">
+            <Button variant="primary" size="lg" className="shakespeare-button-hover">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              台本を作成する
+              台本を作成
             </Button>
           </Link>
         </div>
 
         {/* Additional Help */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="mt-8 text-center text-sm text-gray-400">
           <p>
             質問がある場合は、
             <Link href="/stories" className="text-blue-600 hover:text-blue-800 mx-1">
-              台本一覧
+              <span className="hover:text-purple-400 transition-colors">台本一覧</span>
             </Link>
             または
             <Link href="/videos" className="text-blue-600 hover:text-blue-800 mx-1">
-              動画一覧
+              <span className="hover:text-purple-400 transition-colors">動画一覧</span>
             </Link>
             をご覧ください
           </p>

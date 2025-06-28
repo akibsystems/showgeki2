@@ -30,7 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
+    <div className={`min-h-screen bg-gray-950 ${className}`}>
       {/* Header with mobile menu button */}
       <Header
         onMobileMenuClick={handleSidebarToggle}

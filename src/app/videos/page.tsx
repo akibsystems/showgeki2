@@ -47,15 +47,15 @@ const VideosPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 bg-green-100 border-green-200';
+        return 'text-emerald-400 bg-emerald-900/30 border-emerald-500/50';
       case 'processing':
-        return 'text-blue-600 bg-blue-100 border-blue-200';
+        return 'text-blue-400 bg-blue-900/30 border-blue-500/50';
       case 'queued':
-        return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+        return 'text-amber-400 bg-amber-900/30 border-amber-500/50';
       case 'failed':
-        return 'text-red-600 bg-red-100 border-red-200';
+        return 'text-red-400 bg-red-900/30 border-red-500/50';
       default:
-        return 'text-gray-600 bg-gray-100 border-gray-200';
+        return 'text-gray-400 bg-gray-800/30 border-gray-600/50';
     }
   };
 
@@ -155,7 +155,7 @@ const VideosPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">動画を読み込み中...</p>
+            <p className="mt-4 text-gray-400">動画を読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -169,8 +169,8 @@ const VideosPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">動画一覧</h1>
-              <p className="mt-1 text-sm text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-100">動画一覧</h1>
+              <p className="mt-1 text-sm text-gray-400">
                 生成された動画を表示・管理します
               </p>
             </div>
@@ -202,8 +202,8 @@ const VideosPage: React.FC = () => {
                   onClick={() => setStatusFilter(filter.key as StatusFilter)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
                     statusFilter === filter.key
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-400'
+                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:bg-purple-500/10 hover:text-purple-300'
                   }`}
                 >
                   {filter.label} ({filter.count})
@@ -214,7 +214,7 @@ const VideosPage: React.FC = () => {
             {/* Search */}
             <div className="relative">
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -226,7 +226,7 @@ const VideosPage: React.FC = () => {
                 placeholder="動画を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="pl-10 pr-4 py-2 w-64 bg-gray-800/50 border border-purple-500/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-100 placeholder-gray-500"
               />
             </div>
           </div>
@@ -236,17 +236,17 @@ const VideosPage: React.FC = () => {
         {filteredVideos.length === 0 ? (
           <div className="text-center py-12">
             <svg
-              className="w-16 h-16 mx-auto mb-4 text-gray-300"
+              className="w-16 h-16 mx-auto mb-4 text-gray-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-100 mb-2">
               {searchQuery || statusFilter !== 'all' ? '動画が見つかりません' : 'まだ動画がありません'}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all' 
                 ? '検索条件やフィルターを変更してみてください'
                 : '台本を作成して最初の動画を生成しましょう'
@@ -264,7 +264,7 @@ const VideosPage: React.FC = () => {
               <Card key={video.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
+                    <h3 className="text-lg font-medium text-gray-100 line-clamp-2">
                       {getStoryTitle(video.story_id)}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(video.status)} ml-2 flex-shrink-0`}>
@@ -291,8 +291,8 @@ const VideosPage: React.FC = () => {
                           }}
                         />
                         {/* Play overlay */}
-                        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="bg-white bg-opacity-80 rounded-full p-3">
+                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-purple-600/80 backdrop-blur-sm rounded-full p-3 shadow-lg">
                             <svg className="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
@@ -300,25 +300,25 @@ const VideosPage: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="aspect-video bg-gray-800/50 rounded-lg flex items-center justify-center border border-purple-500/10">
                         {video.status === 'processing' ? (
                           <div className="text-center">
-                            <Spinner size="lg" className="mx-auto mb-2" />
-                            <p className="text-xs text-gray-500">処理中...</p>
+                            <Spinner size="lg" className="mx-auto mb-2 text-purple-400" />
+                            <p className="text-xs text-gray-400">処理中...</p>
                           </div>
                         ) : video.status === 'failed' ? (
                           <div className="text-center">
-                            <svg className="w-12 h-12 mx-auto text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-12 h-12 mx-auto text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
                             <p className="text-xs text-red-500">失敗</p>
                           </div>
                         ) : (
                           <div className="text-center">
-                            <svg className="w-12 h-12 mx-auto text-yellow-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-12 h-12 mx-auto text-amber-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-xs text-yellow-600">待機中</p>
+                            <p className="text-xs text-amber-400">待機中</p>
                           </div>
                         )}
                       </div>
@@ -329,33 +329,33 @@ const VideosPage: React.FC = () => {
                   <div className="space-y-2">
                     {video.duration_sec && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">再生時間:</span>
+                        <span className="text-gray-400">再生時間:</span>
                         <span className="font-medium">{formatDuration(video.duration_sec)}</span>
                       </div>
                     )}
                     
                     {video.resolution && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">解像度:</span>
+                        <span className="text-gray-400">解像度:</span>
                         <span className="font-medium">{video.resolution}</span>
                       </div>
                     )}
                     
                     {video.size_mb && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">ファイルサイズ:</span>
+                        <span className="text-gray-400">ファイルサイズ:</span>
                         <span className="font-medium">{formatFileSize(video.size_mb)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">作成日:</span>
+                      <span className="text-gray-400">作成日:</span>
                       <span className="font-medium">{formatDate(video.created_at)}</span>
                     </div>
 
                     {video.error_msg && (
-                      <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded">
-                        <p className="text-xs text-red-600">{video.error_msg}</p>
+                      <div className="mt-3 p-2 bg-red-900/30 border border-red-500/30 rounded">
+                        <p className="text-xs text-red-400">{video.error_msg}</p>
                       </div>
                     )}
                   </div>
