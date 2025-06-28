@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Layout } from '@/components/layout';
-import { Button, Card, CardContent, CardFooter, Spinner } from '@/components/ui';
+import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
-import { useStories, useVideos, useUserWorkspace } from '@/hooks';
+import { useUserWorkspace } from '@/hooks';
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 // ================================================================
 // Dashboard Page Component
@@ -13,12 +14,10 @@ import Link from 'next/link';
 
 const DashboardPage: React.FC = () => {
   const { state } = useApp();
-  const { success } = useToast();
+  const { error } = useToast();
 
   // Fetch data using SWR hooks
   const { workspace, isLoading: workspaceLoading, ensureWorkspace } = useUserWorkspace();
-  const { stories, isLoading: storiesLoading } = useStories({ limit: 5 });
-  const { videos, isLoading: videosLoading } = useVideos({ limit: 5 });
 
   // Ensure workspace exists for first-time users
   useEffect(() => {
@@ -26,55 +25,18 @@ const DashboardPage: React.FC = () => {
       if (!workspaceLoading && !workspace && !state.isLoading) {
         try {
           await ensureWorkspace();
-        } catch (error) {
-          console.error('Failed to initialize workspace:', error);
+        } catch (err) {
+          console.error('Failed to initialize workspace:', err);
+          error('Failed to initialize workspace');
         }
       }
     };
 
     initializeWorkspace();
-  }, [workspace, workspaceLoading, ensureWorkspace, state.isLoading]);
-
-  // Calculate stats from actual data
-  const recentStories = Array.isArray(stories) ? stories.slice(0, 4) : [];
-  const recentVideos = Array.isArray(videos) ? videos.slice(0, 2) : [];
-  
-  const stats = {
-    stories: Array.isArray(stories) ? stories.length : 0,
-    videos: Array.isArray(videos) ? videos.length : 0,
-    inProgress: Array.isArray(stories) ? stories.filter(s => s.status === 'processing').length : 0,
-  };
-
-  // Get story title by story_id
-  const getStoryTitle = (storyId: string): string => {
-    const story = stories?.find(s => s.id === storyId);
-    return story?.title || `Story ${storyId}`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600 bg-green-100';
-      case 'processing':
-        return 'text-blue-600 bg-blue-100';
-      case 'error':
-        return 'text-red-600 bg-red-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
-    const day = date.getDate();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month} ${day}, ${hours}:${minutes}`;
-  };
+  }, [workspace, workspaceLoading, ensureWorkspace, state.isLoading, error]);
 
   // Show loading state while essential data is loading
-  const isLoading = state.isLoading || workspaceLoading || (storiesLoading && !stories) || (videosLoading && !videos);
+  const isLoading = state.isLoading || workspaceLoading;
   
   if (isLoading) {
     return (
@@ -89,188 +51,197 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  const steps = [
+    {
+      number: 1,
+      title: "ストーリーを入れる",
+      description: "あなたの物語や夢、アイデアを入力します",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      ),
+      action: (
+        <Link href="/stories/new">
+          <Button variant="primary" size="md" className="w-full">
+            新しいストーリーを作成
+          </Button>
+        </Link>
+      ),
+      color: "blue"
+    },
+    {
+      number: 2,
+      title: "台本を作成・編集する",
+      description: "AIがシェイクスピア風の台本を自動生成。必要に応じて編集できます",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      action: (
+        <Link href="/stories">
+          <Button variant="secondary" size="md" className="w-full">
+            ストーリー一覧を見る
+          </Button>
+        </Link>
+      ),
+      color: "purple"
+    },
+    {
+      number: 3,
+      title: "動画を生成する",
+      description: "台本をもとにAIがアニメ風の動画を自動生成します",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      ),
+      action: (
+        <Link href="/videos">
+          <Button variant="secondary" size="md" className="w-full">
+            動画一覧を見る
+          </Button>
+        </Link>
+      ),
+      color: "green"
+    }
+  ];
+
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue':
+        return {
+          bg: 'bg-blue-100',
+          text: 'text-blue-600',
+          border: 'border-blue-200'
+        };
+      case 'yellow':
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-600',
+          border: 'border-yellow-200'
+        };
+      case 'purple':
+        return {
+          bg: 'bg-purple-100',
+          text: 'text-purple-600',
+          border: 'border-purple-200'
+        };
+      case 'green':
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-600',
+          border: 'border-green-200'
+        };
+      default:
+        return {
+          bg: 'bg-gray-100',
+          text: 'text-gray-600',
+          border: 'border-gray-200'
+        };
+    }
+  };
+
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-6 max-w-6xl mx-auto">
         {/* Header */}
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            Tokyo Shakespeare Anime Studio
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            あなたの物語をシェイクスピア風のアニメ動画に変換します
+          </p>
+        </div>
+
+        {/* How to Use Section */}
         <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                AIを活用してストーリーから動画を生成・管理できます。
-              </p>
-            </div>
-            <Link href="/stories/new">
-              <Button variant="primary" size="md">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create New Story
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Stories</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.stories}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Videos</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.videos}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">In Progress</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.inProgress}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Stories */}
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Stories</h2>
-              <Link href="/stories" className="text-sm text-blue-600 hover:text-blue-800">
-                View all
-              </Link>
-            </div>
-            <div className="space-y-4">
-              {recentStories.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-sm">No stories yet</p>
-                  <p className="text-xs mt-1">Create your first story to get started</p>
-                </div>
-              ) : (
-                recentStories.map((story) => (
-                <Card key={story.id} className="hover:shadow-md transition-shadow">
+          <h2 className="text-2xl font-semibold text-gray-900 text-center mb-8">
+            使い方
+          </h2>
+          
+          {/* Steps Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {steps.map((step, index) => {
+              const colors = getColorClasses(step.color);
+              return (
+                <Card key={step.number} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
+                    <div className="flex items-start space-x-4">
+                      {/* Step Number Circle */}
+                      <div className={`w-16 h-16 rounded-full ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                        <span className={`text-2xl font-bold ${colors.text}`}>
+                          {step.number}
+                        </span>
+                      </div>
+                      
+                      {/* Content */}
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-sm font-medium text-gray-900">{story.title}</h3>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(story.status)}`}>
-                            {story.status}
-                          </span>
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className={colors.text}>
+                            {step.icon}
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {step.title}
+                          </h3>
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Updated {formatDate(story.updated_at)}
+                        <p className="text-sm text-gray-600 mb-4">
+                          {step.description}
                         </p>
+                        <div>
+                          {step.action}
+                        </div>
                       </div>
-                      <Link href={`/stories/${story.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </Button>
-                      </Link>
                     </div>
+                    
+                    {/* Arrow to next step (except last) */}
+                    {index < steps.length - 1 && (
+                      <div className="hidden md:flex justify-center mt-6">
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-                ))
-              )}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Recent Videos */}
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Videos</h2>
-              <Link href="/videos" className="text-sm text-blue-600 hover:text-blue-800">
-                View all
-              </Link>
-            </div>
-            <div className="space-y-4">
-              {recentVideos.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-sm">No videos yet</p>
-                  <p className="text-xs mt-1">Create a story to generate your first video</p>
-                </div>
-              ) : (
-                recentVideos.map((video) => (
-                <Card key={video.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-sm font-medium text-gray-900">{getStoryTitle(video.story_id)}</h3>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(video.status)}`}>
-                            {video.status}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center space-x-3 text-xs text-gray-500">
-                          {video.duration_sec && (
-                            <span>{Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}</span>
-                          )}
-                          <span>Created {formatDate(video.created_at)}</span>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        {video.status === 'completed' && (
-                          <Button variant="ghost" size="sm">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </Button>
-                        )}
-                        <Link href={`/stories/${video.story_id}`}>
-                          <Button variant="ghost" size="sm">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                ))
-              )}
-            </div>
-          </div>
+        {/* Quick Actions */}
+        <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 text-center">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            準備はいいですか？
+          </h3>
+          <p className="text-gray-600 mb-6">
+            今すぐあなたの物語をアニメ動画にしましょう
+          </p>
+          <Link href="/stories/new">
+            <Button variant="primary" size="lg">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              新しいストーリーを作成する
+            </Button>
+          </Link>
+        </div>
+
+        {/* Additional Help */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>
+            質問がある場合は、
+            <Link href="/stories" className="text-blue-600 hover:text-blue-800 mx-1">
+              ストーリー一覧
+            </Link>
+            または
+            <Link href="/videos" className="text-blue-600 hover:text-blue-800 mx-1">
+              動画一覧
+            </Link>
+            をご覧ください
+          </p>
         </div>
       </div>
     </Layout>
