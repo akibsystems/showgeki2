@@ -51,13 +51,30 @@ const StoriesPage: React.FC = () => {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return '完了';
+      case 'processing':
+        return '処理中';
+      case 'script_generated':
+        return '台本生成済み';
+      case 'error':
+        return 'エラー';
+      case 'draft':
+        return '下書き';
+      default:
+        return status;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const month = date.getMonth() + 1;
     const day = date.getDate();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month} ${day}, ${hours}:${minutes}`;
+    return `${month}月${day}日 ${hours}:${minutes}`;
   };
 
   const getStatusCounts = () => {
@@ -80,7 +97,7 @@ const StoriesPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading stories...</p>
+            <p className="mt-4 text-gray-600">台本を読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -89,22 +106,22 @@ const StoriesPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Your Stories</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Manage and create video stories with AI-powered script generation.
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">台本一覧</h1>
+              <p className="mt-1 text-xs sm:text-sm text-gray-600">
+                AIで台本を生成し、動画を作成できます
               </p>
             </div>
-            <Link href="/stories/new">
-              <Button>
+            <Link href="/stories/new" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto text-sm sm:text-base">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create New Story
+                台本を作成
               </Button>
             </Link>
           </div>
@@ -114,19 +131,19 @@ const StoriesPage: React.FC = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             {/* Status Filter Tabs */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {[
-                { key: 'all', label: 'All', count: statusCounts.all },
-                { key: 'draft', label: 'Draft', count: statusCounts.draft },
-                { key: 'script_generated', label: 'Script Ready', count: statusCounts.script_generated },
-                { key: 'processing', label: 'Processing', count: statusCounts.processing },
-                { key: 'completed', label: 'Completed', count: statusCounts.completed },
-                { key: 'error', label: 'Error', count: statusCounts.error },
+                { key: 'all', label: 'すべて', count: statusCounts.all },
+                { key: 'draft', label: '下書き', count: statusCounts.draft },
+                { key: 'script_generated', label: '台本生成済み', count: statusCounts.script_generated },
+                { key: 'processing', label: '処理中', count: statusCounts.processing },
+                { key: 'completed', label: '完了', count: statusCounts.completed },
+                { key: 'error', label: 'エラー', count: statusCounts.error },
               ].map((filter) => (
                 <button
                   key={filter.key}
                   onClick={() => setStatusFilter(filter.key as StatusFilter)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
                     statusFilter === filter.key
                       ? 'bg-blue-50 text-blue-700 border-blue-200'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -149,10 +166,10 @@ const StoriesPage: React.FC = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search stories..."
+                placeholder="台本を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -170,46 +187,47 @@ const StoriesPage: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery || statusFilter !== 'all' ? 'No stories found' : 'No stories yet'}
+              {searchQuery || statusFilter !== 'all' ? '台本が見つかりません' : 'まだ台本がありません'}
             </h3>
             <p className="text-gray-600 mb-6">
               {searchQuery || statusFilter !== 'all' 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Get started by creating your first story.'
+                ? '検索条件やフィルターを変更してみてください'
+                : '最初の台本を作成しましょう'
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Link href="/stories/new">
-                <Button>Create Your First Story</Button>
+                <Button>最初の台本を作成</Button>
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredStories.map((story) => (
               <Link key={story.id} href={`/stories/${story.id}`}>
                 <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer group">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex justify-between items-start mb-2 sm:mb-3">
+                      <h3 className="text-base sm:text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mr-2">
                         {story.title}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(story.status)} ml-2 flex-shrink-0`}>
-                        {story.status === 'script_generated' ? 'script ready' : story.status}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(story.status)} flex-shrink-0`}>
+                        {getStatusText(story.status)}
                       </span>
                     </div>
                     
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
                       {story.text_raw}
                     </p>
                     
-                    <div className="flex justify-between items-center text-xs text-gray-500">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs text-gray-500">
                       <div className="flex items-center space-x-3">
-                        <span>{(story.text_raw || '').split(/\s+/).filter(word => word.length > 0).length} words</span>
-                        <span>Updated {formatDate(story.updated_at)}</span>
+                        <span>{(story.text_raw || '').length} 文字</span>
+                        <span className="hidden sm:inline">更新: {formatDate(story.updated_at)}</span>
+                        <span className="sm:hidden">{formatDate(story.updated_at).split(' ')[0]}</span>
                       </div>
                       
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-end space-x-1">
                         {story.status === 'processing' && (
                           <Spinner size="sm" className="text-blue-600" />
                         )}

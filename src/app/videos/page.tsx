@@ -179,7 +179,7 @@ const VideosPage: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                新しいストーリーを作成
+                台本を作成
               </Button>
             </Link>
           </div>
@@ -249,12 +249,12 @@ const VideosPage: React.FC = () => {
             <p className="text-gray-600 mb-6">
               {searchQuery || statusFilter !== 'all' 
                 ? '検索条件やフィルターを変更してみてください'
-                : 'ストーリーを作成して最初の動画を生成しましょう'
+                : '台本を作成して最初の動画を生成しましょう'
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Link href="/stories/new">
-                <Button>最初のストーリーを作成</Button>
+                <Button>最初の台本を作成</Button>
               </Link>
             )}
           </div>

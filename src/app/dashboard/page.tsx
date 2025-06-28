@@ -44,7 +44,7 @@ const DashboardPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading dashboard...</p>
+            <p className="mt-4 text-gray-600">ダッシュボードを読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -54,17 +54,17 @@ const DashboardPage: React.FC = () => {
   const steps = [
     {
       number: 1,
-      title: "ストーリーを入れる",
-      description: "あなたの物語や夢、アイデアを入力します",
+      title: "台本を作成",
+      description: "ストーリーからシェイクスピア風の台本を作ります",
       icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
         </svg>
       ),
       action: (
         <Link href="/stories/new">
           <Button variant="primary" size="md" className="w-full">
-            新しいストーリーを作成
+            ストーリーからつくる
           </Button>
         </Link>
       ),
@@ -72,17 +72,17 @@ const DashboardPage: React.FC = () => {
     },
     {
       number: 2,
-      title: "台本を作成・編集する",
-      description: "AIがシェイクスピア風の台本を自動生成。必要に応じて編集できます",
+      title: "台本を編集",
+      description: "作成した台本を確認・編集できます",
       icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       ),
       action: (
         <Link href="/stories">
           <Button variant="secondary" size="md" className="w-full">
-            ストーリー一覧を見る
+            台本一覧
           </Button>
         </Link>
       ),
@@ -93,7 +93,7 @@ const DashboardPage: React.FC = () => {
       title: "動画を生成する",
       description: "台本をもとにAIがアニメ風の動画を自動生成します",
       icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       ),
@@ -145,20 +145,20 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+        <div className="mb-8 sm:mb-12 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
             Tokyo Shakespeare Anime Studio
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
             あなたの物語をシェイクスピア風のアニメ動画に変換します
           </p>
         </div>
 
         {/* How to Use Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 text-center mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 text-center mb-6 sm:mb-8">
             使い方
           </h2>
           
@@ -183,11 +183,11 @@ const DashboardPage: React.FC = () => {
                           <div className={colors.text}>
                             {step.icon}
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                             {step.title}
                           </h3>
                         </div>
-                        <p className="text-sm text-gray-600 mb-4">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-4">
                           {step.description}
                         </p>
                         <div>
@@ -212,11 +212,11 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 text-center">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <div className="mt-8 sm:mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 sm:p-8 text-center">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
             準備はいいですか？
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
             今すぐあなたの物語をアニメ動画にしましょう
           </p>
           <Link href="/stories/new">
@@ -224,7 +224,7 @@ const DashboardPage: React.FC = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              新しいストーリーを作成する
+              台本を作成する
             </Button>
           </Link>
         </div>
@@ -234,7 +234,7 @@ const DashboardPage: React.FC = () => {
           <p>
             質問がある場合は、
             <Link href="/stories" className="text-blue-600 hover:text-blue-800 mx-1">
-              ストーリー一覧
+              台本一覧
             </Link>
             または
             <Link href="/videos" className="text-blue-600 hover:text-blue-800 mx-1">

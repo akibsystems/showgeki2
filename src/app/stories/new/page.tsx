@@ -94,7 +94,7 @@ const NewStoryPage: React.FC = () => {
         {/* Header - Mobile optimized */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            新しいストーリー作成
+            ストーリーから台本を作成
           </h1>
           <p className="text-sm text-gray-600">
             ストーリーを入力して台本を作成すると、AIが自動でシェイクスピア風の動画を生成します
