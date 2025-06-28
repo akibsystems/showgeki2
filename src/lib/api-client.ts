@@ -258,29 +258,32 @@ export class ApiClient {
       };
 
     } catch (error: any) {
-      // Handle network errors
+      let apiError: ApiClientError;
+
+      // Handle specific error types
       if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-        throw new ApiClientError(
+        apiError = new ApiClientError(
           'Request timeout',
           ErrorType.NETWORK,
           408
         );
+      } else if (error instanceof ApiClientError) {
+        apiError = error;
+      } else {
+        // Network errors and unknown errors
+        apiError = new ApiClientError(
+          error.message || 'Network error occurred',
+          ErrorType.NETWORK
+        );
       }
 
-      if (error instanceof ApiClientError) {
-        // Retry logic for retryable errors
-        if (isRetryableError(error) && retryCount < RETRY_ATTEMPTS) {
-          await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
-          return this.request<T>(config, retryCount + 1);
-        }
-        throw error;
+      // Retry logic for retryable errors
+      if (isRetryableError(apiError) && retryCount < RETRY_ATTEMPTS) {
+        await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        return this.request<T>(config, retryCount + 1);
       }
-
-      // Unknown error
-      throw new ApiClientError(
-        error.message || 'Network error occurred',
-        ErrorType.NETWORK
-      );
+      
+      throw apiError;
     }
   }
 
