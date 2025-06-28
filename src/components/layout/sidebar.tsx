@@ -92,19 +92,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navigation: NavigationItem[] = [
     {
-      name: 'Dashboard',
+      name: 'ダッシュボード',
       href: '/dashboard',
       icon: DashboardIcon,
       current: pathname === '/dashboard',
     },
     {
-      name: 'Stories',
+      name: 'ストーリー',
       href: '/stories',
       icon: StoriesIcon,
       current: pathname.startsWith('/stories'),
     },
     {
-      name: 'Videos',
+      name: '動画',
       href: '/videos',
       icon: VideosIcon,
       current: pathname.startsWith('/videos'),
@@ -132,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 lg:hidden">
-            <span className="text-lg font-semibold text-gray-900">Menu</span>
+            <span className="text-lg font-semibold text-gray-900">メニュー</span>
             <button
               onClick={onClose}
               className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
@@ -197,8 +197,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Anonymous User</p>
-                <p className="text-xs text-gray-500 truncate">Local Session</p>
+                <p className="text-sm font-medium text-gray-900 truncate">匿名ユーザー</p>
+                <p className="text-xs text-gray-500 truncate">ローカルセッション</p>
               </div>
             </div>
           </div>

@@ -59,13 +59,28 @@ const VideosPage: React.FC = () => {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return '完了';
+      case 'processing':
+        return '処理中';
+      case 'queued':
+        return '待機中';
+      case 'failed':
+        return '失敗';
+      default:
+        return status;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const month = date.getMonth() + 1;
     const day = date.getDate();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month} ${day}, ${hours}:${minutes}`;
+    return `${month}月${day}日 ${hours}:${minutes}`;
   };
 
   const formatDuration = (seconds: number) => {
@@ -140,7 +155,7 @@ const VideosPage: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading videos...</p>
+            <p className="mt-4 text-gray-600">動画を読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -154,9 +169,9 @@ const VideosPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Your Videos</h1>
+              <h1 className="text-3xl font-bold text-gray-900">動画一覧</h1>
               <p className="mt-1 text-sm text-gray-600">
-                View and manage your generated videos.
+                生成された動画を表示・管理します
               </p>
             </div>
             <Link href="/stories/new">
@@ -164,7 +179,7 @@ const VideosPage: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create New Story
+                新しいストーリーを作成
               </Button>
             </Link>
           </div>
@@ -176,11 +191,11 @@ const VideosPage: React.FC = () => {
             {/* Status Filter Tabs */}
             <div className="flex flex-wrap gap-2">
               {[
-                { key: 'all', label: 'All', count: statusCounts.all },
-                { key: 'completed', label: 'Completed', count: statusCounts.completed },
-                { key: 'processing', label: 'Processing', count: statusCounts.processing },
-                { key: 'queued', label: 'Queued', count: statusCounts.queued },
-                { key: 'failed', label: 'Failed', count: statusCounts.failed },
+                { key: 'all', label: 'すべて', count: statusCounts.all },
+                { key: 'completed', label: '完了', count: statusCounts.completed },
+                { key: 'processing', label: '処理中', count: statusCounts.processing },
+                { key: 'queued', label: '待機中', count: statusCounts.queued },
+                { key: 'failed', label: '失敗', count: statusCounts.failed },
               ].map((filter) => (
                 <button
                   key={filter.key}
@@ -208,7 +223,7 @@ const VideosPage: React.FC = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search videos..."
+                placeholder="動画を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -229,17 +244,17 @@ const VideosPage: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery || statusFilter !== 'all' ? 'No videos found' : 'No videos yet'}
+              {searchQuery || statusFilter !== 'all' ? '動画が見つかりません' : 'まだ動画がありません'}
             </h3>
             <p className="text-gray-600 mb-6">
               {searchQuery || statusFilter !== 'all' 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Create a story and generate your first video.'
+                ? '検索条件やフィルターを変更してみてください'
+                : 'ストーリーを作成して最初の動画を生成しましょう'
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Link href="/stories/new">
-                <Button>Create Your First Story</Button>
+                <Button>最初のストーリーを作成</Button>
               </Link>
             )}
           </div>
@@ -253,7 +268,7 @@ const VideosPage: React.FC = () => {
                       {getStoryTitle(video.story_id)}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(video.status)} ml-2 flex-shrink-0`}>
-                      {video.status}
+                      {getStatusText(video.status)}
                     </span>
                   </div>
 
@@ -289,21 +304,21 @@ const VideosPage: React.FC = () => {
                         {video.status === 'processing' ? (
                           <div className="text-center">
                             <Spinner size="lg" className="mx-auto mb-2" />
-                            <p className="text-xs text-gray-500">Processing...</p>
+                            <p className="text-xs text-gray-500">処理中...</p>
                           </div>
                         ) : video.status === 'failed' ? (
                           <div className="text-center">
                             <svg className="w-12 h-12 mx-auto text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
-                            <p className="text-xs text-red-500">Failed</p>
+                            <p className="text-xs text-red-500">失敗</p>
                           </div>
                         ) : (
                           <div className="text-center">
                             <svg className="w-12 h-12 mx-auto text-yellow-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-xs text-yellow-600">Queued</p>
+                            <p className="text-xs text-yellow-600">待機中</p>
                           </div>
                         )}
                       </div>
@@ -314,27 +329,27 @@ const VideosPage: React.FC = () => {
                   <div className="space-y-2">
                     {video.duration_sec && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Duration:</span>
+                        <span className="text-gray-600">再生時間:</span>
                         <span className="font-medium">{formatDuration(video.duration_sec)}</span>
                       </div>
                     )}
                     
                     {video.resolution && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Resolution:</span>
+                        <span className="text-gray-600">解像度:</span>
                         <span className="font-medium">{video.resolution}</span>
                       </div>
                     )}
                     
                     {video.size_mb && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">File Size:</span>
+                        <span className="text-gray-600">ファイルサイズ:</span>
                         <span className="font-medium">{formatFileSize(video.size_mb)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Created:</span>
+                      <span className="text-gray-600">作成日:</span>
                       <span className="font-medium">{formatDate(video.created_at)}</span>
                     </div>
 
@@ -353,7 +368,7 @@ const VideosPage: React.FC = () => {
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          Watch
+                          見る
                         </Button>
                       </>
                     )}
@@ -363,7 +378,7 @@ const VideosPage: React.FC = () => {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Retry
+                        再試行
                       </Button>
                     )}
 
@@ -372,7 +387,7 @@ const VideosPage: React.FC = () => {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
-                        Edit Story
+                        ストーリーを編集
                       </Button>
                     </Link>
                   </div>
