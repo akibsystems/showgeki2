@@ -229,16 +229,20 @@ async function processVideoGeneration(payload) {
     console.log(`🗂️ ユニーク作業ディレクトリ: ${uniquePaths.tempDir}`);
 
     // ステータスをprocessingに更新
-    await supabase
+    const { error: statusUpdateError } = await supabase
       .from('videos')
       .update({
-        status: 'processing',
-        updated_at: new Date().toISOString()
+        status: 'processing'
       })
       .eq('id', video_id)
       .eq('uid', uid);
 
-    console.log(`📊 ステータス更新: processing`);
+    if (statusUpdateError) {
+      console.error('❌ ステータス更新エラー:', statusUpdateError);
+      throw new Error(`ステータス更新失敗: ${statusUpdateError.message}`);
+    } else {
+      console.log('✅ ステータス更新成功: processing');
+    }
 
     let jsonContent;
 
@@ -294,21 +298,31 @@ async function processVideoGeneration(payload) {
         url: videoUrl,
         duration_sec: 30, // Default duration, can be calculated from video
         resolution: '1920x1080', // Default resolution from mulmocast
-        size_mb: Number(videoSizeMB.toFixed(2))
+        size_mb: Number(videoSizeMB.toFixed(2)),
+        error_msg: null // エラーログをクリア
       })
       .eq('id', video_id)
       .eq('uid', uid);
 
     if (updateError) {
+      console.error('❌ 動画完了更新エラー:', updateError);
       throw new Error(`動画レコード更新エラー: ${updateError.message}`);
+    } else {
+      console.log('✅ 動画完了更新成功: completed');
     }
 
     // 8. Update story status to completed
-    await supabase
+    const { error: storyUpdateError } = await supabase
       .from('stories')
       .update({ status: 'completed' })
       .eq('id', story_id)
       .eq('uid', uid);
+
+    if (storyUpdateError) {
+      console.error('❌ ストーリー完了更新エラー:', storyUpdateError);
+    } else {
+      console.log('✅ ストーリー完了更新成功: completed');
+    }
 
     console.log('🎉 処理が完了しました！');
     console.log(`📹 動画ID ${video_id} の動画が完成し、アップロードされました。`);
@@ -322,7 +336,7 @@ async function processVideoGeneration(payload) {
 
     // Update video status to failed
     if (video_id && uid) {
-      await supabase
+      const { error: failedUpdateError } = await supabase
         .from('videos')
         .update({
           status: 'failed',
@@ -330,6 +344,12 @@ async function processVideoGeneration(payload) {
         })
         .eq('id', video_id)
         .eq('uid', uid);
+
+      if (failedUpdateError) {
+        console.error('❌ 失敗ステータス更新エラー:', failedUpdateError);
+      } else {
+        console.log('✅ 失敗ステータス更新成功: failed');
+      }
     }
 
     return false; // エラーのため処理失敗
@@ -434,17 +454,17 @@ async function continuousPolling() {
   if (!WATCH_MODE) {
     return;
   }
-  
+
   console.log('🔄 継続的ポーリング開始...');
   console.log(`📊 ポーリング間隔: ${POLLING_INTERVAL}ms`);
-  
+
   while (true) {
     try {
       await pollForQueuedVideos(); // 処理実行
     } catch (error) {
       console.error('❌ ポーリング実行エラー:', error.message);
     }
-    
+
     await sleep(POLLING_INTERVAL); // 処理完了後にスリープ
   }
 }
@@ -456,7 +476,7 @@ function startPolling() {
   if (!WATCH_MODE) {
     return;
   }
-  
+
   // 継続的ポーリングを開始（非同期）
   continuousPolling().catch(error => {
     console.error('❌ 継続的ポーリングエラー:', error.message);

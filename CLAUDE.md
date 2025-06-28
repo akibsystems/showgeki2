@@ -69,6 +69,18 @@ node scripts/export-stories-excel.js    # Export stories data
 node scripts/upload-video.js /path/to/video.mp4 STORY_ID
 ```
 
+### Cloud Run Webhook Testing
+```bash
+# Quick health check
+curl https://showgeki2-auto-process-mqku5oexhq-an.a.run.app/health
+
+# Single webhook test with detailed logging
+./scripts/test-webhook-curl.sh
+
+# Concurrent webhook test (tests parallel processing issues)
+node scripts/test-webhook-concurrent.js
+```
+
 ## Key Components
 
 ### Database Schema
