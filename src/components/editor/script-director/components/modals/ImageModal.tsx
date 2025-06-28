@@ -329,7 +329,7 @@ export function ImageModal({
               className={styles.formInput}
               placeholder="例: 村口、大谷、キャラクター1"
               maxLength={50}
-              disabled={isEditing || isUploading} // 編集時やアップロード中は変更不可
+              disabled={isEditing} // 編集時のみ変更不可（アップロード中でも入力可能）
             />
             <div className={styles.formHint}>
               ビート編集で選択する際の表示名になります（日本語・英数字・記号など自由に入力可能）
