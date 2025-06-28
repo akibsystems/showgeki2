@@ -196,14 +196,6 @@ const DashboardPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Arrow to next step (except last) */}
-                    {index < steps.length - 1 && (
-                      <div className="hidden md:flex justify-center mt-6">
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
@@ -229,20 +221,6 @@ const DashboardPage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Additional Help */}
-        <div className="mt-8 text-center text-sm text-gray-400">
-          <p>
-            質問がある場合は、
-            <Link href="/stories" className="text-blue-600 hover:text-blue-800 mx-1">
-              <span className="hover:text-purple-400 transition-colors">台本一覧</span>
-            </Link>
-            または
-            <Link href="/videos" className="text-blue-600 hover:text-blue-800 mx-1">
-              <span className="hover:text-purple-400 transition-colors">動画一覧</span>
-            </Link>
-            をご覧ください
-          </p>
-        </div>
       </div>
     </Layout>
   );
