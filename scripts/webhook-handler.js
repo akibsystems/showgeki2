@@ -31,6 +31,12 @@ if (!openaiApiKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
+// 動作モード設定
+const WATCH_MODE = process.env.WATCH_MODE === 'true'; // ローカルポーリング用
+
+// ポーリング設定（WATCH_MODEの時のみ使用）
+const POLLING_INTERVAL = 5000; // 5秒
+
 // 環境に応じたパス設定
 const WORK_DIR = process.env.NODE_ENV === 'development'
   ? '/app/mulmocast-cli'
@@ -119,9 +125,8 @@ function generateMovie(scriptPath, outputPath) {
 
       // mulmocast-cliの出力パスを確認 (ユニークディレクトリ内)
       const actualOutputPaths = [
-        path.join(outputDir, 'script.mp4'),
-        path.join(outputDir, 'output.mp4'),
-        outputPath // 既に正しいパス
+        path.join(outputDir, 'script.mp4'), // mulmocast-cliの実際の出力名
+        outputPath // 期待するパス
       ];
 
       let foundOutputPath = null;
@@ -200,9 +205,9 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 async function processVideoGeneration(payload) {
   const { video_id, story_id, uid, title, text_raw, script_json } = payload;
   let uniquePaths = null;
-  
+
   try {
-    console.log('🚀 動画生成処理を開始します...');
+    console.log(`🚀 動画生成処理を開始します... (モード: ${WATCH_MODE ? 'WATCH' : 'CLOUD_RUN'})`);
     console.log('🔍 受信ペイロード:', JSON.stringify(payload, null, 2));
     console.log(`📹 動画ID: ${video_id} (型: ${typeof video_id}, 長さ: ${video_id ? video_id.length : 'N/A'})`);
     console.log(`📝 ストーリーID: ${story_id}`);
@@ -223,12 +228,17 @@ async function processVideoGeneration(payload) {
     uniquePaths = createUniquePaths(video_id);
     console.log(`🗂️ ユニーク作業ディレクトリ: ${uniquePaths.tempDir}`);
 
-    // Update video status to 'processing'
+    // ステータスをprocessingに更新
     await supabase
       .from('videos')
-      .update({ status: 'processing' })
+      .update({
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', video_id)
       .eq('uid', uid);
+
+    console.log(`📊 ステータス更新: processing`);
 
     let jsonContent;
 
@@ -247,6 +257,9 @@ async function processVideoGeneration(payload) {
       throw new Error(errorMessage);
     }
     console.log('');
+
+    // 動画生成処理実行
+    console.log('🎬 動画生成処理実行中...');
 
     // 3. script.jsonに書き込み (ユニークなパス)
     console.log('3. script.jsonファイルに書き込み中...');
@@ -338,6 +351,118 @@ async function processVideoGeneration(payload) {
   }
 }
 
+/**
+ * DBポーリングでキューの動画を処理（WATCH_MODEのみ）
+ */
+async function pollForQueuedVideos() {
+  if (!WATCH_MODE) {
+    return; // WATCH_MODE無効時はスキップ
+  }
+
+  try {
+    // queued状態の動画を取得（最古の1件のみ）
+    const { data: queuedVideos, error } = await supabase
+      .from('videos')
+      .select(`
+        id,
+        story_id,
+        uid,
+        created_at,
+        stories!inner (
+          id,
+          title,
+          text_raw,
+          script_json
+        )
+      `)
+      .eq('status', 'queued')
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    if (error) {
+      console.error('❌ キュー取得エラー:', error.message);
+      return;
+    }
+
+    if (queuedVideos && queuedVideos.length > 0) {
+      const video = queuedVideos[0];
+      console.log(`📋 ポーリング検出: ${video.id} を処理開始`);
+
+      // 処理前にステータス確認（他のプロセスが処理済みかチェック）
+      const { data: currentVideo, error: checkError } = await supabase
+        .from('videos')
+        .select('status')
+        .eq('id', video.id)
+        .single();
+
+      if (checkError || !currentVideo || currentVideo.status !== 'queued') {
+        console.log(`⏭️ スキップ: ${video.id} (既に処理済みまたはエラー)`);
+        return;
+      }
+
+      console.log(`🚀 ポーリング処理開始: ${video.id}`);
+
+      // 既存のprocessVideoGeneration関数を呼び出し
+      const payload = {
+        video_id: video.id,
+        story_id: video.story_id,
+        uid: video.uid,
+        title: video.stories.title,
+        text_raw: video.stories.text_raw,
+        script_json: video.stories.script_json
+      };
+
+      await processVideoGeneration(payload);
+    }
+
+  } catch (error) {
+    console.error('❌ ポーリング処理エラー:', error.message);
+  }
+}
+
+/**
+ * スリープ関数
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 継続的ポーリング（WATCH_MODEのみ）
+ */
+async function continuousPolling() {
+  if (!WATCH_MODE) {
+    return;
+  }
+  
+  console.log('🔄 継続的ポーリング開始...');
+  console.log(`📊 ポーリング間隔: ${POLLING_INTERVAL}ms`);
+  
+  while (true) {
+    try {
+      await pollForQueuedVideos(); // 処理実行
+    } catch (error) {
+      console.error('❌ ポーリング実行エラー:', error.message);
+    }
+    
+    await sleep(POLLING_INTERVAL); // 処理完了後にスリープ
+  }
+}
+
+/**
+ * ポーリングを開始（WATCH_MODEのみ）
+ */
+function startPolling() {
+  if (!WATCH_MODE) {
+    return;
+  }
+  
+  // 継続的ポーリングを開始（非同期）
+  continuousPolling().catch(error => {
+    console.error('❌ 継続的ポーリングエラー:', error.message);
+  });
+}
+
 // HTTP サーバー作成
 const server = http.createServer(async (req, res) => {
   // CORS headers
@@ -358,6 +483,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/webhook') {
+    if (WATCH_MODE) {
+      // WATCHモードではwebhook無視
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, message: 'WATCH mode - webhook ignored' }));
+      return;
+    }
+
     let body = '';
 
     req.on('data', chunk => {
@@ -433,7 +565,24 @@ process.on('SIGINT', () => {
 
 // サーバーを起動
 server.listen(port, () => {
-  console.log(`Webhook server listening on port ${port}`);
-  console.log(`Health check: http://localhost:${port}/health`);
-  console.log(`Webhook endpoint: http://localhost:${port}/webhook`);
+  console.log(`🚀 Webhook server listening on port ${port}`);
+  console.log(`🏥 Health check: http://localhost:${port}/health`);
+  console.log(`📥 Webhook endpoint: http://localhost:${port}/webhook`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔧 Mode: ${WATCH_MODE ? 'WATCH (内蔵ポーリング)' : 'CLOUD_RUN (直接処理)'}`);
+  console.log(`📷 OpenAI Image Quality: ${process.env.OPENAI_IMAGE_QUALITY_DEFAULT || 'medium'}`);
+  console.log('');
+  if (WATCH_MODE) {
+    console.log('📋 WATCHモード有効:');
+    console.log('  - Webhook無視（ポーリングのみ）');
+    console.log('  - DBポーリングで動画生成実行');
+    console.log('  - 処理は同一コンテナ内で完結');
+
+    // WATCHモードの場合、ポーリングを開始
+    startPolling();
+  } else {
+    console.log('📋 Cloud Runモード:');
+    console.log('  - Webhookで直接動画生成実行');
+    console.log('  - 並列処理対応（unique paths）');
+  }
 });
