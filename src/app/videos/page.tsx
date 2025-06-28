@@ -102,8 +102,7 @@ const VideosPage: React.FC = () => {
 
   // Handler functions
   const handleWatchVideo = (video: Video) => {
-    setSelectedVideo(video);
-    setShowVideoModal(true);
+    handleDownloadVideo(video);
   };
 
   const handleDownloadVideo = async (video: Video) => {
@@ -118,7 +117,7 @@ const VideosPage: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       
-      success('Video download started');
+      // success('Video download started');
     } catch (err) {
       console.error('Failed to download video:', err);
       error('Failed to download video');
@@ -128,7 +127,7 @@ const VideosPage: React.FC = () => {
   const handleRetryVideo = async (video: Video) => {
     try {
       // TODO: Implement API call to retry video generation when backend supports it
-      success('Video retry will be available when backend supports it');
+      // success('Video retry will be available when backend supports it');
     } catch (err) {
       console.error('Failed to retry video:', err);
       error('Failed to retry video generation');
@@ -355,12 +354,6 @@ const VideosPage: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           Watch
-                        </Button>
-                        <Button variant="secondary" size="sm" className="flex-1" onClick={() => handleDownloadVideo(video)}>
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download
                         </Button>
                       </>
                     )}

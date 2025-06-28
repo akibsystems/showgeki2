@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TOBE ストーリー動画生成",
+  title: "Tokyo Shakespeare Anime Studio",
   description: "AIを活用したストーリー動画生成プラットフォーム",
+  icons: {
+    icon: "/TSAS_logo.png",
+    shortcut: "/TSAS_logo.png",
+    apple: "/TSAS_logo.png",
+  },
 };
 
 export default function RootLayout({

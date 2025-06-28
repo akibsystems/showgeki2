@@ -84,7 +84,7 @@ Create a {{target_duration}}-second video that:
 - Follows a clear narrative arc with setup, development, and resolution
 
 ## Technical Specifications
-- Exactly 5 beats
+- Exactly {{beats}} beats
 - Total duration: ~{{target_duration}} seconds
 - Voice count: {{voice_count}} different speakers maximum
 - Rich visual descriptions for each beat

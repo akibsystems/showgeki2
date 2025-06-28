@@ -327,7 +327,7 @@ export function ImageModal({
               value={formData.imageName}
               onChange={(e) => handleImageNameChange(e.target.value)}
               className={styles.formInput}
-              placeholder="例: 村口、大谷、キャラクター1"
+              placeholder="キャラクター名を入力"
               maxLength={50}
               disabled={isEditing} // 編集時のみ変更不可（アップロード中でも入力可能）
             />
