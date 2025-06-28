@@ -321,9 +321,33 @@ async function processVideoGeneration(payload) {
     const videoUrl = await uploadVideoToSupabase(videoPath, video_id);
     console.log('');
 
-    // 6. Get video file stats
+    // 6. Get video file stats and metadata
     const stats = fs.statSync(videoPath);
     const videoSizeMB = stats.size / (1024 * 1024);
+    
+    // Get video metadata using ffprobe
+    let duration = 30; // Default fallback
+    let resolution = '1920x1080'; // Default fallback
+    
+    try {
+      const ffprobeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration -of json "${videoPath}"`;
+      const ffprobeOutput = execSync(ffprobeCommand, { encoding: 'utf8' });
+      const metadata = JSON.parse(ffprobeOutput);
+      
+      if (metadata.streams && metadata.streams.length > 0) {
+        const stream = metadata.streams[0];
+        if (stream.width && stream.height) {
+          resolution = `${stream.width}x${stream.height}`;
+        }
+        if (stream.duration) {
+          duration = Math.round(parseFloat(stream.duration));
+        }
+      }
+      
+      console.log(`📊 動画メタデータ: 解像度=${resolution}, 再生時間=${duration}秒`);
+    } catch (metadataError) {
+      console.warn('⚠️ 動画メタデータの取得に失敗しました（デフォルト値を使用）:', metadataError.message);
+    }
 
     // 7. Update video record with completion
     const { error: updateError } = await supabase
@@ -331,8 +355,8 @@ async function processVideoGeneration(payload) {
       .update({
         status: 'completed',
         url: videoUrl,
-        duration_sec: 30, // Default duration, can be calculated from video
-        resolution: '1920x1080', // Default resolution from mulmocast
+        duration_sec: duration, // Actual duration from video
+        resolution: resolution, // Actual resolution from video
         size_mb: Number(videoSizeMB.toFixed(2)),
         error_msg: null // エラーログをクリア
       })

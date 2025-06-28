@@ -69,6 +69,21 @@ node scripts/export-stories-excel.js    # Export stories data
 node scripts/upload-video.js /path/to/video.mp4 STORY_ID
 ```
 
+### Video Management & Export
+```bash
+# Default: Export and download videos from past 24 hours to ~/Downloads
+node scripts/video-manager.js
+
+# Export only (no download)
+node scripts/video-manager.js --export-only
+
+# Download from existing Excel file
+node scripts/video-manager.js --download-only --excel-file showgeki2_videos_2025-06-28_18-00-00.xlsx
+
+# Custom date range
+node scripts/video-manager.js --from "2025-06-28 09:00" --to "2025-06-28 18:00"
+```
+
 ### Cloud Run Webhook Testing
 ```bash
 # Quick health check
@@ -88,10 +103,12 @@ node scripts/test-webhook-concurrent.js
 - **`reviews`**: `story_id`, `review_text`, `rating` (1-5), `created_at`
 
 ### Core Scripts
-- **`webhook-handler.js`**: Cloud Run webhook receiver for automated processing
+- **`webhook-handler.js`**: Cloud Run webhook receiver for automated processing (now extracts real video metadata)
 - **`auto-process.js`**: Legacy batch processing (replaced by webhook)
 - **`upload-video.js`**: Manual video upload utility
 - **`export-stories-excel.js`**: Data export to Excel
+- **`video-manager.js`**: Unified video export and download tool (default: past 24 hours to ~/Downloads)
+- **`fix-video-metadata.js`**: Fixes duration/resolution for existing videos by downloading and analyzing them
 
 ### Frontend Pages
 - **`/`**: Homepage and service introduction
@@ -217,10 +234,13 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - **Voices**: Dynamic assignment from OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
 
 ### Video Output
-- **Duration**: Typically 30-60 seconds
+- **Duration**: Typically 30-60 seconds (automatically detected from video file)
 - **Style**: Ghibli anime with soft pastel colors
-- **Resolution**: Optimized for mobile viewing
+- **Resolution**: Optimized for mobile viewing (automatically detected from video file)
 - **Processing time**: 2-5 minutes per video
+- **Metadata**: Duration and resolution are extracted using ffprobe after generation
+  - Duration is stored in seconds (rounded to nearest integer)
+  - Resolution is stored as "widthxheight" format (e.g., "1920x1080")
 
 ## Deployment Architecture
 
