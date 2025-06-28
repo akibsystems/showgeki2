@@ -66,29 +66,15 @@ describe('Supabase Client Tests', () => {
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     }
 
-    // Set test environment variables before importing
-    Object.defineProperty(process.env, 'NEXT_PUBLIC_SUPABASE_URL', {
-      value: TEST_URL,
-      writable: true,
-      configurable: true,
-    })
-    Object.defineProperty(process.env, 'NEXT_PUBLIC_SUPABASE_ANON_KEY', {
-      value: TEST_ANON_KEY,
-      writable: true,
-      configurable: true,
-    })
-    Object.defineProperty(process.env, 'SUPABASE_SERVICE_ROLE_KEY', {
-      value: TEST_SERVICE_KEY,
-      writable: true,
-      configurable: true,
-    })
+    // Set test environment variables using vi.stubEnv
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', TEST_URL)
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', TEST_ANON_KEY)
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', TEST_SERVICE_KEY)
   })
 
   afterAll(() => {
     // Restore original environment variables
-    process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv.NEXT_PUBLIC_SUPABASE_URL
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    process.env.SUPABASE_SERVICE_ROLE_KEY = originalEnv.SUPABASE_SERVICE_ROLE_KEY
+    vi.unstubAllEnvs()
   })
 
   beforeEach(() => {

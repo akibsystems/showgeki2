@@ -1,0 +1,422 @@
+<testsuites id="" name="" tests="100" failures="0" skipped="100" errors="0" time="0.08665899999999999">
+<testsuite name="pages/basic-navigation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="chromium" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="基本ページナビゲーション › ホームページが正常に表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ホームページのヒーローセクションが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ナビゲーションメニューが機能する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Create（作成）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Watch（視聴）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Dashboard（ダッシュボード）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Stories（ストーリー一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Videos（動画一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › 存在しないページで404エラーが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ページの読み込み速度が妥当な範囲内" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › レスポンシブデザインが正常に動作する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="workflows/story-creation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="chromium" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="ストーリー作成ワークフロー › ストーリー作成ページが正常に表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 基本的なストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 空のフォームでバリデーションエラーが表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › タイトルのみ入力時のバリデーション" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 長いコンテンツでのストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 特殊文字を含むストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › フォームのクリアとリセット" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ホームページからストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ネットワークエラー時の挙動" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="pages/basic-navigation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="firefox" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="基本ページナビゲーション › ホームページが正常に表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ホームページのヒーローセクションが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ナビゲーションメニューが機能する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Create（作成）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Watch（視聴）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Dashboard（ダッシュボード）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Stories（ストーリー一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Videos（動画一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › 存在しないページで404エラーが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ページの読み込み速度が妥当な範囲内" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › レスポンシブデザインが正常に動作する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="workflows/story-creation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="firefox" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="ストーリー作成ワークフロー › ストーリー作成ページが正常に表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 基本的なストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 空のフォームでバリデーションエラーが表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › タイトルのみ入力時のバリデーション" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 長いコンテンツでのストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 特殊文字を含むストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › フォームのクリアとリセット" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ホームページからストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ネットワークエラー時の挙動" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="pages/basic-navigation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="webkit" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="基本ページナビゲーション › ホームページが正常に表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ホームページのヒーローセクションが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ナビゲーションメニューが機能する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Create（作成）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Watch（視聴）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Dashboard（ダッシュボード）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Stories（ストーリー一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Videos（動画一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › 存在しないページで404エラーが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ページの読み込み速度が妥当な範囲内" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › レスポンシブデザインが正常に動作する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="workflows/story-creation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="webkit" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="ストーリー作成ワークフロー › ストーリー作成ページが正常に表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 基本的なストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 空のフォームでバリデーションエラーが表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › タイトルのみ入力時のバリデーション" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 長いコンテンツでのストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 特殊文字を含むストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › フォームのクリアとリセット" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ホームページからストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ネットワークエラー時の挙動" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="pages/basic-navigation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="Mobile Chrome" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="基本ページナビゲーション › ホームページが正常に表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ホームページのヒーローセクションが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ナビゲーションメニューが機能する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Create（作成）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Watch（視聴）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Dashboard（ダッシュボード）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Stories（ストーリー一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Videos（動画一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › 存在しないページで404エラーが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ページの読み込み速度が妥当な範囲内" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › レスポンシブデザインが正常に動作する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="workflows/story-creation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="Mobile Chrome" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="ストーリー作成ワークフロー › ストーリー作成ページが正常に表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 基本的なストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 空のフォームでバリデーションエラーが表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › タイトルのみ入力時のバリデーション" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 長いコンテンツでのストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 特殊文字を含むストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › フォームのクリアとリセット" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ホームページからストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ネットワークエラー時の挙動" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="pages/basic-navigation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="Mobile Safari" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="基本ページナビゲーション › ホームページが正常に表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ホームページのヒーローセクションが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ナビゲーションメニューが機能する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Create（作成）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Watch（視聴）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Dashboard（ダッシュボード）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Stories（ストーリー一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › Videos（動画一覧）ページへの遷移" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › 存在しないページで404エラーが表示される" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › ページの読み込み速度が妥当な範囲内" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="基本ページナビゲーション › レスポンシブデザインが正常に動作する" classname="pages/basic-navigation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="workflows/story-creation.test.ts" timestamp="2025-06-27T22:21:34.122Z" hostname="Mobile Safari" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="ストーリー作成ワークフロー › ストーリー作成ページが正常に表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 基本的なストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 空のフォームでバリデーションエラーが表示される" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › タイトルのみ入力時のバリデーション" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 長いコンテンツでのストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › 特殊文字を含むストーリー作成" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › フォームのクリアとリセット" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ホームページからストーリー作成フロー" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ストーリー作成ワークフロー › ネットワークエラー時の挙動" classname="workflows/story-creation.test.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

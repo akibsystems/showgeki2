@@ -51,19 +51,21 @@ export const MOCK_VIDEO = {
   id: VIDEO_ID,
   story_id: STORY_ID,
   uid: VALID_UID,
-  url: null,
+  // url: undefined, // Omit url field for queued videos 
   status: 'queued',
   created_at: '2024-01-01T00:00:00.000Z',
 }
 
 export const MOCK_COMPLETED_VIDEO = {
   ...MOCK_VIDEO,
+  id: '22222222-3333-4333-b444-555555555555',
   url: 'https://storage.example.com/videos/test-video.mp4',
   status: 'completed',
 }
 
 export const MOCK_PROCESSING_VIDEO = {
   ...MOCK_VIDEO,
+  id: '33333333-4444-4333-b444-555555555555', 
   status: 'processing',
 }
 
@@ -95,12 +97,21 @@ export const MOCK_GENERATED_SCRIPT = {
   ],
 }
 
+// UUID生成ヘルパー
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
+
 // ヘルパー関数：動的データ生成
 export function createMockStory(overrides: Partial<typeof MOCK_STORY> = {}) {
   return {
     ...MOCK_STORY,
     ...overrides,
-    id: overrides.id || `story-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: overrides.id || generateUUID(),
   }
 }
 
@@ -108,7 +119,7 @@ export function createMockVideo(overrides: Partial<typeof MOCK_VIDEO> = {}) {
   return {
     ...MOCK_VIDEO,
     ...overrides,
-    id: overrides.id || `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: overrides.id || generateUUID(),
   }
 }
 
@@ -116,6 +127,6 @@ export function createMockWorkspace(overrides: Partial<typeof MOCK_WORKSPACE> = 
   return {
     ...MOCK_WORKSPACE,
     ...overrides,
-    id: overrides.id || `workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: overrides.id || generateUUID(),
   }
 }

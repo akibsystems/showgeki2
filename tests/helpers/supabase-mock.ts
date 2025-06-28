@@ -78,6 +78,19 @@ class MockSupabaseStore {
 // グローバルストアインスタンス
 export const mockStore = new MockSupabaseStore()
 
+// グローバルエラーシミュレーション状態
+let globalErrorState: { type: string; table?: keyof MockDatabase; operation?: string } | null = null
+
+// エラーシミュレーション設定
+export function setGlobalError(errorType: string, table?: keyof MockDatabase, operation?: string) {
+  globalErrorState = { type: errorType, table, operation }
+}
+
+// エラーシミュレーション解除
+export function clearGlobalError() {
+  globalErrorState = null
+}
+
 // Supabaseクエリビルダーのモック
 interface MockQueryBuilder {
   select: vi.MockedFunction<any>
@@ -129,7 +142,10 @@ export function createMockQueryBuilder(tableName: keyof MockDatabase): MockQuery
 
   const builder = {
     select: vi.fn((columns?: string) => {
-      state.operation = 'select'
+      // .insert().select() パターンの場合は操作を変更しない
+      if (state.operation !== 'insert' && state.operation !== 'update' && state.operation !== 'delete') {
+        state.operation = 'select'
+      }
       state.columns = columns ? columns.split(',').map(c => c.trim()) : undefined
       state.countOnly = columns === '*' && columns.includes('count')
       return builder
@@ -212,14 +228,14 @@ export function createMockQueryBuilder(tableName: keyof MockDatabase): MockQuery
       return builder
     }),
 
-    single: vi.fn(async () => {
+    single: vi.fn(() => {
       state.returnSingle = true
-      return executeQuery(state)
+      return builder
     }),
 
-    maybeSingle: vi.fn(async () => {
+    maybeSingle: vi.fn(() => {
       state.returnMaybeSingle = true
-      return executeQuery(state)
+      return builder
     }),
 
     then: vi.fn(async (resolve: Function) => {
@@ -235,7 +251,18 @@ export function createMockQueryBuilder(tableName: keyof MockDatabase): MockQuery
 // クエリを実行してSupabaseレスポンス形式で結果を返す
 async function executeQuery(state: MockSupabaseQueryState): Promise<{ data: any; error: any; count?: number }> {
   try {
-    // エラーシミュレーション
+    // グローバルエラーシミュレーションチェック
+    if (globalErrorState && 
+        (!globalErrorState.table || globalErrorState.table === state.table) &&
+        (!globalErrorState.operation || globalErrorState.operation === state.operation)) {
+      const errorResponse = simulateError(state.table, globalErrorState.type)
+      return {
+        data: null,
+        error: errorResponse
+      }
+    }
+
+    // ローカルエラーシミュレーション
     if (state.shouldError) {
       return {
         data: null,
@@ -323,27 +350,62 @@ function executeSelect(state: MockSupabaseQueryState): { data: any; error: null;
   return { data: items, error: null, count: totalCount }
 }
 
-function executeInsert(state: MockSupabaseQueryState): { data: any; error: null } {
+function executeInsert(state: MockSupabaseQueryState): { data: any; error: any } {
+  // ビジネスロジック制約チェック
+  const constraintError = validateConstraints(state.table, state.data, 'insert')
+  if (constraintError) {
+    return { data: null, error: constraintError }
+  }
+
   if (Array.isArray(state.data)) {
     const insertedItems = state.data.map(item => mockStore.addItem(state.table, item))
+    // .single() が呼ばれた場合は単一オブジェクトを返す
+    if (state.returnSingle) {
+      return { data: insertedItems[0] || null, error: null }
+    }
     return { data: insertedItems, error: null }
   } else {
     const insertedItem = mockStore.addItem(state.table, state.data)
+    // .single() が呼ばれた場合は単一オブジェクトを返す
+    if (state.returnSingle) {
+      return { data: insertedItem, error: null }
+    }
     return { data: [insertedItem], error: null }
   }
 }
 
-function executeUpdate(state: MockSupabaseQueryState): { data: any; error: null } {
+function executeUpdate(state: MockSupabaseQueryState): { data: any; error: any } {
   let updatedItems: any[] = []
 
   // フィルタに一致するアイテムを更新
   for (const filter of state.filters) {
     if (filter.column === 'id' && filter.operator === 'eq') {
-      const updated = mockStore.updateItem(state.table, filter.value, state.data)
-      if (updated) updatedItems.push(updated)
+      // 既存データを取得してワークスペースIDを含める
+      const existingItem = mockStore.getItem(state.table, filter.value)
+      if (existingItem) {
+        // 更新データに既存のworkspace_idを追加して制約チェック
+        const dataWithWorkspace = { ...state.data }
+        if (existingItem.workspace_id) {
+          dataWithWorkspace.workspace_id = existingItem.workspace_id
+        }
+        
+        // ビジネスロジック制約チェック
+        const constraintError = validateConstraints(state.table, dataWithWorkspace, 'update', state.filters)
+        if (constraintError) {
+          return { data: null, error: constraintError }
+        }
+        
+        const updated = mockStore.updateItem(state.table, filter.value, state.data)
+        if (updated) updatedItems.push(updated)
+      }
     }
   }
 
+  // .single() が呼ばれた場合は単一オブジェクトを返す
+  if (state.returnSingle) {
+    return { data: updatedItems[0] || null, error: null }
+  }
+  
   return { data: updatedItems, error: null }
 }
 
@@ -385,6 +447,131 @@ function applyFilter(item: any, filter: { column: string; operator: string; valu
       return Array.isArray(filter.value) && filter.value.includes(itemValue)
     default:
       return true
+  }
+}
+
+// ビジネスロジック制約検証
+function validateConstraints(
+  table: keyof MockDatabase, 
+  data: any, 
+  operation: 'insert' | 'update',
+  filters?: Array<{ column: string; operator: string; value: any }>
+): any | null {
+  
+  // stories テーブルの制約チェック
+  if (table === 'stories') {
+    // 1. ワークスペース存在チェック (外部キー制約)
+    // 注意: 実際のAPIでは事前にworkspace ownership checkが行われるため、
+    // この制約チェックは通常到達されないが、テスト用に実装
+    if (data.workspace_id) {
+      const workspace = mockStore.getItem('workspaces', data.workspace_id)
+      if (!workspace) {
+        return {
+          code: '23503',
+          message: 'violates foreign key constraint',
+          details: 'Referenced workspace does not exist'
+        }
+      }
+    }
+
+    // 2. タイトル重複チェック (同一ワークスペース内)
+    if (data.title && data.workspace_id) {
+      const existingStories = mockStore.filter('stories', (story: any) => 
+        story.workspace_id === data.workspace_id && story.title === data.title
+      )
+      
+      // 更新の場合は自分自身を除外
+      if (operation === 'update' && filters) {
+        const currentId = filters.find(f => f.column === 'id' && f.operator === 'eq')?.value
+        if (currentId) {
+          const conflictingStories = existingStories.filter((story: any) => story.id !== currentId)
+          if (conflictingStories.length > 0) {
+            return {
+              code: '23505',
+              message: 'duplicate key value violates unique constraint',
+              details: 'A story with this title already exists in the workspace'
+            }
+          }
+        }
+      } else if (operation === 'insert' && existingStories.length > 0) {
+        return {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint',
+          details: 'A story with this title already exists in the workspace'
+        }
+      }
+    }
+  }
+
+  // videos テーブルの制約チェック
+  if (table === 'videos') {
+    // ストーリー存在チェック
+    if (data.story_id) {
+      const story = mockStore.getItem('stories', data.story_id)
+      if (!story) {
+        return {
+          code: '23503',
+          message: 'violates foreign key constraint',
+          details: 'Referenced story does not exist'
+        }
+      }
+    }
+  }
+
+  // workspaces テーブルの制約チェック
+  if (table === 'workspaces') {
+    // ワークスペース名重複チェック (同一UID内)
+    if (data.name && data.uid) {
+      const existingWorkspaces = mockStore.filter('workspaces', (workspace: any) => 
+        workspace.uid === data.uid && workspace.name === data.name
+      )
+      
+      // 更新の場合は自分自身を除外
+      if (operation === 'update' && filters) {
+        const currentId = filters.find(f => f.column === 'id' && f.operator === 'eq')?.value
+        if (currentId) {
+          const conflictingWorkspaces = existingWorkspaces.filter((workspace: any) => workspace.id !== currentId)
+          if (conflictingWorkspaces.length > 0) {
+            return {
+              code: '23505',
+              message: 'duplicate key value violates unique constraint',
+              details: 'A workspace with this name already exists'
+            }
+          }
+        }
+      } else if (operation === 'insert' && existingWorkspaces.length > 0) {
+        return {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint',
+          details: 'A workspace with this name already exists'
+        }
+      }
+    }
+  }
+
+  return null // 制約違反なし
+}
+
+// エラーシミュレーション関数
+export function simulateError(table: keyof MockDatabase, errorType: string): any {
+  const errorMap: Record<string, any> = {
+    'DATABASE_CONNECTION': {
+      code: 'CONNECTION_ERROR',
+      message: 'Database connection failed'
+    },
+    'TIMEOUT': {
+      code: 'TIMEOUT_ERROR', 
+      message: 'Request timeout'
+    },
+    'PERMISSION_DENIED': {
+      code: '42501',
+      message: 'permission denied'
+    }
+  }
+  
+  return errorMap[errorType] || {
+    code: 'INTERNAL_ERROR',
+    message: 'Unknown error occurred'
   }
 }
 

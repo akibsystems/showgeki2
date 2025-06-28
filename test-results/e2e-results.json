@@ -1,0 +1,2167 @@
+{
+  "config": {
+    "configFile": "/Users/takuo/source/showgeki2-worktree/baackend/playwright.config.ts",
+    "rootDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e/fixtures/global-setup.ts",
+    "globalTeardown": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e/fixtures/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/e2e-results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/e2e-results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/takuo/source/showgeki2-worktree/baackend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/takuo/source/showgeki2-worktree/baackend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/takuo/source/showgeki2-worktree/baackend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/takuo/source/showgeki2-worktree/baackend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/takuo/source/showgeki2-worktree/baackend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/Users/takuo/source/showgeki2-worktree/baackend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.53.1",
+    "workers": 4,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "pages/basic-navigation.test.ts",
+      "file": "pages/basic-navigation.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "基本ページナビゲーション",
+          "file": "pages/basic-navigation.test.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "ホームページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-cbea94f099013664c65a",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 10,
+              "column": 7
+            },
+            {
+              "title": "ホームページのヒーローセクションが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-337cba950d31601b938c",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "ナビゲーションメニューが機能する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-8995b6fba26e862b4cae",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Create（作成）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-817f14cf40cb392c92d7",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Watch（視聴）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-ee971f5daef2877cae7a",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Dashboard（ダッシュボード）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-71e66030fde9c120000f",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 79,
+              "column": 7
+            },
+            {
+              "title": "Stories（ストーリー一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-1907e7695b433dbb97f9",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Videos（動画一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-4af5f80904c4df1ad244",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "存在しないページで404エラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-b947e46debac51a784cc",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 127,
+              "column": 7
+            },
+            {
+              "title": "ページの読み込み速度が妥当な範囲内",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-d349468abce02d2e8eb4",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 142,
+              "column": 7
+            },
+            {
+              "title": "レスポンシブデザインが正常に動作する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-b7b009c1e3fba904c4e8",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 154,
+              "column": 7
+            },
+            {
+              "title": "ホームページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-bebb94548b7b1fb17a38",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 10,
+              "column": 7
+            },
+            {
+              "title": "ホームページのヒーローセクションが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-4d71034b13dde98acd6e",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "ナビゲーションメニューが機能する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-bebf2b3aa75e7aa9a6ad",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Create（作成）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-cf9115af82ea1386ac5e",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Watch（視聴）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-695e80da7315188f0468",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Dashboard（ダッシュボード）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-801b890b5e14f34fdca7",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 79,
+              "column": 7
+            },
+            {
+              "title": "Stories（ストーリー一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-ae995e47e012ac9d7605",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Videos（動画一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-873df2dc02ef809e3b45",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "存在しないページで404エラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-f3771cce6c0ba2f9322c",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 127,
+              "column": 7
+            },
+            {
+              "title": "ページの読み込み速度が妥当な範囲内",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-7a97a789fedf4f267397",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 142,
+              "column": 7
+            },
+            {
+              "title": "レスポンシブデザインが正常に動作する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-14267153bd39ce3f4f93",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 154,
+              "column": 7
+            },
+            {
+              "title": "ホームページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-9880ca07f707303ace34",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 10,
+              "column": 7
+            },
+            {
+              "title": "ホームページのヒーローセクションが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-2f8cf7b0351f2eecf232",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "ナビゲーションメニューが機能する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-88e461df7a2df5fd8585",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Create（作成）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-ebbf2397d5b661f3f53c",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Watch（視聴）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-8d82e0cd288e4b348bd9",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Dashboard（ダッシュボード）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-6fa20ad8e90c8f339e6d",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 79,
+              "column": 7
+            },
+            {
+              "title": "Stories（ストーリー一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-5b226ca2b0aa12cf54b2",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Videos（動画一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-36d53f0a91acfefe068a",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "存在しないページで404エラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-7c52d263ceab7e28260f",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 127,
+              "column": 7
+            },
+            {
+              "title": "ページの読み込み速度が妥当な範囲内",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-0dd641f6da10ba7e90b1",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 142,
+              "column": 7
+            },
+            {
+              "title": "レスポンシブデザインが正常に動作する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-4c14c8474bad19eb5bc1",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 154,
+              "column": 7
+            },
+            {
+              "title": "ホームページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-04d0c30cd1c5ea2d85c0",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 10,
+              "column": 7
+            },
+            {
+              "title": "ホームページのヒーローセクションが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-535423119ef9dda1cb64",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "ナビゲーションメニューが機能する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-d270145ec94c5d284319",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Create（作成）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-50209329df759c51b923",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Watch（視聴）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-f0c6483773b2a00654f4",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Dashboard（ダッシュボード）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-c4bcdc695f7bb411cb6b",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 79,
+              "column": 7
+            },
+            {
+              "title": "Stories（ストーリー一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-47465ead4ba19d65473d",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Videos（動画一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-29974fbe48ad44505a58",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "存在しないページで404エラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-8762ba2f7e7b7acac9ec",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 127,
+              "column": 7
+            },
+            {
+              "title": "ページの読み込み速度が妥当な範囲内",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-f474e867cda828c27fad",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 142,
+              "column": 7
+            },
+            {
+              "title": "レスポンシブデザインが正常に動作する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-b1aa1603c48285851c8e",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 154,
+              "column": 7
+            },
+            {
+              "title": "ホームページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-6fec42a1ea17ad3702e0",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 10,
+              "column": 7
+            },
+            {
+              "title": "ホームページのヒーローセクションが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-3dd312be039ffceb2273",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "ナビゲーションメニューが機能する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-818f79b332d1a1a80da5",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Create（作成）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-0685df03a8cb66a77a7c",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Watch（視聴）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-aa41050d5d75089ed610",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Dashboard（ダッシュボード）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-1acec09fde9543ad4934",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 79,
+              "column": 7
+            },
+            {
+              "title": "Stories（ストーリー一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-79fadb4c9998b9ccb30f",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Videos（動画一覧）ページへの遷移",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-b272d74b8ba74d8a6048",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "存在しないページで404エラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-376bfabd10658ddd56b2",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 127,
+              "column": 7
+            },
+            {
+              "title": "ページの読み込み速度が妥当な範囲内",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-adc218238fba1101096e",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 142,
+              "column": 7
+            },
+            {
+              "title": "レスポンシブデザインが正常に動作する",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ded8c1a6d2ad2f9fda05-a227e64cb40170c399cc",
+              "file": "pages/basic-navigation.test.ts",
+              "line": 154,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "workflows/story-creation.test.ts",
+      "file": "workflows/story-creation.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "ストーリー作成ワークフロー",
+          "file": "workflows/story-creation.test.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "ストーリー作成ページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-b33e0ce286796aa16937",
+              "file": "workflows/story-creation.test.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "基本的なストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-e37c0e7f85b7fdc13047",
+              "file": "workflows/story-creation.test.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "空のフォームでバリデーションエラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-c2b59a3f855c3c176134",
+              "file": "workflows/story-creation.test.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "タイトルのみ入力時のバリデーション",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-06aae3cfbcd99c52814d",
+              "file": "workflows/story-creation.test.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "長いコンテンツでのストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-c92c817848bab2ece50e",
+              "file": "workflows/story-creation.test.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "特殊文字を含むストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-2863963332e55c55f22a",
+              "file": "workflows/story-creation.test.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "フォームのクリアとリセット",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-7c524f781a2b3ec6ef1b",
+              "file": "workflows/story-creation.test.ts",
+              "line": 194,
+              "column": 7
+            },
+            {
+              "title": "ホームページからストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-e082ceaa52e10cb3067a",
+              "file": "workflows/story-creation.test.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "ネットワークエラー時の挙動",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-ce8f843fbff2809ed45c",
+              "file": "workflows/story-creation.test.ts",
+              "line": 249,
+              "column": 7
+            },
+            {
+              "title": "ストーリー作成ページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-339253ccc1a9f90bceff",
+              "file": "workflows/story-creation.test.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "基本的なストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-81cf0c16719795e7bb25",
+              "file": "workflows/story-creation.test.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "空のフォームでバリデーションエラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-cade91bda8c6c399d8af",
+              "file": "workflows/story-creation.test.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "タイトルのみ入力時のバリデーション",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-b02d10f26ecbf78d7d6d",
+              "file": "workflows/story-creation.test.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "長いコンテンツでのストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-a5f9947fd251c3fc8185",
+              "file": "workflows/story-creation.test.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "特殊文字を含むストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-6310e5461dfeb2369202",
+              "file": "workflows/story-creation.test.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "フォームのクリアとリセット",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-ebd9f718ddc0b37ab123",
+              "file": "workflows/story-creation.test.ts",
+              "line": 194,
+              "column": 7
+            },
+            {
+              "title": "ホームページからストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-ec2eb65feef15257d1c2",
+              "file": "workflows/story-creation.test.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "ネットワークエラー時の挙動",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-b5911f431270296c3657",
+              "file": "workflows/story-creation.test.ts",
+              "line": 249,
+              "column": 7
+            },
+            {
+              "title": "ストーリー作成ページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-c3481455c2522a7535a8",
+              "file": "workflows/story-creation.test.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "基本的なストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-a4cec7e2ff7f9f47f7aa",
+              "file": "workflows/story-creation.test.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "空のフォームでバリデーションエラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-014b0193d4b95eaf34d2",
+              "file": "workflows/story-creation.test.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "タイトルのみ入力時のバリデーション",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-32d2a720cb819e182275",
+              "file": "workflows/story-creation.test.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "長いコンテンツでのストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-94dbc60bc4dd5744d71d",
+              "file": "workflows/story-creation.test.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "特殊文字を含むストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-1aef003abd817618f1c2",
+              "file": "workflows/story-creation.test.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "フォームのクリアとリセット",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-f4a3c08be552a7ea2453",
+              "file": "workflows/story-creation.test.ts",
+              "line": 194,
+              "column": 7
+            },
+            {
+              "title": "ホームページからストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-39a70d1e229f62ba35bc",
+              "file": "workflows/story-creation.test.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "ネットワークエラー時の挙動",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-8d2e9297870fe4fc0f20",
+              "file": "workflows/story-creation.test.ts",
+              "line": 249,
+              "column": 7
+            },
+            {
+              "title": "ストーリー作成ページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-93ec305725b7d01abb2d",
+              "file": "workflows/story-creation.test.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "基本的なストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-58bc5fc1df569a40ced2",
+              "file": "workflows/story-creation.test.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "空のフォームでバリデーションエラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-2d04b0d00321b9a2ca9b",
+              "file": "workflows/story-creation.test.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "タイトルのみ入力時のバリデーション",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-f7d57b9cafffe116a7b3",
+              "file": "workflows/story-creation.test.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "長いコンテンツでのストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-eae3aea8588676cc28a6",
+              "file": "workflows/story-creation.test.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "特殊文字を含むストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-7055bafc7883b5dcb10a",
+              "file": "workflows/story-creation.test.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "フォームのクリアとリセット",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-d5d8d9619c591ac6b5f7",
+              "file": "workflows/story-creation.test.ts",
+              "line": 194,
+              "column": 7
+            },
+            {
+              "title": "ホームページからストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-040332e6a6a629bc05de",
+              "file": "workflows/story-creation.test.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "ネットワークエラー時の挙動",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-1d04042c216619867c32",
+              "file": "workflows/story-creation.test.ts",
+              "line": 249,
+              "column": 7
+            },
+            {
+              "title": "ストーリー作成ページが正常に表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-13c2deb514aa80271a7a",
+              "file": "workflows/story-creation.test.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "基本的なストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-a4d916dde00a74076474",
+              "file": "workflows/story-creation.test.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "空のフォームでバリデーションエラーが表示される",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-8ea0d8cb5f05038697a1",
+              "file": "workflows/story-creation.test.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "タイトルのみ入力時のバリデーション",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-2283b138915a4113289e",
+              "file": "workflows/story-creation.test.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "長いコンテンツでのストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-d2ee3e22c5cd564e00d1",
+              "file": "workflows/story-creation.test.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "特殊文字を含むストーリー作成",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-1b39b4e7081dfb3a14c0",
+              "file": "workflows/story-creation.test.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "フォームのクリアとリセット",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-38bb3d595f695cdda096",
+              "file": "workflows/story-creation.test.ts",
+              "line": 194,
+              "column": 7
+            },
+            {
+              "title": "ホームページからストーリー作成フロー",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-644dace8163705c65f52",
+              "file": "workflows/story-creation.test.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "ネットワークエラー時の挙動",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1626c513fe5518a10891-4fb6e56a31f132adf12a",
+              "file": "workflows/story-creation.test.ts",
+              "line": 249,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-06-27T22:21:34.036Z",
+    "duration": 86.65899999999999,
+    "expected": 0,
+    "skipped": 100,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

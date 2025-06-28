@@ -178,11 +178,24 @@ export const mockSSREnvironment = () => {
 
 export const restoreBrowserEnvironment = () => {
   // windowオブジェクトを復元
-  Object.defineProperty(global, 'window', {
-    value: originalWindow,
-    writable: true,
-    configurable: true,
-  })
+  if ('window' in global) {
+    try {
+      delete (global as any).window
+    } catch {
+      // deletion failed, try to redefine
+    }
+  }
+  
+  try {
+    Object.defineProperty(global, 'window', {
+      value: originalWindow,
+      writable: true,
+      configurable: true,
+    })
+  } catch {
+    // If defineProperty fails, assign directly
+    (global as any).window = originalWindow
+  }
 }
 
 afterAll(() => {
