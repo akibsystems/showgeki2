@@ -55,21 +55,24 @@ echo -e "${GREEN}☁️  Deploying to Cloud Run...${NC}"
 echo -e "${GREEN}📋 Using image: ${IMAGE_NAME}${NC}"
 
 # Deploy using gcloud run deploy (more reliable than YAML)
-gcloud run deploy $SERVICE_NAME \
-    --image=$IMAGE_NAME \
-    --region=$REGION \
-    --project=$PROJECT_ID \
-    --platform=managed \
-    --memory=2Gi \
-    --cpu=1 \
-    --timeout=3600 \
-    --concurrency=10 \
-    --max-instances=10 \
-    --min-instances=0 \
-    --port=8080 \
-    --set-env-vars="NODE_ENV=production,OPENAI_IMAGE_QUALITY_DEFAULT=medium" \
-    --update-secrets="SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,OPENAI_API_KEY=openai-api-key:latest" \
-    --allow-unauthenticated
+gcloud run deploy "$SERVICE_NAME" \
+  --image="$IMAGE_NAME" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --platform=managed \
+  --execution-environment=gen2 \
+  --memory=2Gi \
+  --cpu=2 \
+  --no-cpu-throttling \
+  --timeout=3600 \
+  --concurrency=1 \
+  --max-instances=10 \
+  --min-instances=0 \
+  --port=8080 \
+  --set-env-vars="NODE_ENV=production,OPENAI_IMAGE_QUALITY_DEFAULT=medium" \
+  --update-secrets="SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,OPENAI_API_KEY=openai-api-key:latest" \
+  --allow-unauthenticated
+
 
 echo -e "${GREEN}🎉 Deployment completed!${NC}"
 

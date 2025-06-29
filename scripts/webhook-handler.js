@@ -171,13 +171,26 @@ async function uploadVideoToSupabase(videoPath, videoId) {
   try {
     console.log('動画をSupabase Storageにアップロード中...');
 
+    // ファイルの存在確認とサイズ確認
+    if (!fs.existsSync(videoPath)) {
+      throw new Error(`動画ファイルが存在しません: ${videoPath}`);
+    }
+    
+    const stats = fs.statSync(videoPath);
+    const fileSizeMB = stats.size / (1024 * 1024);
+    console.log(`📁 動画ファイル: ${videoPath}`);
+    console.log(`📏 ファイルサイズ: ${fileSizeMB.toFixed(2)} MB`);
+
     // Read video file
     const videoBuffer = fs.readFileSync(videoPath);
     const fileName = `${videoId}_${Date.now()}.mp4`;
     const filePath = `videos/${fileName}`;
+    
+    console.log(`📤 アップロード先: ${filePath}`);
+    console.log(`🔑 Supabase URL: ${supabaseUrl}`);
 
     // Upload to Supabase Storage
-    const { error } = await supabase.storage
+    const { data, error } = await supabase.storage
       .from('videos')
       .upload(filePath, videoBuffer, {
         contentType: 'video/mp4',
@@ -185,7 +198,33 @@ async function uploadVideoToSupabase(videoPath, videoId) {
       });
 
     if (error) {
+      console.error('❌ Supabase Storage エラー詳細:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        error: error.error,
+        hint: error.hint
+      });
+      
+      // エラーレスポンスの内容を詳しく記録
+      if (error.message && error.message.includes('JSON')) {
+        console.error('❌ レスポンスがJSONではありません。認証エラーまたはStorage設定の問題の可能性があります。');
+        console.error('🔍 確認事項:');
+        console.error('  1. Supabase Storageバケット "videos" が存在するか');
+        console.error('  2. バケットのポリシーが正しく設定されているか');
+        console.error('  3. サービスキーが有効か');
+        console.error('  4. ファイルサイズが制限内か（通常100MB）');
+      }
+      
       throw new Error(`Supabase upload failed: ${error.message}`);
+    }
+
+    // データが返ってきた場合はログ出力
+    if (data) {
+      console.log('✅ アップロード成功:', {
+        path: data.path,
+        id: data.id,
+        fullPath: data.fullPath
+      });
     }
 
     // Get public URL
@@ -198,6 +237,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 
     return urlData.publicUrl;
   } catch (error) {
+    console.error('❌ アップロード関数内エラー:', error);
     throw new Error(`動画アップロードエラー: ${error.message}`);
   }
 }
@@ -205,6 +245,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 async function processVideoGeneration(payload) {
   const { video_id, story_id, uid, title, text_raw, script_json } = payload;
   let uniquePaths = null;
+  const processingStartTime = Date.now(); // 処理開始時刻を記録
 
   try {
     console.log(`🚀 動画生成処理を開始します... (モード: ${WATCH_MODE ? 'WATCH' : 'CLOUD_RUN'})`);
@@ -213,6 +254,7 @@ async function processVideoGeneration(payload) {
     console.log(`📝 ストーリーID: ${story_id}`);
     console.log(`👤 UID: ${uid}`);
     console.log(`📄 タイトル: ${title}`);
+    console.log(`⏰ 処理開始時刻: ${new Date(processingStartTime).toISOString()}`);
     console.log('');
 
     // UUID形式チェック
@@ -350,6 +392,11 @@ async function processVideoGeneration(payload) {
     }
 
     // 7. Update video record with completion
+    const processingEndTime = Date.now();
+    const processingTimeSeconds = Math.round((processingEndTime - processingStartTime) / 1000);
+    
+    console.log(`⏱️ 総処理時間: ${processingTimeSeconds}秒`);
+    
     const { error: updateError } = await supabase
       .from('videos')
       .update({
@@ -358,6 +405,7 @@ async function processVideoGeneration(payload) {
         duration_sec: duration, // Actual duration from video
         resolution: resolution, // Actual resolution from video
         size_mb: Number(videoSizeMB.toFixed(2)),
+        proc_time: processingTimeSeconds, // 処理時間を記録
         error_msg: null // エラーログをクリア
       })
       .eq('id', video_id)
@@ -386,6 +434,7 @@ async function processVideoGeneration(payload) {
     console.log('🎉 処理が完了しました！');
     console.log(`📹 動画ID ${video_id} の動画が完成し、アップロードされました。`);
     console.log(`🔗 動画URL: ${videoUrl}`);
+    console.log(`⏱️ 総処理時間: ${processingTimeSeconds}秒`);
     console.log('');
 
     return true; // 処理完了
