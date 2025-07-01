@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui';
+import { UserMenu } from '@/components/auth/UserMenu';
 
 // ================================================================
 // Header Component Types
@@ -39,8 +40,10 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
 
-          {/* Right side - Mobile menu button only */}
-          <div className="flex items-center">
+          {/* Right side - User menu and mobile menu button */}
+          <div className="flex items-center gap-4">
+            {/* User Menu */}
+            <UserMenu />
 
             {/* Mobile menu button */}
             <Button

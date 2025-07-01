@@ -24,16 +24,18 @@ const DashboardPage: React.FC = () => {
     const initializeWorkspace = async () => {
       if (!workspaceLoading && !workspace && !state.isLoading) {
         try {
+          console.log('[Dashboard] Initializing workspace...');
           await ensureWorkspace();
         } catch (err) {
-          console.error('Failed to initialize workspace:', err);
+          console.error('[Dashboard] Failed to initialize workspace:', err);
           error('Failed to initialize workspace');
         }
       }
     };
 
     initializeWorkspace();
-  }, [workspace, workspaceLoading, ensureWorkspace, state.isLoading, error]);
+    // Remove ensureWorkspace and error from dependencies to prevent infinite loop
+  }, [workspace, workspaceLoading, state.isLoading]);
 
   // Show loading state while essential data is loading
   const isLoading = state.isLoading || workspaceLoading;

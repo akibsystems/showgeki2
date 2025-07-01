@@ -1,6 +1,7 @@
 import { getOrCreateUid } from './uid';
 import { validateSchema } from './schemas';
 import { ErrorType } from '@/types';
+import { supabase } from '@/lib/supabase/client';
 import type {
   HttpMethod,
   ApiRequestConfig,
@@ -192,8 +193,18 @@ export class ApiClient {
       ...headers,
     };
 
-    // Add UID to headers if in browser environment
+    // Add authentication headers if user is logged in
     if (typeof window !== 'undefined') {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          requestHeaders['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      } catch (error) {
+        console.warn('Failed to get auth session:', error);
+      }
+
+      // Fallback to UID for backward compatibility
       const uid = getOrCreateUid();
       if (uid) {
         requestHeaders['x-uid'] = uid;

@@ -18,8 +18,17 @@ async function getWorkspaces(
   auth: AuthContext
 ): Promise<NextResponse> {
   try {
+    console.log('[getWorkspaces] Auth context:', {
+      uid: auth.uid,
+      userId: auth.userId,
+      userEmail: auth.userEmail,
+      isAuthenticated: auth.isAuthenticated
+    });
+
     const supabase = createAdminClient();
     
+    // For now, always use uid column until migration is applied
+    // TODO: Use user_id after migration
     const { data, error } = await supabase
       .from('workspaces')
       .select('*')
@@ -27,11 +36,20 @@ async function getWorkspaces(
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('[getWorkspaces] Database error:', error);
+      console.error('[getWorkspaces] Query details:', {
+        table: 'workspaces',
+        filter: { uid: auth.uid }
+      });
+      
       return NextResponse.json(
         { 
           error: 'Failed to fetch workspaces',
           type: ErrorType.INTERNAL,
+          details: {
+            code: error.code,
+            message: error.message
+          },
           timestamp: new Date().toISOString()
         },
         { status: 500 }
@@ -47,6 +65,8 @@ async function getWorkspaces(
       }
       return validation.data;
     });
+
+    console.log('[getWorkspaces] Found workspaces:', validatedWorkspaces.length);
 
     return NextResponse.json({
       success: true,
@@ -101,6 +121,8 @@ async function createWorkspace(
     const insertData: SupabaseWorkspaceInsert = {
       uid: auth.uid,
       name: name.trim()
+      // TODO: Add user_id after migration
+      // ...(auth.userId && { user_id: auth.userId })
     };
 
     // Create workspace

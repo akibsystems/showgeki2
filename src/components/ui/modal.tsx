@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useRef } from 'react';
 import type { ModalProps } from '@/types';
 import Button from './button';

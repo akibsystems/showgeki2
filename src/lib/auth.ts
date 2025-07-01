@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidUid } from './schemas';
 import { ErrorType } from '@/types';
+import { createClient } from '@/lib/supabase/server';
 
 // ================================================================
 // Types
@@ -9,12 +10,16 @@ import { ErrorType } from '@/types';
 export interface AuthContext {
   uid: string;
   isAuthenticated: boolean;
+  userId?: string; // Supabase Auth user ID
+  userEmail?: string; // User email from Supabase Auth
 }
 
 export interface AuthResult {
   success: boolean;
   uid?: string;
   error?: string;
+  userId?: string;
+  userEmail?: string;
 }
 
 export interface AuthMiddlewareOptions {
@@ -164,10 +169,12 @@ export function validateUidAuth(uid: string | null): AuthResult {
 /**
  * 認証コンテキストを作成
  */
-export function createAuthContext(uid: string | null): AuthContext {
+export function createAuthContext(uid: string | null, userId?: string, userEmail?: string): AuthContext {
   return {
     uid: uid || '',
     isAuthenticated: !!uid && isValidUid(uid),
+    userId,
+    userEmail,
   };
 }
 
@@ -198,12 +205,27 @@ export async function authMiddleware(
   const { required = true } = options;
   
   try {
+    // First check Supabase Auth
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // User is authenticated with Supabase
+      return {
+        success: true,
+        uid: user.id, // Use Supabase user ID as UID
+        userId: user.id,
+        userEmail: user.email,
+      };
+    }
+    
+    // Fallback to legacy UID authentication
     const uid = await extractUid(request, options);
     
     if (required && !uid) {
       return {
         success: false,
-        error: 'Authentication required. Please provide a valid UID.',
+        error: 'Authentication required. Please sign in.',
       };
     }
     
@@ -257,7 +279,7 @@ export function withAuth<T extends any[]>(
       return createAuthErrorResponse(authResult.error!);
     }
     
-    const authContext = createAuthContext(authResult.uid!);
+    const authContext = createAuthContext(authResult.uid!, authResult.userId, authResult.userEmail);
     return handler(request, authContext, ...args);
   };
 }
