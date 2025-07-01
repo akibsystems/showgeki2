@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
-import { VideoModal } from '@/components/video';
+import { VideoModal, FullscreenVideoPlayer } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
 import { useVideos, useStories } from '@/hooks';
 import type { VideoStatus, Video } from '@/types';
@@ -27,6 +27,7 @@ const VideosPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [showFullscreenPlayer, setShowFullscreenPlayer] = useState(false);
 
   // Fetch videos using SWR hook
   const { videos, isLoading } = useVideos();
@@ -118,7 +119,7 @@ const VideosPage: React.FC = () => {
   // Handler functions
   const handleWatchVideo = (video: Video) => {
     setSelectedVideo(video);
-    setShowVideoModal(true);
+    setShowFullscreenPlayer(true);
   };
 
   const handleDownloadVideo = async (video: Video) => {
@@ -419,6 +420,19 @@ const VideosPage: React.FC = () => {
           storyTitle={getStoryTitle(selectedVideo.story_id)}
           duration={selectedVideo.duration_sec}
           onDownload={() => handleDownloadVideo(selectedVideo)}
+        />
+      )}
+
+      {/* Fullscreen Video Player */}
+      {selectedVideo?.url && (
+        <FullscreenVideoPlayer
+          isOpen={showFullscreenPlayer}
+          onClose={() => {
+            setShowFullscreenPlayer(false);
+            setSelectedVideo(null);
+          }}
+          videoUrl={selectedVideo.url}
+          title={getStoryTitle(selectedVideo.story_id)}
         />
       )}
     </Layout>
