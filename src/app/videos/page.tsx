@@ -22,15 +22,15 @@ type StatusFilter = 'all' | VideoStatus;
 const VideosPage: React.FC = () => {
   const { state } = useApp();
   const { error, success } = useToast();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  
+
   // Fetch videos using SWR hook
   const { videos, isLoading } = useVideos();
-  
+
   // Fetch stories to get titles
   const { stories } = useStories();
 
@@ -117,25 +117,44 @@ const VideosPage: React.FC = () => {
 
   // Handler functions
   const handleWatchVideo = (video: Video) => {
-    handleDownloadVideo(video);
+    setSelectedVideo(video);
+    setShowVideoModal(true);
   };
 
   const handleDownloadVideo = async (video: Video) => {
     if (!video.url) return;
 
     try {
+      // Get story title for filename
+      const storyTitle = getStoryTitle(video.story_id);
+      const filename = `${storyTitle.replace(/[^a-zA-Z0-9ぁ-ゖァ-ヶー一-龯]/g, '_')}.mp4`;
+
+      // Add download parameter to Supabase Storage URL
+      // Supabase Storage uses ?download parameter to force download
+      const downloadUrl = video.url.includes('?')
+        ? `${video.url}&download`
+        : `${video.url}?download`;
+
       // Create download link
       const link = document.createElement('a');
-      link.href = video.url;
-      link.download = `video-${video.story_id}.mp4`;
+      link.href = downloadUrl;
+      link.download = filename;
+      link.style.display = 'none';
+
+      // Add to body before clicking (required for Firefox)
       document.body.appendChild(link);
+
+      // Trigger download
       link.click();
-      document.body.removeChild(link);
-      
-      // success('Video download started');
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+
     } catch (err) {
       console.error('Failed to download video:', err);
-      error('Failed to download video');
+      error('動画の保存に失敗しました。もう一度お試しください。');
     }
   };
 
@@ -192,11 +211,10 @@ const VideosPage: React.FC = () => {
                 <button
                   key={filter.key}
                   onClick={() => setStatusFilter(filter.key as StatusFilter)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
-                    statusFilter === filter.key
-                      ? 'bg-purple-500/20 text-purple-300 border-purple-400'
-                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:bg-purple-500/10 hover:text-purple-300'
-                  }`}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${statusFilter === filter.key
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-400'
+                    : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:bg-purple-500/10 hover:text-purple-300'
+                    }`}
                 >
                   {filter.label} ({filter.count})
                 </button>
@@ -239,7 +257,7 @@ const VideosPage: React.FC = () => {
               {searchQuery || statusFilter !== 'all' ? '動画が見つかりません' : 'まだ動画がありません'}
             </h3>
             <p className="text-gray-400 mb-6">
-              {searchQuery || statusFilter !== 'all' 
+              {searchQuery || statusFilter !== 'all'
                 ? '検索条件やフィルターを変更してみてください'
                 : '台本を作成して最初の動画を生成しましょう'
               }
@@ -267,7 +285,7 @@ const VideosPage: React.FC = () => {
                   {/* Video Thumbnail */}
                   <div className="aspect-video mb-4">
                     {video.status === 'completed' && video.url ? (
-                      <div 
+                      <div
                         className="cursor-pointer relative group"
                         onClick={() => handleWatchVideo(video)}
                       >
@@ -286,7 +304,7 @@ const VideosPage: React.FC = () => {
                         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="bg-purple-600/80 backdrop-blur-sm rounded-full p-3 shadow-lg">
                             <svg className="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
+                              <path d="M8 5v14l11-7z" />
                             </svg>
                           </div>
                         </div>
@@ -325,14 +343,14 @@ const VideosPage: React.FC = () => {
                         <span className="font-medium">{formatDuration(video.duration_sec)}</span>
                       </div>
                     )}
-                    
+
                     {video.resolution && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">解像度:</span>
                         <span className="font-medium">{video.resolution}</span>
                       </div>
                     )}
-                    
+
                     {video.size_mb && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">ファイルサイズ:</span>
@@ -362,9 +380,15 @@ const VideosPage: React.FC = () => {
                           </svg>
                           見る
                         </Button>
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => handleDownloadVideo(video)}>
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          保存
+                        </Button>
                       </>
                     )}
-                    
+
                     {video.status === 'failed' && (
                       <Button variant="secondary" size="sm" className="w-full" onClick={() => handleRetryVideo(video)}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
