@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-interface ImageReference {
+export interface ImageReference {
   type: 'image';
   source: {
     kind: 'url'; // 内部的には常にurl

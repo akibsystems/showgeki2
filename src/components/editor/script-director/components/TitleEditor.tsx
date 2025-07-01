@@ -32,8 +32,7 @@ export function TitleEditor({
     
     // リアルタイムバリデーション
     if (onValidate) {
-      const validationError = onValidate(newTitle);
-      // エラーがある場合は親に通知（今回は onChange で処理）
+      onValidate(newTitle);
     }
     
     onChange(newTitle);

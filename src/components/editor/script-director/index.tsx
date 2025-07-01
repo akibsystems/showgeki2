@@ -9,6 +9,7 @@ import { useSpeakerManager } from './hooks/useSpeakerManager';
 import { useBeatsManager } from './hooks/useBeatsManager';
 import { useImageManager } from './hooks/useImageManager';
 import type { ScriptDirectorProps, VoiceId } from './types';
+import type { ImageReference } from './hooks/useImageManager';
 import styles from './styles/ScriptDirector.module.css';
 
 export function ScriptDirector({
@@ -66,7 +67,7 @@ export function ScriptDirector({
 
   // 画像管理
   const imageManager = useImageManager({
-    images: (currentScript.imageParams as any)?.images || {},
+    images: ((currentScript.imageParams as { images?: Record<string, ImageReference> })?.images || {}) as Record<string, ImageReference>,
     onUpdate: (images) => {
       // MulmoScript用にクリーンアップ（storagePathとisUploadedFileを除去）
       const cleanImages = Object.fromEntries(
@@ -278,7 +279,7 @@ export function ScriptDirector({
           <BeatsEditor
             beats={beatsManager.beats}
             speakers={speakerManager.speakers}
-            faceReferences={(currentScript.imageParams as any)?.images || {}}
+            faceReferences={((currentScript.imageParams as { images?: Record<string, ImageReference> })?.images || {}) as Record<string, ImageReference>}
             onUpdateBeat={beatsManager.updateBeat}
             onAddBeat={beatsManager.addBeat}
             onDeleteBeat={beatsManager.deleteBeat}

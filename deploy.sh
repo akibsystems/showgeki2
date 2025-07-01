@@ -66,7 +66,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --no-cpu-throttling \
   --timeout=3600 \
   --concurrency=1 \
-  --max-instances=10 \
+  --max-instances=100 \
   --min-instances=0 \
   --port=8080 \
   --set-env-vars="NODE_ENV=production,OPENAI_IMAGE_QUALITY_DEFAULT=medium" \

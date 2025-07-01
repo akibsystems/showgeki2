@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import type { Mulmoscript } from '@/lib/schemas';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
@@ -19,17 +20,17 @@ const StoryEditorPage: React.FC = () => {
   const searchParams = useSearchParams();
   const storyId = params.id as string;
   const { } = useApp();
-  const { success, error } = useToast();
-  
+  const { error } = useToast();
+
   // Get initial tab from URL parameter (but fallback to content if script editor is disabled)
-  const initialTab = searchParams.get('tab') === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' 
-    ? 'script' 
+  const initialTab = searchParams.get('tab') === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true'
+    ? 'script'
     : 'content';
-  
+
   // Use SWR hooks for data fetching
   const { story, isLoading, mutate: mutateStory, updateStory, deleteStory, generateScript } = useStory(storyId);
   const { videos } = useVideos({ storyId });
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
@@ -37,7 +38,7 @@ const StoryEditorPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'script'>(initialTab);
-  
+
   const [formData, setFormData] = useState({
     title: story?.title || '',
     text_raw: story?.text_raw || '',
@@ -71,7 +72,7 @@ const StoryEditorPage: React.FC = () => {
     if (tab === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR !== 'true') {
       return;
     }
-    
+
     setCurrentTab(tab);
     // Update URL without causing full page refresh
     const newUrl = new URL(window.location.href);
@@ -79,13 +80,6 @@ const StoryEditorPage: React.FC = () => {
     window.history.pushState({}, '', newUrl.toString());
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'beats' ? parseInt(value) || 5 : value,
-    }));
-  };
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.text_raw.trim()) {
@@ -100,7 +94,7 @@ const StoryEditorPage: React.FC = () => {
         text_raw: formData.text_raw,
         beats: formData.beats,
       });
-      
+
       setIsEditing(false);
       // success('Story saved successfully');
     } catch (err) {
@@ -112,9 +106,11 @@ const StoryEditorPage: React.FC = () => {
   };
 
   const handleGenerateScript = async () => {
+    if (!story) return;
+    
     setIsGeneratingScript(true);
     try {
-      await generateScript({ beats: formData.beats });
+      await generateScript({ beats: story.beats || 10 });
       // success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);
@@ -128,7 +124,7 @@ const StoryEditorPage: React.FC = () => {
     setIsGeneratingVideo(true);
     try {
       const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
-      
+
       const response = await fetch(`/api/stories/${storyId}/generate-video`, {
         method: 'POST',
         headers: {
@@ -143,7 +139,7 @@ const StoryEditorPage: React.FC = () => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         // success('Video generation started');
         // Navigate to videos page to see generation progress
@@ -194,7 +190,7 @@ const StoryEditorPage: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // success('Video download started');
     } catch (err) {
       console.error('Failed to download video:', err);
@@ -280,7 +276,6 @@ const StoryEditorPage: React.FC = () => {
   const processingVideo = videos?.find(v => v.story_id === storyId && v.status === 'processing');
   const video = storyVideo || processingVideo || videos?.find(v => v.story_id === storyId);
 
-  const wordCount = (isEditing ? formData.text_raw : story.text_raw || '').split(/\s+/).filter(word => word.length > 0).length;
   const charCount = (isEditing ? formData.text_raw : story.text_raw || '').length;
 
   return (
@@ -361,17 +356,17 @@ const StoryEditorPage: React.FC = () => {
                         className="p-1.5 rounded-md hover:bg-gray-700 transition-colors group"
                         title="タイトルを編集"
                       >
-                        <svg 
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-purple-300" 
-                          fill="none" 
-                          stroke="currentColor" 
+                        <svg
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-purple-300"
+                          fill="none"
+                          stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth={2} 
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                           />
                         </svg>
                       </button>
@@ -388,7 +383,7 @@ const StoryEditorPage: React.FC = () => {
                 <span>{charCount} 文字</span>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-2 sm:gap-3">
               {isEditing ? (
                 <>
@@ -427,7 +422,7 @@ const StoryEditorPage: React.FC = () => {
                           生成中...
                         </>
                       ) : (
-                        '台本を生成'
+                        `台本を生成 (${story.beats || 10}シーン)`
                       )}
                     </Button>
                   )}
@@ -457,33 +452,31 @@ const StoryEditorPage: React.FC = () => {
               <nav className="flex space-x-4 sm:space-x-8 min-w-max">
                 <button
                   onClick={() => handleTabChange('content')}
-                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                    currentTab === 'content'
-                      ? 'border-purple-400 text-purple-300'
-                      : 'border-transparent text-gray-400 hover:text-purple-300 hover:border-purple-500/50'
-                  }`}
+                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${currentTab === 'content'
+                    ? 'border-purple-400 text-purple-300'
+                    : 'border-transparent text-gray-400 hover:text-purple-300 hover:border-purple-500/50'
+                    }`}
                 >
                   <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   台本ディレクター
                 </button>
-                
+
                 {process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' && story.script_json && (
                   <button
                     onClick={() => handleTabChange('script')}
-                    className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                      currentTab === 'script'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${currentTab === 'script'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
                   >
                     <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                     台本エディター
                     <span className="ml-2 inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-500/50">
-                      {(story.script_json as any)?.beats?.length || 0} シーン
+                      {(story.script_json as Record<string, unknown> & { beats?: unknown[] })?.beats?.length || 0} シーン
                     </span>
                   </button>
                 )}
@@ -493,7 +486,14 @@ const StoryEditorPage: React.FC = () => {
             {/* Tab Content */}
             {currentTab === 'content' ? (
               <ScriptDirector
-                script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
+                script={(story.script_json as Mulmoscript) || { 
+                  $mulmocast: { version: '1.0' }, 
+                  beats: [],
+                  lang: 'ja',
+                  title: story.title || '',
+                  speechParams: { provider: 'openai', speakers: {} },
+                  imageParams: {}
+                }}
                 onChange={handleScriptSave}
                 isReadOnly={isReadOnly}
               />
@@ -502,7 +502,7 @@ const StoryEditorPage: React.FC = () => {
               <div className="script-editor-container">
                 {story.script_json ? (
                   <ScriptEditor
-                    script={story.script_json as any}
+                    script={story.script_json as Mulmoscript}
                     onChange={() => {
                       // No action needed - Script Editor handles internal state management
                     }}
@@ -534,7 +534,14 @@ const StoryEditorPage: React.FC = () => {
             ) : (
               /* Script Editor is disabled, show Script Director instead */
               <ScriptDirector
-                script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
+                script={(story.script_json as Mulmoscript) || { 
+                  $mulmocast: { version: '1.0' }, 
+                  beats: [],
+                  lang: 'ja',
+                  title: story.title || '',
+                  speechParams: { provider: 'openai', speakers: {} },
+                  imageParams: {}
+                }}
                 onChange={handleScriptSave}
                 isReadOnly={isReadOnly}
               />
@@ -543,9 +550,9 @@ const StoryEditorPage: React.FC = () => {
             {/* Bottom Action Button - Generate Video */}
             {story.status === 'script_generated' && (
               <div className="mt-8 flex justify-center">
-                <Button 
-                  onClick={handleGenerateVideo} 
-                  disabled={isGeneratingVideo} 
+                <Button
+                  onClick={handleGenerateVideo}
+                  disabled={isGeneratingVideo}
                   size="lg"
                   className="w-full sm:w-auto text-base sm:text-lg px-8 py-3"
                 >
@@ -581,13 +588,13 @@ const StoryEditorPage: React.FC = () => {
                           {video.status === 'completed' ? '完了' : video.status === 'processing' ? '処理中' : video.status}
                         </span>
                       </div>
-                      
+
                       {video.duration_sec && (
                         <p className="text-xs sm:text-sm text-gray-400">
                           再生時間: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
                         </p>
                       )}
-                      
+
                       {video.status === 'completed' && video.url && (
                         <div className="space-y-2">
                           <Button size="sm" className="w-full text-xs sm:text-sm" onClick={() => setShowVideoModal(true)}>
