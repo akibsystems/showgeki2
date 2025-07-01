@@ -24,13 +24,66 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1);
 }
 
+
+console.log('🔧 システム設定:');
+console.log(`  - Supabase URL: ${supabaseUrl}`);
+console.log(`  - Service Key: ${supabaseServiceKey ? '設定済み (' + supabaseServiceKey.substring(0, 10) + '...)' : '未設定'}`);
+console.log(`  - 環境: ${process.env.NODE_ENV || 'production'}`);
+console.log('');
+
 if (!openaiApiKey) {
   console.error('環境変数 OPENAI_API_KEY を設定してください');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Service Role Keyを使用してAdminクライアントを作成
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false
+  },
+  global: {
+    fetch: async (url, options = {}) => {
+      // カスタムfetch関数でタイムアウトとエラーハンドリングを改善
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒タイムアウト
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        // HTMLレスポンスを検出
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html') && !response.ok) {
+          const text = await response.text();
+          console.error('❌ HTMLレスポンス検出:');
+          console.error(`  - Status: ${response.status} ${response.statusText}`);
+          console.error(`  - URL: ${url}`);
+          console.error(`  - Content preview: ${text.substring(0, 200)}...`);
+          throw new Error(`Supabase APIがHTMLを返しました (Status: ${response.status})`);
+        }
+        
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          console.error('❌ リクエストタイムアウト:', url);
+          throw new Error('Request timeout after 30 seconds');
+        }
+        throw error;
+      }
+    }
+  }
+});
 const openai = new OpenAI({ apiKey: openaiApiKey });
+
+// 並列実行制御用の変数
+const CONCURRENT_UPLOAD_LIMIT = 3; // 同時アップロード数を制限
+let currentUploads = 0;
 
 /**
  * Slackにエラー通知を送信する関数
@@ -225,9 +278,22 @@ function generateMovie(scriptPath, outputPath) {
 }
 
 /**
- * Upload video to Supabase Storage
+ * Upload video to Supabase Storage with retry logic
  */
-async function uploadVideoToSupabase(videoPath, videoId) {
+async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
+  const MAX_RETRIES = 3;
+  const BASE_RETRY_DELAY = 2000; // 2秒
+  const MAX_INITIAL_DELAY = 5000; // 並列実行時の最大初期遅延
+  
+  // 同時アップロード数を制限
+  while (currentUploads >= CONCURRENT_UPLOAD_LIMIT) {
+    console.log(`🚀 現在${currentUploads}件のアップロードが進行中。待機中...`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  currentUploads++;
+  console.log(`📤 アップロード開始 (同時実行数: ${currentUploads}/${CONCURRENT_UPLOAD_LIMIT})`);
+  
   try {
     console.log('動画をSupabase Storageにアップロード中...');
 
@@ -243,39 +309,76 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 
     // Read video file
     const videoBuffer = fs.readFileSync(videoPath);
-    const fileName = `${videoId}_${Date.now()}.mp4`;
+    const fileName = `${videoId}.mp4`;
     const filePath = `videos/${fileName}`;
 
     console.log(`📤 アップロード先: ${filePath}`);
     console.log(`🔑 Supabase URL: ${supabaseUrl}`);
 
+
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('videos')
-      .upload(filePath, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: false,
-      });
+    console.log('📡 Storage APIを呼び出し中...');
+    console.log(`  - エンドポイント: ${supabaseUrl}/storage/v1/object/videos/${filePath}`);
+    console.log(`  - メソッド: POST`);
+    console.log(`  - Content-Type: video/mp4`);
+    console.log(`  - ファイルサイズ: ${videoBuffer.length} bytes (${fileSizeMB.toFixed(2)} MB)`);
+    console.log(`  - リトライ回数: ${retryCount}/${MAX_RETRIES}`);
+    console.log(`  - タイムスタンプ: ${new Date().toISOString()}`);
+    
+    let uploadResponse;
+    try {
+      // 並列実行時の負荷を軽減するため、ランダムな遅延を追加
+      if (retryCount === 0) {
+        const randomDelay = Math.floor(Math.random() * MAX_INITIAL_DELAY); // 0-5秒のランダム遅延
+        console.log(`🎲 並列実行負荷分散のため${randomDelay}ms待機...`);
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
+      }
+      
+      uploadResponse = await supabase.storage
+        .from('videos')
+        .upload(filePath, videoBuffer, {
+          contentType: 'video/mp4',
+          upsert: false,
+        });
+    } catch (uploadError) {
+      console.error('❌ アップロード中にエクセプション発生:', uploadError);
+      if (uploadError.message && uploadError.message.includes('Unexpected token')) {
+        console.error('🌐 レスポンスがHTMLの可能性があります。');
+        console.error('🔍 チェックポイント:');
+        console.error('  1. SUPABASE_URLが正しいプロジェクトURLか確認');
+        console.error('  2. SUPABASE_SERVICE_KEYがService Role Keyであるか確認');
+        console.error('  3. ネットワーク接続を確認');
+        console.error('  4. 並列実行によるAPIレート制限');
+        console.error('  5. 一時的なネットワークエラー（503等）');
+        
+        // HTMLレスポンスの可能性が高いため、自動リトライ
+        if (retryCount < MAX_RETRIES) {
+          const retryDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount); // エクスポネンシャルバックオフ
+          console.log(`⏳ HTMLレスポンスのため、${retryDelay}ms後に自動リトライします...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          return uploadVideoToSupabase(videoPath, videoId, retryCount + 1);
+        }
+      }
+      throw uploadError;
+    }
+    
+    const { data, error } = uploadResponse;
 
     if (error) {
       console.error('❌ Supabase Storage エラー詳細:', {
         message: error.message,
         statusCode: error.statusCode,
         error: error.error,
-        hint: error.hint
+        hint: error.hint,
+        timestamp: new Date().toISOString()
       });
 
-      // エラーレスポンスの内容を詳しく記録
-      if (error.message && error.message.includes('JSON')) {
-        console.error('❌ レスポンスがJSONではありません。認証エラーまたはStorage設定の問題の可能性があります。');
-        console.error('🔍 確認事項:');
-        console.error('  1. Supabase Storageバケット "videos" が存在するか');
-        console.error('  2. バケットのポリシーが正しく設定されているか');
-        console.error('  3. サービスキーが有効か');
-        console.error('  4. ファイルサイズが制限内か（通常100MB）');
-      }
 
-      throw new Error(`Supabase upload failed: ${error.message}`);
+      // エラーメッセージをより詳細に
+      const errorDetail = error.statusCode ? 
+        `Supabase upload failed (${error.statusCode}): ${error.message}` :
+        `Supabase upload failed: ${error.message}`;
+      throw new Error(errorDetail);
     }
 
     // データが返ってきた場合はログ出力
@@ -297,8 +400,35 @@ async function uploadVideoToSupabase(videoPath, videoId) {
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error('❌ アップロード関数内エラー:', error);
+    currentUploads--; // エラー時にカウントを減らす
+    console.error(`❌ アップロード関数内エラー (リトライ ${retryCount}/${MAX_RETRIES}):`, error);
+    
+    // エラーがSyntaxErrorの場合は追加情報を記録
+    if (error instanceof SyntaxError || (error.message && error.message.includes('Unexpected token'))) {
+      console.error('🔍 JSONパースエラーが発生しました。レスポンスがHTMLの可能性があります。');
+      
+      // リトライ可能かチェック
+      if (retryCount < MAX_RETRIES) {
+        const retryDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount); // エクスポネンシャルバックオフ
+        console.log(`⏳ ${retryDelay}ms後にリトライします...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return uploadVideoToSupabase(videoPath, videoId, retryCount + 1);
+      }
+    }
+    
+    // ネットワークエラーの場合もリトライ
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+      if (retryCount < MAX_RETRIES) {
+        console.log(`🌐 ネットワークエラー。${RETRY_DELAY}ms後にリトライします...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
+        return uploadVideoToSupabase(videoPath, videoId, retryCount + 1);
+      }
+    }
+    
     throw new Error(`動画アップロードエラー: ${error.message}`);
+  } finally {
+    currentUploads--; // 成功時もカウントを減らす
+    console.log(`📥 アップロード完了 (同時実行数: ${currentUploads}/${CONCURRENT_UPLOAD_LIMIT})`);
   }
 }
 
@@ -528,6 +658,8 @@ async function processVideoGeneration(payload) {
       `*Story ID:* ${story_id || 'N/A'}`,
       `*Title:* ${title || 'N/A'}`,
       `*Error:* ${error.message}`,
+      `*Timestamp:* ${new Date().toISOString()}`,
+      `*Environment:* ${process.env.NODE_ENV || 'production'}`,
       ``,
       `*Stack Trace:*`,
       `\`\`\`${error.stack || 'No stack trace available'}\`\`\``
