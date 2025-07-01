@@ -16,6 +16,7 @@ if (process.env.NODE_ENV !== 'production') {
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
+const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 
 // 必須環境変数のチェック
 if (!supabaseUrl || !supabaseServiceKey) {
@@ -30,6 +31,65 @@ if (!openaiApiKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const openai = new OpenAI({ apiKey: openaiApiKey });
+
+/**
+ * Slackにエラー通知を送信する関数
+ */
+async function sendSlackErrorNotification(message) {
+  if (!slackWebhookUrl) {
+    console.log('⚠️ SLACK_WEBHOOK_URLが設定されていないため、Slack通知をスキップします');
+    return;
+  }
+
+  try {
+    const payload = {
+      attachments: [{
+        color: '#dc3545', // 赤色
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: ':x: *Showgeki2 Video Processing Error*'
+            }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: message
+            }
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Environment: ${process.env.NODE_ENV || 'production'} | Time: ${new Date().toISOString()}`
+              }
+            ]
+          }
+        ]
+      }]
+    };
+
+    const response = await fetch(slackWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Slack webhook failed: ${response.status}`);
+    }
+
+    console.log('✅ Slackエラー通知を送信しました');
+  } catch (error) {
+    console.error('❌ Slack通知の送信に失敗しました:', error.message);
+  }
+}
 
 // 動作モード設定
 const WATCH_MODE = process.env.WATCH_MODE === 'true'; // ローカルポーリング用
@@ -459,6 +519,21 @@ async function processVideoGeneration(payload) {
         console.log('✅ 失敗ステータス更新成功: failed');
       }
     }
+
+    // Slack通知を送信
+    const errorMessage = [
+      `*エラーが発生しました* :warning:`,
+      ``,
+      `*Video ID:* ${video_id || 'N/A'}`,
+      `*Story ID:* ${story_id || 'N/A'}`,
+      `*Title:* ${title || 'N/A'}`,
+      `*Error:* ${error.message}`,
+      ``,
+      `*Stack Trace:*`,
+      `\`\`\`${error.stack || 'No stack trace available'}\`\`\``
+    ].join('\n');
+    
+    await sendSlackErrorNotification(errorMessage);
 
     return false; // エラーのため処理失敗
   } finally {

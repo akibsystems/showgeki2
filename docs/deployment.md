@@ -78,6 +78,10 @@ api_key=your_openai_api_key
 gcloud secrets versions add supabase-url --data-file=<(echo "your_supabase_url") --project=showgeki2
 gcloud secrets versions add supabase-service-key --data-file=<(echo "your_service_key") --project=showgeki2
 gcloud secrets versions add openai-api-key --data-file=<(echo "your_api_key") --project=showgeki2
+
+# Slack通知を有効にする場合（オプション）
+gcloud secrets create slack-webhook-url --project=showgeki2
+gcloud secrets versions add slack-webhook-url --data-file=<(echo "your_slack_webhook_url") --project=showgeki2
 ```
 
 ## 設定詳細
@@ -92,6 +96,7 @@ gcloud secrets versions add openai-api-key --data-file=<(echo "your_api_key") --
 ### 環境変数
 - `NODE_ENV=production`
 - `PORT=8080`
+- `SLACK_WEBHOOK_URL` - エラー通知用Slack Webhook URL（オプション）
 - Supabase設定（シークレットから取得）
 - OpenAI API設定（シークレットから取得）
 
@@ -112,6 +117,19 @@ gcloud secrets versions add openai-api-key --data-file=<(echo "your_api_key") --
 3. **動画生成**: mulmocast-cliを使用してFFmpegベースの動画生成
 4. **ストレージ**: Supabase Storageに動画をアップロード
 5. **データベース更新**: videosテーブルのステータスとメタデータを更新
+6. **エラー通知**: 処理失敗時にSlackに通知（SLACK_WEBHOOK_URL設定時）
+
+### Slack通知機能
+
+動画生成のエラー発生時にSlackに通知を送信します：
+
+- **通知タイミング**: 動画生成失敗時のみ
+- **通知内容**: 
+  - Video ID、Story ID
+  - ストーリータイトル
+  - エラーメッセージ
+  - スタックトレース
+  - 環境情報とタイムスタンプ
 
 ### Docker構成の特徴
 
