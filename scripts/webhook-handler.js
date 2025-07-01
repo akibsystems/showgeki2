@@ -175,7 +175,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
     if (!fs.existsSync(videoPath)) {
       throw new Error(`動画ファイルが存在しません: ${videoPath}`);
     }
-    
+
     const stats = fs.statSync(videoPath);
     const fileSizeMB = stats.size / (1024 * 1024);
     console.log(`📁 動画ファイル: ${videoPath}`);
@@ -185,7 +185,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
     const videoBuffer = fs.readFileSync(videoPath);
     const fileName = `${videoId}_${Date.now()}.mp4`;
     const filePath = `videos/${fileName}`;
-    
+
     console.log(`📤 アップロード先: ${filePath}`);
     console.log(`🔑 Supabase URL: ${supabaseUrl}`);
 
@@ -204,7 +204,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
         error: error.error,
         hint: error.hint
       });
-      
+
       // エラーレスポンスの内容を詳しく記録
       if (error.message && error.message.includes('JSON')) {
         console.error('❌ レスポンスがJSONではありません。認証エラーまたはStorage設定の問題の可能性があります。');
@@ -214,7 +214,7 @@ async function uploadVideoToSupabase(videoPath, videoId) {
         console.error('  3. サービスキーが有効か');
         console.error('  4. ファイルサイズが制限内か（通常100MB）');
       }
-      
+
       throw new Error(`Supabase upload failed: ${error.message}`);
     }
 
@@ -303,12 +303,12 @@ async function processVideoGeneration(payload) {
             creditSpeaker = speakerNames[0]; // 最初のspeakerを使用
           }
         }
-        
+
         // もしspeakerが見つからない場合は、beatsから最初のspeakerを探す
         if (!creditSpeaker && scriptWithCredit.beats.length > 0) {
           creditSpeaker = scriptWithCredit.beats[0].speaker || "";
         }
-        
+
         const creditBeat = {
           "speaker": creditSpeaker,
           "text": "",
@@ -366,16 +366,16 @@ async function processVideoGeneration(payload) {
     // 6. Get video file stats and metadata
     const stats = fs.statSync(videoPath);
     const videoSizeMB = stats.size / (1024 * 1024);
-    
+
     // Get video metadata using ffprobe
     let duration = 30; // Default fallback
     let resolution = '1920x1080'; // Default fallback
-    
+
     try {
       const ffprobeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration -of json "${videoPath}"`;
       const ffprobeOutput = execSync(ffprobeCommand, { encoding: 'utf8' });
       const metadata = JSON.parse(ffprobeOutput);
-      
+
       if (metadata.streams && metadata.streams.length > 0) {
         const stream = metadata.streams[0];
         if (stream.width && stream.height) {
@@ -385,7 +385,7 @@ async function processVideoGeneration(payload) {
           duration = Math.round(parseFloat(stream.duration));
         }
       }
-      
+
       console.log(`📊 動画メタデータ: 解像度=${resolution}, 再生時間=${duration}秒`);
     } catch (metadataError) {
       console.warn('⚠️ 動画メタデータの取得に失敗しました（デフォルト値を使用）:', metadataError.message);
@@ -394,9 +394,9 @@ async function processVideoGeneration(payload) {
     // 7. Update video record with completion
     const processingEndTime = Date.now();
     const processingTimeSeconds = Math.round((processingEndTime - processingStartTime) / 1000);
-    
+
     console.log(`⏱️ 総処理時間: ${processingTimeSeconds}秒`);
-    
+
     const { error: updateError } = await supabase
       .from('videos')
       .update({

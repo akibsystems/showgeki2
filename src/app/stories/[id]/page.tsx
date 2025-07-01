@@ -43,6 +43,8 @@ const StoryEditorPage: React.FC = () => {
     text_raw: story?.text_raw || '',
     beats: 5,
   });
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -271,6 +273,8 @@ const StoryEditorPage: React.FC = () => {
     );
   }
 
+  const isReadOnly = story.status === 'completed';
+
   // Get video for this story
   const storyVideo = videos?.find(v => v.story_id === storyId && v.status === 'completed');
   const processingVideo = videos?.find(v => v.story_id === storyId && v.status === 'processing');
@@ -287,9 +291,93 @@ const StoryEditorPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-xl sm:text-3xl font-bold text-gray-100">
-                  {isEditing ? formData.title || '無題のストーリー' : story.title}
-                </h1>
+                {isTitleEditing ? (
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setFormData(prev => ({ ...prev, title: newTitle }));
+                        // タイトルバリデーション
+                        if (newTitle.trim().length === 0) {
+                          setTitleError('タイトルは必須です');
+                        } else if (newTitle.length > 100) {
+                          setTitleError('タイトルは100文字以内で入力してください');
+                        } else {
+                          setTitleError(null);
+                        }
+                      }}
+                      onBlur={async () => {
+                        if (!titleError && formData.title !== story.title) {
+                          setIsSaving(true);
+                          try {
+                            await updateStory({ title: formData.title });
+                          } catch (err) {
+                            console.error('Failed to save title:', err);
+                            error('タイトルの保存に失敗しました');
+                            setFormData(prev => ({ ...prev, title: story.title }));
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        } else if (titleError) {
+                          // エラーがある場合は元に戻す
+                          setFormData(prev => ({ ...prev, title: story.title }));
+                          setTitleError(null);
+                        }
+                        setIsTitleEditing(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        } else if (e.key === 'Escape') {
+                          setFormData(prev => ({ ...prev, title: story.title }));
+                          setTitleError(null);
+                          setIsTitleEditing(false);
+                        }
+                      }}
+                      className="text-xl sm:text-3xl font-bold bg-gray-800 text-gray-100 border border-gray-600 rounded px-3 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+                      placeholder="タイトルを入力"
+                      maxLength={100}
+                      autoFocus
+                    />
+                    {titleError && (
+                      <p className="text-red-400 text-sm mt-1">{titleError}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                      <span>Enter: 保存</span>
+                      <span>・</span>
+                      <span>Esc: キャンセル</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-3xl font-bold text-gray-100">
+                      {story.title || '無題のストーリー'}
+                    </h1>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => setIsTitleEditing(true)}
+                        className="p-1.5 rounded-md hover:bg-gray-700 transition-colors group"
+                        title="タイトルを編集"
+                      >
+                        <svg 
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-purple-300" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                )}
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(story.status || 'draft')}`}>
                   {getStatusText(story.status || 'draft')}
                 </span>
@@ -407,7 +495,7 @@ const StoryEditorPage: React.FC = () => {
               <ScriptDirector
                 script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
                 onChange={handleScriptSave}
-                isReadOnly={story.status === 'completed'}
+                isReadOnly={isReadOnly}
               />
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
               /* Script Editor */
@@ -419,7 +507,7 @@ const StoryEditorPage: React.FC = () => {
                       // No action needed - Script Editor handles internal state management
                     }}
                     onSave={handleScriptSave}
-                    isReadOnly={story.status === 'completed'}
+                    isReadOnly={isReadOnly}
                   />
                 ) : (
                   <Card>
@@ -448,7 +536,7 @@ const StoryEditorPage: React.FC = () => {
               <ScriptDirector
                 script={story.script_json as any || { $mulmocast: { version: '1.0' }, beats: [] }}
                 onChange={handleScriptSave}
-                isReadOnly={story.status === 'completed'}
+                isReadOnly={isReadOnly}
               />
             )}
 

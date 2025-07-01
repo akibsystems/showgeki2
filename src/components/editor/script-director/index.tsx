@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { TitleEditor } from './components/TitleEditor';
 import { SpeechSettings } from './components/SpeechSettings';
 import { BeatsEditor } from './components/BeatsEditor';
 import { ImageSettings } from './components/ImageSettings';
@@ -36,9 +35,7 @@ export function ScriptDirector({
   const {
     script: currentScript,
     state,
-    updateTitle,
     setActiveTab,
-    validateTitle,
     updateScript,
   } = useScriptDirector(script, onChange);
 
@@ -90,10 +87,6 @@ export function ScriptDirector({
     },
   });
 
-  // タイトルバリデーション
-  const handleTitleValidation = (title: string) => {
-    return validateTitle(title);
-  };
 
   // 話者追加
   const handleAddSpeaker = () => {
@@ -203,14 +196,7 @@ export function ScriptDirector({
 
   return (
     <div className={`${styles.scriptDirector} ${className}`}>
-      {/* タイトル編集セクション */}
-      <TitleEditor
-        title={currentScript.title || ''}
-        onChange={updateTitle}
-        onValidate={handleTitleValidation}
-        isReadOnly={isReadOnly}
-        error={state.errors.title}
-      />
+      {/* タイトル編集セクションを削除 - ヘッダーで編集するため */}
 
       {/* モバイル用タブナビゲーション */}
       <div className={styles.tabNavigation}>

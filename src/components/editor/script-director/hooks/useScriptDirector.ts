@@ -48,11 +48,7 @@ export function useScriptDirector(
     onChange(newScript);
   }, [onChange]);
 
-  // タイトル更新
-  const updateTitle = useCallback((title: string) => {
-    const newScript = { ...script, title };
-    updateScript(newScript);
-  }, [script, updateScript]);
+  // タイトル更新を削除 - ヘッダーで管理するため
 
   // タブ切り替え（モバイル用）
   const setActiveTab = useCallback((tab: 'image' | 'speech' | 'beats') => {
@@ -78,16 +74,7 @@ export function useScriptDirector(
     }));
   }, []);
 
-  // タイトルバリデーション
-  const validateTitle = useCallback((title: string): string | undefined => {
-    if (!title.trim()) {
-      return 'タイトルを入力してください';
-    }
-    if (title.length > 100) {
-      return 'タイトルは100文字以内で入力してください';
-    }
-    return undefined;
-  }, []);
+  // タイトルバリデーションを削除 - ヘッダーで管理するため
 
   return {
     // 状態
@@ -95,11 +82,9 @@ export function useScriptDirector(
     state,
     
     // アクション
-    updateTitle,
     setActiveTab,
     setError,
     clearErrors,
-    validateTitle,
     
     // 内部状態管理
     setState,
