@@ -208,7 +208,7 @@ function AdminContent() {
                           </td>
                           <td className="px-4 py-3">
                             <p className="text-sm text-gray-400">
-                              {story.user_id ? story.user_id.slice(0, 8) + '...' : story.uid.slice(0, 8) + '...'}
+                              {story.uid.slice(0, 8) + '...'}
                             </p>
                           </td>
                           <td className="px-4 py-3">

@@ -6,11 +6,13 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/dashboard';
 
+  console.log('requestUrl', requestUrl);
+
   if (code) {
     try {
       const supabase = await createClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      
+
       if (error) {
         console.error('Auth callback error:', error);
         return NextResponse.redirect(
