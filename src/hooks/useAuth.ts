@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, restoreSession, saveSession, clearStoredSession } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
+// import { ensureUserSetup } from '@/lib/profile';
 
 export interface UseAuthReturn {
   user: User | null;
@@ -25,7 +26,7 @@ export function useAuth(): UseAuthReturn {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session) {
           setUser(session.user);
           // Save session for cross-device access
@@ -55,7 +56,7 @@ export function useAuth(): UseAuthReturn {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user ?? null);
-        
+
         if (session) {
           // Save session on auth state change
           await saveSession({
@@ -68,9 +69,14 @@ export function useAuth(): UseAuthReturn {
         }
 
         // Handle redirects after authentication
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && session) {
+          // TODO: Fix ensureUserSetup to prevent infinite loop
+          // Temporarily disabled - profile/workspace creation is handled by database trigger
+          // await ensureUserSetup(session.user.id, session.user.email);
+
           const searchParams = new URLSearchParams(window.location.search);
           const redirectTo = searchParams.get('redirect') || '/dashboard';
+          console.log('redirectTo', redirectTo);
           router.push(redirectTo);
         }
 
@@ -90,7 +96,7 @@ export function useAuth(): UseAuthReturn {
     try {
       setError(null);
       setLoading(true);
-      
+
       const redirectTo = `${window.location.origin}/auth/callback`;
       const { error } = await supabase.auth.signInWithOtp({
         email,

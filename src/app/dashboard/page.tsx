@@ -22,13 +22,19 @@ const DashboardPage: React.FC = () => {
   // Ensure workspace exists for first-time users
   useEffect(() => {
     const initializeWorkspace = async () => {
-      if (!workspaceLoading && !workspace && !state.isLoading) {
+      // Check if already attempting to create workspace
+      const isCreatingWorkspace = sessionStorage.getItem('creatingWorkspace');
+      
+      if (!workspaceLoading && !workspace && !state.isLoading && !isCreatingWorkspace) {
         try {
           console.log('[Dashboard] Initializing workspace...');
+          sessionStorage.setItem('creatingWorkspace', 'true');
           await ensureWorkspace();
         } catch (err) {
           console.error('[Dashboard] Failed to initialize workspace:', err);
           error('Failed to initialize workspace');
+        } finally {
+          sessionStorage.removeItem('creatingWorkspace');
         }
       }
     };
