@@ -36,6 +36,16 @@ npm install
 cp .env.local.example .env.local
 ```
 
+#### 認証の無効化（オプション）
+
+認証機能を無効化し、ログイン・新規登録ボタンを非表示にする場合は、以下の環境変数を設定してください：
+
+```bash
+NEXT_PUBLIC_DISABLE_AUTH=true
+```
+
+この設定により、ダッシュボードヘッダーからログイン・新規登録ボタンが非表示になります。
+
 ### 3. Supabaseの設定
 
 1. [Supabase](https://supabase.com/)でプロジェクトを作成

@@ -35,6 +35,13 @@ export function UserMenu() {
   }
 
   if (!user) {
+    // Check if auth is disabled
+    const isAuthDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+    
+    if (isAuthDisabled) {
+      return null; // Hide login/signup buttons when auth is disabled
+    }
+    
     return (
       <div className="flex items-center gap-2">
         <Button
