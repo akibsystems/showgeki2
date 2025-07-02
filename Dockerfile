@@ -1,5 +1,5 @@
-# Use Node.js 18 LTS Alpine image
-FROM node:18-alpine
+# Use Node.js 22 Alpine image
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,17 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     giflib-dev \
     librsvg-dev \
-    pixman-dev
+    pixman-dev \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Install Japanese fonts for subtitles
+RUN apk add --no-cache font-noto-cjk
 
 # Copy package files
 COPY package*.json ./
@@ -60,6 +70,11 @@ COPY scripts/ ./scripts/
 
 # Set environment variables
 ENV PORT=8080
+
+# Puppeteer configuration for Alpine Linux
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    CI=true
 
 # Expose port
 EXPOSE 8080

@@ -181,7 +181,7 @@ function writeScriptJson(jsonContent, scriptPath) {
   }
 }
 
-function generateMovie(scriptPath, outputPath) {
+function generateMovie(scriptPath, outputPath, hasCaption = false) {
   try {
     console.log('mulmocast-cliで動画生成中...');
     console.log('🎬 実際のmulmocast-cliで動画生成を開始...');
@@ -265,9 +265,14 @@ function generateMovie(scriptPath, outputPath) {
 
       // mulmocast-cliの出力パスを確認 (ユニークディレクトリ内)
       const actualOutputPaths = [
-        path.join(outputDir, 'script.mp4'), // mulmocast-cliの実際の出力名
+        path.join(outputDir, 'script.mp4'), // mulmocast-cliの実際の出力名（字幕なし）
         outputPath // 期待するパス
       ];
+      
+      // 字幕ありの場合は、言語別のファイル名も確認
+      if (hasCaption) {
+        actualOutputPaths.unshift(path.join(outputDir, 'script__ja.mp4')); // 日本語字幕ありのファイル名
+      }
 
       let foundOutputPath = null;
       for (const checkPath of actualOutputPaths) {
@@ -566,9 +571,11 @@ async function processVideoGeneration(payload) {
     // 4. mulmocast-cliで動画生成 (ユニークなパス)
     console.log('4. mulmocast-cliで動画生成中...');
     let videoPath;
-    let movieMetrics;
+    let movieMetrics = null; // Initialize outside try block
     try {
-      const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath);
+      // captionParamsの有無を確認
+      const hasCaption = !!(script_json && script_json.captionParams);
+      const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath, hasCaption);
       videoPath = result.videoPath;
       movieMetrics = result.metrics;
       console.log('\n📊 動画生成メトリクス:');
