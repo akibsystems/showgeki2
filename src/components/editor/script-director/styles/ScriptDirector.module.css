@@ -1256,12 +1256,10 @@
   background: rgba(31, 41, 55, 0.5);
   border: 2px solid rgba(139, 92, 246, 0.1);
   border-radius: 8px;
-  padding: 1.25rem;
-  cursor: pointer;
+  overflow: hidden;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 .bgmCard:hover {
@@ -1270,20 +1268,38 @@
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 }
 
-.bgmCard:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.bgmCard:disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
-
 .bgmCardActive {
   background: rgba(139, 92, 246, 0.1);
   border-color: #8b5cf6;
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.bgmCardContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bgmCardSelectArea {
+  flex: 1;
+  padding: 1.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: background-color 0.2s ease;
+}
+
+.bgmCardSelectArea:hover {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.bgmCardSelectArea:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .bgmCardHeader {
@@ -1359,6 +1375,65 @@
   font-size: 0.85rem !important;
 }
 
+/* BGM再生コントロール */
+.bgmPlayControls {
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  padding: 0.75rem 1.25rem;
+  background: rgba(17, 24, 39, 0.3);
+}
+
+.bgmPlayButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  color: #c084fc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.bgmPlayButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #e9d5ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.bgmPlayButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bgmPlayButton svg {
+  flex-shrink: 0;
+}
+
+.bgmPlayLabel {
+  font-size: 0.85rem;
+}
+
+/* ローディングアニメーション */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingIcon {
+  animation: spin 1s linear infinite;
+}
+
 /* レスポンシブ対応 */
 @media (min-width: 768px) {
   .bgmGrid {
@@ -1369,8 +1444,8 @@
     padding: 2rem;
   }
   
-  .bgmCard {
-    padding: 1.5rem;
+  .bgmPlayControls {
+    padding: 1rem 1.5rem;
   }
 }
 

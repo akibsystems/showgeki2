@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/ScriptDirector.module.css';
 
 // ================================================================
@@ -78,8 +78,84 @@ export const AudioSettings: React.FC<AudioSettingsProps> = ({
   onUpdateBgm,
   isReadOnly = false
 }) => {
+  const [playingBgm, setPlayingBgm] = useState<string | null>(null);
+  const [loadingBgm, setLoadingBgm] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // クリーンアップ: コンポーネントがアンマウントされたら音声を停止
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const handleBgmChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onUpdateBgm(e.target.value);
+  };
+
+  const handlePlayPause = async (bgmUrl: string) => {
+    // BGMなしの場合は何もしない
+    if (bgmUrl === 'none') return;
+
+    // 同じBGMがクリックされた場合は再生/一時停止を切り替え
+    if (playingBgm === bgmUrl && audioRef.current) {
+      if (audioRef.current.paused) {
+        try {
+          await audioRef.current.play();
+          setPlayingBgm(bgmUrl);
+        } catch (error) {
+          console.error('Failed to play audio:', error);
+        }
+      } else {
+        audioRef.current.pause();
+        setPlayingBgm(null);
+      }
+      return;
+    }
+
+    // 別のBGMがクリックされた場合は、現在の再生を停止して新しいBGMを再生
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    try {
+      setLoadingBgm(bgmUrl);
+      const audio = new Audio(bgmUrl);
+      audio.volume = 0.5; // ボリュームを50%に設定
+      audioRef.current = audio;
+
+      // 音声の終了イベントを監視
+      audio.addEventListener('ended', () => {
+        setPlayingBgm(null);
+      });
+
+      // エラーハンドリング
+      audio.addEventListener('error', () => {
+        console.error('Failed to load audio');
+        setPlayingBgm(null);
+        setLoadingBgm(null);
+      });
+
+      // 読み込み完了後に再生
+      audio.addEventListener('canplay', async () => {
+        setLoadingBgm(null);
+        try {
+          await audio.play();
+          setPlayingBgm(bgmUrl);
+        } catch (error) {
+          console.error('Failed to play audio:', error);
+        }
+      });
+
+      audio.load();
+    } catch (error) {
+      console.error('Failed to create audio:', error);
+      setLoadingBgm(null);
+    }
   };
 
   const selectedPreset = BGM_PRESETS.find(preset => preset.value === bgm) || BGM_PRESETS[2]; // デフォルトはストーリー2
@@ -125,28 +201,63 @@ export const AudioSettings: React.FC<AudioSettingsProps> = ({
         <h4 className={styles.bgmListTitle}>BGM一覧</h4>
         <div className={styles.bgmGrid}>
           {BGM_PRESETS.map(preset => (
-            <button
+            <div
               key={preset.value}
-              onClick={() => !isReadOnly && onUpdateBgm(preset.value)}
-              disabled={isReadOnly}
               className={`${styles.bgmCard} ${bgm === preset.value ? styles.bgmCardActive : ''}`}
             >
-              <div className={styles.bgmCardHeader}>
-                {preset.value === 'none' ? (
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                  </svg>
+              <div className={styles.bgmCardContent}>
+                <button
+                  onClick={() => !isReadOnly && onUpdateBgm(preset.value)}
+                  disabled={isReadOnly}
+                  className={styles.bgmCardSelectArea}
+                >
+                  <div className={styles.bgmCardHeader}>
+                    {preset.value === 'none' ? (
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                      </svg>
+                    )}
+                    <span className={styles.bgmCardTitle}>{preset.label}</span>
+                  </div>
+                  <div className={styles.bgmCardMood}>{preset.mood}</div>
+                  <div className={styles.bgmCardDescription}>{preset.description}</div>
+                </button>
+                
+                {/* 再生ボタン（BGMなし以外） */}
+                {preset.value !== 'none' && (
+                  <div className={styles.bgmPlayControls}>
+                    <button
+                      onClick={() => handlePlayPause(preset.value)}
+                      disabled={isReadOnly || loadingBgm === preset.value}
+                      className={styles.bgmPlayButton}
+                      aria-label={playingBgm === preset.value ? '一時停止' : '再生'}
+                    >
+                      {loadingBgm === preset.value ? (
+                        <svg width="24" height="24" className={styles.loadingIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : playingBgm === preset.value ? (
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                      ) : (
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      )}
+                      <span className={styles.bgmPlayLabel}>
+                        {loadingBgm === preset.value ? '読込中' : playingBgm === preset.value ? '停止' : '試聴'}
+                      </span>
+                    </button>
+                  </div>
                 )}
-                <span className={styles.bgmCardTitle}>{preset.label}</span>
               </div>
-              <div className={styles.bgmCardMood}>{preset.mood}</div>
-              <div className={styles.bgmCardDescription}>{preset.description}</div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
