@@ -144,6 +144,11 @@ export const MulmoImageAssetSchema = z.union([
   MulmoImageSchema,
 ]);
 
+export const MulmoCaptionParamsSchema = z.object({
+  lang: z.string().default('ja'),
+  styles: z.array(z.string()).default([]),
+});
+
 export const MulmoBeatSchema = z.object({
   speaker: z.string().default('Presenter'),
   text: z.string().default(''),
@@ -152,6 +157,7 @@ export const MulmoBeatSchema = z.object({
   image: MulmoImageAssetSchema.optional(),
   imagePrompt: z.string().optional(),
   duration: z.number().optional(),
+  captionParams: MulmoCaptionParamsSchema.optional(),
 });
 
 export const MulmoscriptSchema = z.object({
@@ -166,6 +172,7 @@ export const MulmoscriptSchema = z.object({
   speechParams: MulmoSpeechParamsSchema,
   imageParams: MulmoImageParamsSchema.optional(),
   audioParams: MulmoAudioParamsSchema.optional(),
+  captionParams: MulmoCaptionParamsSchema.optional(),
   beats: z.array(MulmoBeatSchema).min(1),
 });
 

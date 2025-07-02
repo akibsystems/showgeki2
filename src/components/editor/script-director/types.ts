@@ -15,7 +15,7 @@ export interface ScriptDirectorProps {
 // 内部状態管理
 export interface ScriptDirectorState {
   // UI状態
-  activeTab: 'image' | 'speech' | 'beats' | 'audio';
+  activeTab: 'image' | 'speech' | 'beats' | 'audio' | 'caption';
   editingBeat: number | null;
   draggedBeat: number | null;
   
@@ -66,4 +66,15 @@ export interface BeatErrors {
 }
 
 // タブタイプ（モバイル用）
-export type TabType = 'image' | 'speech' | 'beats' | 'audio';
+export type TabType = 'image' | 'speech' | 'beats' | 'audio' | 'caption';
+
+// 字幕設定
+export interface CaptionParams {
+  lang: string;
+  styles: string[];
+}
+
+export interface CaptionSettings {
+  enabled: boolean;
+  params?: CaptionParams;
+}

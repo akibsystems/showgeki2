@@ -35,6 +35,8 @@ export interface ScriptGenerationOptions {
   language?: 'ja' | 'en';
   beats?: number;
   retryCount?: number;
+  enableCaptions?: boolean;
+  captionStyles?: string[];
 }
 
 export interface GenerationResult {
@@ -116,6 +118,8 @@ export async function generateMulmoscriptWithOpenAI(
       stylePreference: options.stylePreference,
       language: options.language,
       beats: options.beats,
+      enableCaptions: options.enableCaptions,
+      captionStyles: options.captionStyles,
     });
 
     const promptHash = createPromptHash(promptData.messages[1].content);
@@ -386,7 +390,7 @@ function generateEnhancedMockMulmoscript(
     };
   });
 
-  return {
+  const script: Mulmoscript = {
     $mulmocast: {
       version: '1.0' as const,
     },
@@ -401,6 +405,22 @@ function generateEnhancedMockMulmoscript(
     },
     beats,
   };
+
+  // Add captionParams if enabled
+  if (options.enableCaptions) {
+    script.captionParams = {
+      lang: language === 'ja' ? 'ja' : 'en',
+      styles: options.captionStyles || [
+        'font-size: 48px',
+        'color: white',
+        'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)',
+        'font-family: \'Noto Sans JP\', sans-serif',
+        'font-weight: bold',
+      ],
+    };
+  }
+
+  return script;
 }
 
 // ================================================================

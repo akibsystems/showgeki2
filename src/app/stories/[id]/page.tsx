@@ -110,7 +110,17 @@ const StoryEditorPage: React.FC = () => {
     
     setIsGeneratingScript(true);
     try {
-      await generateScript({ beats: story.beats || 10 });
+      // Get caption settings from current script if available
+      const currentScript = story.script_json as any;
+      const captionOptions = currentScript?.captionParams ? {
+        enable_captions: true,
+        caption_styles: currentScript.captionParams.styles
+      } : {};
+
+      await generateScript({ 
+        beats: story.beats || 10,
+        ...captionOptions
+      });
       // success('Script generated successfully');
     } catch (err) {
       console.error('Failed to generate script:', err);

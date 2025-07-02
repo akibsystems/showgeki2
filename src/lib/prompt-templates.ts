@@ -34,6 +34,8 @@ export interface PromptContext {
   voice_count?: number;
   language?: 'ja' | 'en';
   beats?: number;
+  enableCaptions?: boolean;
+  captionStyles?: string[];
 }
 
 export interface PromptGenerationResult {
@@ -82,6 +84,7 @@ Create a {{target_duration}}-second video that:
 - Uses varied pacing and speakers for visual interest
 - Includes compelling character voices and detailed image prompts
 - Follows a clear narrative arc with setup, development, and resolution
+{{enableCaptions}}
 
 ## Validation Requirements
 ⚠️ MUST check before generation:
@@ -218,6 +221,7 @@ const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
 台詞の数が台本全体で{{beats}}個となるようにカウントする。
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
+{{enableCaptions}}
 
 ## 検証の重要事項
 ⚠️ 生成前に必ず確認：
@@ -406,7 +410,10 @@ export function substituteVariables(
     style_preference: context.style_preference || defaults.style_preference,
     voice_count: (context.voice_count || 3).toString(),
     language: context.language || defaults.language,
-    beats: (context.beats !== undefined ? context.beats : 5).toString()
+    beats: (context.beats !== undefined ? context.beats : 5).toString(),
+    enableCaptions: context.enableCaptions 
+      ? `\n- IMPORTANT: Include captionParams in the JSON output with lang="${context.language || 'ja'}" and styles=${JSON.stringify(context.captionStyles || ['font-size: 48px', 'color: white', 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)', 'font-family: \'Noto Sans JP\', sans-serif', 'font-weight: bold'])}`
+      : ''
   };
 
   // Replace all variables
@@ -458,6 +465,8 @@ export function generatePrompt(
     stylePreference?: PromptContext['style_preference'];
     language?: PromptContext['language'];
     beats?: number;
+    enableCaptions?: boolean;
+    captionStyles?: string[];
   } = {}
 ): PromptGenerationResult {
   const template = options.templateId
@@ -475,7 +484,9 @@ export function generatePrompt(
     style_preference: options.stylePreference || 'dramatic',
     voice_count: 3,
     language: options.language || 'ja',
-    beats: options.beats !== undefined ? options.beats : 5
+    beats: options.beats !== undefined ? options.beats : 5,
+    enableCaptions: options.enableCaptions,
+    captionStyles: options.captionStyles
   };
 
   // Validate context

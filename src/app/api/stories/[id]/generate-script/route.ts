@@ -69,6 +69,8 @@ async function parseScriptGenerationOptions(request: NextRequest): Promise<Scrip
       language: ['ja', 'en'].includes(body.language) ? body.language : 'ja',
       beats: typeof body.beats === 'number' ? body.beats : 5,
       retryCount: typeof body.retry_count === 'number' ? Math.min(body.retry_count, 3) : 2,
+      enableCaptions: typeof body.enable_captions === 'boolean' ? body.enable_captions : false,
+      captionStyles: Array.isArray(body.caption_styles) ? body.caption_styles : undefined,
     };
   } catch {
     // If no body or invalid JSON, return defaults
@@ -77,6 +79,7 @@ async function parseScriptGenerationOptions(request: NextRequest): Promise<Scrip
       stylePreference: 'dramatic',
       language: 'ja',
       retryCount: 2,
+      enableCaptions: false,
     };
   }
 }

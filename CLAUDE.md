@@ -268,6 +268,7 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - **Platform**: linux/amd64 (required for mulmocast-cli)
 - **Concurrency**: 1 request per container (prevents global variable conflicts)
 - **Rate Limiting**: Automatic handling of 429 errors with video status update
+- **Caption Support**: Automatic detection of caption language (ja/en) for proper video file naming
 
 ### Cost Optimization
 - Serverless scaling with zero minimum instances
@@ -358,3 +359,63 @@ node scripts/load-test-concurrent.js -u 5 --excel  # Test with 5 users and expor
 - Quick curl-based health check for Cloud Run service
 - Verifies webhook endpoint is accessible
 - Useful for deployment verification
+
+## Docker Container Updates (2025-07-03)
+
+### Node.js Version Upgrade
+**Issue**: mulmocast-cli dependency (yargs-parser) requires Node.js v20+  
+**Solution**: Upgraded base image from `node:18-alpine` to `node:22-alpine`
+
+### Puppeteer/Chromium Support for Subtitles
+**Issue**: mulmocast-cli uses Puppeteer for subtitle rendering, which failed with browser launch errors  
+**Solution**: Added Chromium dependencies and configuration:
+- **Packages**: `chromium`, `nss`, `freetype`, `freetype-dev`, `harfbuzz`, `ca-certificates`, `ttf-freefont`
+- **Japanese fonts**: `font-noto-cjk` for proper subtitle rendering
+- **Environment variables**:
+  - `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true`
+  - `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser`
+  - `CI=true` (enables `--no-sandbox` flag for root user execution)
+
+### Subtitle Video File Handling
+**Issue**: Videos with subtitles generate files with different naming convention (`script__ja.mp4`, `script__en.mp4`)  
+**Solution**: Updated `webhook-handler.js`:
+- Modified `generateMovie()` to accept `captionLang` parameter (instead of boolean)
+- Dynamically check for `script__${lang}.mp4` based on `captionParams.lang` value
+- Supports multiple languages (ja, en, etc.)
+- Detect subtitle language via `script_json.captionParams.lang`
+
+### Bug Fixes
+- Fixed `movieMetrics is not defined` error by initializing the variable outside try block
+- Improved error handling and logging for better debugging
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. Node.js Version Error
+**Error**: `yargs parser supports a minimum Node.js version of 20`  
+**Solution**: Update Dockerfile to use `node:22-alpine` or later
+
+#### 2. Puppeteer Browser Launch Error
+**Error**: `Failed to launch the browser process!`  
+**Common causes and solutions**:
+- **Running as root**: Set `CI=true` environment variable
+- **Missing dependencies**: Install Chromium and related packages
+- **Architecture mismatch**: Ensure `--platform linux/amd64` in Docker build
+
+#### 3. Subtitle Video Not Found
+**Error**: `動画ファイルが見つかりません` (Video file not found)  
+**Cause**: mulmocast-cli outputs different filenames for subtitled videos  
+**Solution**: Check for `script__ja.mp4` when `captionParams` exists
+
+#### 4. Japanese Text Rendering Issues
+**Error**: Subtitles show boxes or missing characters  
+**Solution**: Install Japanese fonts (`font-noto-cjk`) in Docker image
+
+#### 5. Container Rebuild Required
+After modifying Dockerfile, always rebuild with no-cache:
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up
+```

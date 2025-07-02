@@ -3,13 +3,14 @@ import { SpeechSettings } from './components/SpeechSettings';
 import { BeatsEditor } from './components/BeatsEditor';
 import { ImageSettings } from './components/ImageSettings';
 import { AudioSettings } from './components/AudioSettings';
+import { CaptionSettings } from './components/CaptionSettings';
 import { SpeakerModal } from './components/modals/SpeakerModal';
 import { ImageModal } from './components/modals/ImageModal';
 import { useScriptDirector } from './hooks/useScriptDirector';
 import { useSpeakerManager } from './hooks/useSpeakerManager';
 import { useBeatsManager } from './hooks/useBeatsManager';
 import { useImageManager } from './hooks/useImageManager';
-import type { ScriptDirectorProps, VoiceId } from './types';
+import type { ScriptDirectorProps, VoiceId, CaptionParams } from './types';
 import type { ImageReference } from './hooks/useImageManager';
 import styles from './styles/ScriptDirector.module.css';
 
@@ -222,6 +223,54 @@ export function ScriptDirector({
     console.log('Volume setting is not supported in MulmoScript format');
   };
 
+  // 字幕有効/無効切り替え
+  const handleToggleCaption = (enabled: boolean) => {
+    const newScript = { ...currentScript };
+    if (enabled && !newScript.captionParams) {
+      // 字幕を有効にする場合、デフォルト設定を追加
+      newScript.captionParams = {
+        lang: 'ja',
+        styles: [
+          'font-size: 48px',
+          'color: white',
+          'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)',
+          'font-family: \'Noto Sans JP\', sans-serif',
+          'font-weight: bold',
+        ],
+      } as CaptionParams;
+    } else if (!enabled && newScript.captionParams) {
+      // 字幕を無効にする場合、captionParamsを削除
+      delete newScript.captionParams;
+    }
+    updateScript(newScript);
+  };
+
+  // 字幕言語更新
+  const handleUpdateCaptionLang = (lang: string) => {
+    if (!currentScript.captionParams) return;
+    const newScript = {
+      ...currentScript,
+      captionParams: {
+        ...currentScript.captionParams,
+        lang,
+      } as CaptionParams,
+    };
+    updateScript(newScript);
+  };
+
+  // 字幕スタイル更新
+  const handleUpdateCaptionStyles = (styles: string[]) => {
+    if (!currentScript.captionParams) return;
+    const newScript = {
+      ...currentScript,
+      captionParams: {
+        ...currentScript.captionParams,
+        styles,
+      } as CaptionParams,
+    };
+    updateScript(newScript);
+  };
+
   return (
     <div className={`${styles.scriptDirector} ${className}`}>
       {/* タイトル編集セクションを削除 - ヘッダーで編集するため */}
@@ -263,6 +312,15 @@ export function ScriptDirector({
           disabled={isReadOnly}
         >
           🎵 BGM
+        </button>
+        <button
+          className={`${styles.tabButton} ${
+            state.activeTab === 'caption' ? styles.tabButtonActive : ''
+          }`}
+          onClick={() => setActiveTab('caption')}
+          disabled={isReadOnly}
+        >
+          📝 字幕
         </button>
       </div>
 
@@ -333,6 +391,23 @@ export function ScriptDirector({
           <AudioSettings
             bgm={currentScript.audioParams?.bgm?.url || 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3'}
             onUpdateBgm={handleUpdateBgm}
+            isReadOnly={isReadOnly}
+          />
+        </div>
+
+        {/* 字幕設定タブ */}
+        <div
+          className={`${styles.tabContent} ${
+            state.activeTab === 'caption' ? styles.tabContentActive : ''
+          }`}
+        >
+          <CaptionSettings
+            enabled={!!currentScript.captionParams}
+            lang={(currentScript.captionParams as CaptionParams)?.lang || 'ja'}
+            styles={(currentScript.captionParams as CaptionParams)?.styles || []}
+            onToggleEnabled={handleToggleCaption}
+            onUpdateLang={handleUpdateCaptionLang}
+            onUpdateStyles={handleUpdateCaptionStyles}
             isReadOnly={isReadOnly}
           />
         </div>

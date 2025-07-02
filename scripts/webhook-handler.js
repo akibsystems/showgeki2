@@ -181,7 +181,7 @@ function writeScriptJson(jsonContent, scriptPath) {
   }
 }
 
-function generateMovie(scriptPath, outputPath, hasCaption = false) {
+function generateMovie(scriptPath, outputPath, captionLang = null) {
   try {
     console.log('mulmocast-cliで動画生成中...');
     console.log('🎬 実際のmulmocast-cliで動画生成を開始...');
@@ -270,8 +270,10 @@ function generateMovie(scriptPath, outputPath, hasCaption = false) {
       ];
       
       // 字幕ありの場合は、言語別のファイル名も確認
-      if (hasCaption) {
-        actualOutputPaths.unshift(path.join(outputDir, 'script__ja.mp4')); // 日本語字幕ありのファイル名
+      if (captionLang) {
+        const captionPath = path.join(outputDir, `script__${captionLang}.mp4`);
+        console.log(`📝 字幕ファイルパスを追加: ${captionPath} (言語: ${captionLang})`);
+        actualOutputPaths.unshift(captionPath); // 言語別字幕ありのファイル名
       }
 
       let foundOutputPath = null;
@@ -573,9 +575,15 @@ async function processVideoGeneration(payload) {
     let videoPath;
     let movieMetrics = null; // Initialize outside try block
     try {
-      // captionParamsの有無を確認
-      const hasCaption = !!(script_json && script_json.captionParams);
-      const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath, hasCaption);
+      // captionParamsの有無と言語を確認
+      const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
+      if (captionLang) {
+        console.log(`🌐 字幕言語検出: ${captionLang}`);
+        console.log(`  - captionParams:`, JSON.stringify(script_json.captionParams));
+      } else {
+        console.log('📝 字幕なし');
+      }
+      const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath, captionLang);
       videoPath = result.videoPath;
       movieMetrics = result.metrics;
       console.log('\n📊 動画生成メトリクス:');

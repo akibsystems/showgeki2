@@ -1039,7 +1039,9 @@
 .addButton:focus,
 .editButton:focus,
 .deleteButton:focus,
-.moveButton:focus {
+.moveButton:focus,
+.captionControlSlider:focus,
+.captionControlColor:focus {
   outline: 2px solid #8b5cf6;
   outline-offset: 2px;
 }
@@ -1073,7 +1075,10 @@
   .deleteButton,
   .moveButton,
   .formInput,
-  .formSelect {
+  .formSelect,
+  .captionControlSlider,
+  .captionControlColor,
+  .captionToggleSlider {
     transition: none;
   }
   
@@ -1452,5 +1457,406 @@
 @media (min-width: 1024px) {
   .bgmGrid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* =========================
+   字幕設定セクション
+   ========================= */
+
+/* メインコントロール */
+.captionMainControl {
+  margin-bottom: 2rem;
+}
+
+.captionToggleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.captionToggleButton {
+  background: rgba(55, 65, 81, 0.5);
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 0.875rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #e5e7eb;
+}
+
+.captionToggleButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.captionToggleButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.captionToggleButtonActive {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #e9d5ff;
+}
+
+.captionToggleInner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.captionToggleSwitch {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: rgba(55, 65, 81, 0.8);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.captionToggleSwitchActive {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+.captionToggleSlider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #9ca3af;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.captionToggleSwitchActive .captionToggleSlider {
+  transform: translateX(24px);
+  background: #a78bfa;
+}
+
+/* 言語選択 */
+.captionLangSelect {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.captionLangButton {
+  background: rgba(55, 65, 81, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.captionLangButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.captionLangButtonActive {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #e9d5ff;
+}
+
+.captionLangFlag {
+  font-size: 1.125rem;
+}
+
+/* プレビューセクション */
+.captionPreviewSection {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.captionPreviewHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  color: #e5e7eb;
+}
+
+.captionPreviewTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.captionPreviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.captionPreviewScreen {
+  background: #000;
+  background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.05) 75%, rgba(255, 255, 255, 0.05) 76%, transparent 77%, transparent);
+  background-size: 50px 50px;
+  border-radius: 8px;
+  padding: 3rem 1rem;
+  min-height: 200px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.captionPreviewText {
+  text-align: center;
+  line-height: 1.4;
+  z-index: 1;
+  margin-bottom: 2rem;
+}
+
+.captionPreviewInput {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  padding: 0.625rem 1rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.captionPreviewInput:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(17, 24, 39, 0.8);
+}
+
+/* スタイルコントロール */
+.captionStyleControls {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.captionControlGroup {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.captionControlGroupTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.captionControlRow {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.captionControlRow:last-child {
+  margin-bottom: 0;
+}
+
+.captionControlLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.captionControlSelect {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  padding: 0.625rem 1rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.captionControlSelect:hover:not(:disabled) {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(17, 24, 39, 0.8);
+}
+
+.captionControlSelect:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.captionControlSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* スライダーコントロール */
+.captionControlSliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.captionControlSlider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.captionControlSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #a78bfa;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.captionControlSlider::-webkit-slider-thumb:hover {
+  background: #c4b5fd;
+  transform: scale(1.2);
+}
+
+.captionControlSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #a78bfa;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.captionControlSlider::-moz-range-thumb:hover {
+  background: #c4b5fd;
+  transform: scale(1.2);
+}
+
+.captionControlSlider:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.captionControlValue {
+  min-width: 60px;
+  text-align: right;
+  font-size: 0.875rem;
+  color: #e9d5ff;
+  font-weight: 500;
+}
+
+/* カラーピッカーコントロール */
+.captionControlColorWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.captionControlColor {
+  width: 60px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.captionControlColor:hover:not(:disabled) {
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: scale(1.05);
+}
+
+.captionControlColor:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.captionControlColorValue {
+  font-size: 0.875rem;
+  color: #e9d5ff;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-weight: 500;
+}
+
+
+/* 使用上の注意 */
+.captionNotice {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(31, 41, 55, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.captionNoticeIcon {
+  flex-shrink: 0;
+  color: #a78bfa;
+}
+
+.captionNoticeText {
+  flex: 1;
+}
+
+.captionNoticeText p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+
+.captionNoticeSubtext {
+  margin-top: 0.5rem !important;
+  font-size: 0.8rem !important;
+  color: #9ca3af !important;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .captionControlRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .captionControlLabel {
+    font-size: 0.8rem;
+  }
+  
+  .captionControlSliderWrapper {
+    gap: 0.75rem;
+  }
+  
+  .captionControlValue {
+    min-width: 50px;
+    font-size: 0.8rem;
   }
 }
