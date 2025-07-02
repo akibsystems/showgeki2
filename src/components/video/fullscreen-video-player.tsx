@@ -14,6 +14,22 @@ interface FullscreenVideoPlayerProps {
 }
 
 // ================================================================
+// Fullscreen API Types
+// ================================================================
+
+interface DocumentWithFullscreen extends Document {
+  mozFullScreenElement?: Element;
+  msFullscreenElement?: Element;
+  webkitFullscreenElement?: Element;
+}
+
+interface ElementWithFullscreen extends HTMLElement {
+  mozRequestFullScreen?: () => Promise<void>;
+  msRequestFullscreen?: () => Promise<void>;
+  webkitRequestFullscreen?: () => Promise<void>;
+}
+
+// ================================================================
 // Fullscreen Video Player Component
 // ================================================================
 
@@ -31,19 +47,122 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Handle escape key and fullscreen events
+  // Check if element is in fullscreen
+  const isInFullscreen = () => {
+    const doc = document as DocumentWithFullscreen;
+    return !!(
+      document.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
+  };
+
+  // Enter fullscreen with cross-browser support
+  const enterFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    const elem = containerRef.current as ElementWithFullscreen;
+
+    try {
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        await elem.webkitRequestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        await elem.mozRequestFullScreen();
+      } else if (elem.msRequestFullscreen) {
+        await elem.msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } catch (err) {
+      console.error('Failed to enter fullscreen:', err);
+      setError('フルスクリーンモードに切り替えられませんでした');
+    }
+  };
+
+  // Exit fullscreen with cross-browser support
+  const exitFullscreen = async () => {
+    const doc = document as any;
+
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      } else if (doc.mozCancelFullScreen) {
+        await doc.mozCancelFullScreen();
+      } else if (doc.msExitFullscreen) {
+        await doc.msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    } catch (err) {
+      console.error('Failed to exit fullscreen:', err);
+    }
+  };
+
+  // Toggle fullscreen
+  const toggleFullscreen = () => {
+    if (isInFullscreen()) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
+  };
+
+  // Handle fullscreen change events
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(isInFullscreen());
+      if (!isInFullscreen()) {
+        // If exited fullscreen by pressing ESC or other means, close the player
         onClose();
       }
     };
 
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, [onClose]);
+
+  // Auto-enter fullscreen when opened
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      enterFullscreen();
+      // Start playing automatically
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {
+          // Auto-play might be blocked by browser
+          setIsPlaying(false);
+        });
+      }
+    }
+  }, [isOpen]);
+
+  // Handle escape key and other keyboard shortcuts
+  useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!videoRef.current) return;
+      if (!videoRef.current || !isOpen) return;
 
       switch (e.key) {
+        case 'Escape':
+          e.preventDefault();
+          if (isInFullscreen()) {
+            exitFullscreen();
+          }
+          onClose();
+          break;
         case ' ':
         case 'k':
           e.preventDefault();
@@ -72,17 +191,19 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
           e.preventDefault();
           toggleMute();
           break;
+        case 'f':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
       document.addEventListener('keydown', handleKeyPress);
       document.body.style.overflow = 'hidden';
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('keydown', handleKeyPress);
       document.body.style.overflow = 'unset';
     };
@@ -153,6 +274,13 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
     setCurrentTime(time);
   };
 
+  const handleClose = () => {
+    if (isInFullscreen()) {
+      exitFullscreen();
+    }
+    onClose();
+  };
+
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -162,7 +290,11 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-50 bg-black">
+    <div 
+      ref={containerRef} 
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+      style={{ width: '100vw', height: '100vh' }}
+    >
       {/* Video */}
       <video
         ref={videoRef}
@@ -174,7 +306,18 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
+        onError={(e) => {
+          console.error('Video error:', e);
+          setError('動画の再生中にエラーが発生しました');
+        }}
       />
+
+      {/* Error Message */}
+      {error && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600/90 text-white px-6 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {/* Controls Overlay */}
       <div
@@ -190,7 +333,7 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
         >
           <h2 className="text-white text-xl font-semibold">{title}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-white hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-white/10"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,9 +429,28 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = ({
               </div>
             </div>
 
-            {/* Keyboard Shortcuts Help */}
-            <div className="text-white/60 text-sm">
-              Space: 再生/一時停止 | ←→: 5秒スキップ | ↑↓: 音量 | M: ミュート | ESC: 閉じる
+            {/* Right Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Fullscreen Toggle */}
+              <button
+                onClick={toggleFullscreen}
+                className="text-white hover:text-gray-300 transition-colors p-2"
+              >
+                {isFullscreen ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Keyboard Shortcuts Help */}
+              <div className="text-white/60 text-sm hidden lg:block">
+                Space: 再生/一時停止 | ←→: 5秒スキップ | ↑↓: 音量 | M: ミュート | F: フルスクリーン | ESC: 閉じる
+              </div>
             </div>
           </div>
         </div>
