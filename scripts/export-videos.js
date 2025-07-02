@@ -95,8 +95,8 @@ function showHelp() {
   -h, --help              このヘルプを表示
   -e, --export-only       Excelファイルの作成のみ（ダウンロードなし）
   -d, --download-only     ダウンロードのみ（既存のExcelファイルから）
-  -f, --from <日時>       開始日時（例: "2025-06-28 17:00" または ISO形式）
-  -t, --to <日時>         終了日時（省略時は現在時刻）
+  -f, --from <日時>       開始日時（日本時間 JST）（例: "2025-06-28 17:00"）
+  -t, --to <日時>         終了日時（日本時間 JST）（省略時は現在時刻）
   -l, --limit <数>        最大件数
   -o, --output-dir <パス> ダウンロード先ディレクトリ（デフォルト: ~/Downloads/[Excelファイル名]）
   -x, --excel-file <パス> 既存のExcelファイル（download-onlyの場合）
@@ -135,9 +135,17 @@ function parseDateTime(dateStr) {
   const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
   if (match) {
     const [, year, month, day, hour, minute] = match;
-    const jstDate = new Date(year, month - 1, day, hour, minute);
-    // JSTからUTCに変換（-9時間）
-    return new Date(jstDate.getTime() - 9 * 60 * 60 * 1000);
+    // JST時刻として文字列を構築し、UTCに変換
+    const jstString = `${year}-${month}-${day}T${hour}:${minute}:00+09:00`;
+    return new Date(jstString);
+  }
+  
+  // "YYYY-MM-DD" 形式の場合もJSTの00:00として解釈
+  const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateMatch) {
+    const [, year, month, day] = dateMatch;
+    const jstString = `${year}-${month}-${day}T00:00:00+09:00`;
+    return new Date(jstString);
   }
   
   // その他の形式も試す
@@ -211,13 +219,15 @@ async function exportVideos(options) {
     // 日時範囲の適用
     if (options.from) {
       const fromDate = parseDateTime(options.from);
-      console.log(`📅 開始日時: ${fromDate.toISOString()}`);
+      const fromJST = new Date(fromDate.getTime() + 9 * 60 * 60 * 1000);
+      console.log(`📅 開始日時: ${options.from} JST (UTC: ${fromDate.toISOString()})`);
       query = query.gte('created_at', fromDate.toISOString());
     }
     
     if (options.to) {
       const toDate = parseDateTime(options.to);
-      console.log(`📅 終了日時: ${toDate.toISOString()}`);
+      const toJST = new Date(toDate.getTime() + 9 * 60 * 60 * 1000);
+      console.log(`📅 終了日時: ${options.to} JST (UTC: ${toDate.toISOString()})`);
       query = query.lte('created_at', toDate.toISOString());
     }
 
@@ -330,10 +340,21 @@ async function exportVideos(options) {
     // グリッド線を表示
     worksheet.views = [{ showGridLines: true }];
 
-    // ファイル名（日時を含む）
-    const jstNow = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
-    const dateStr = jstNow.toISOString().slice(0, 10); // YYYY-MM-DD format
-    const timeStr = jstNow.toISOString().slice(11, 19).replace(/:/g, '-'); // HH-MM-SS format
+    // ファイル名（日時を含む）- JST時刻を使用
+    const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000; // 9 hours in milliseconds
+    const jstNow = new Date(now.getTime() + jstOffset);
+    
+    // JSTの日時を手動でフォーマット
+    const year = jstNow.getUTCFullYear();
+    const month = String(jstNow.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(jstNow.getUTCDate()).padStart(2, '0');
+    const hour = String(jstNow.getUTCHours()).padStart(2, '0');
+    const minute = String(jstNow.getUTCMinutes()).padStart(2, '0');
+    const second = String(jstNow.getUTCSeconds()).padStart(2, '0');
+    
+    const dateStr = `${year}-${month}-${day}`;
+    const timeStr = `${hour}-${minute}-${second}`;
     const fileName = `showgeki2_videos_${dateStr}_${timeStr}.xlsx`;
     
     // Excelファイルも~/Downloadsに保存
