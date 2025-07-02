@@ -117,9 +117,24 @@ const VideosPage: React.FC = () => {
   };
 
   // Handler functions
+  // Handler functions
   const handleWatchVideo = (video: Video) => {
-    setSelectedVideo(video);
-    setShowFullscreenPlayer(true);
+    if (!video.url) return;
+
+    try {
+      // Create download link
+      const link = document.createElement('a');
+      link.href = video.url;
+      link.download = `video-${video.story_id}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // success('Video download started');
+    } catch (err) {
+      console.error('Failed to download video:', err);
+      error('Failed to download video');
+    }
   };
 
   const handleDownloadVideo = async (video: Video) => {
