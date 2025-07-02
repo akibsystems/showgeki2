@@ -1136,3 +1136,246 @@
   background: rgba(139, 92, 246, 0.1);
   border-color: rgba(139, 92, 246, 0.3);
 }
+
+/* =========================
+   BGM設定セクション
+   ========================= */
+
+.sectionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* 現在のBGM表示 */
+.currentBgmDisplay {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.currentBgmHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #c084fc;
+}
+
+.currentBgmTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.currentBgmInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.currentBgmName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e9d5ff;
+}
+
+.currentBgmMood {
+  font-size: 0.9rem;
+  color: #c084fc;
+}
+
+.currentBgmDescription {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+/* BGM選択ドロップダウン */
+.bgmSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bgmSelectorLabel {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.bgmSelect {
+  padding: 0.75rem;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  background: rgba(31, 41, 55, 0.5);
+  color: #e5e7eb;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bgmSelect:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.bgmSelect:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.bgmSelect:disabled {
+  background: rgba(31, 41, 55, 0.3);
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* BGMグリッド表示 */
+.bgmList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bgmListTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+.bgmGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.bgmCard {
+  background: rgba(31, 41, 55, 0.5);
+  border: 2px solid rgba(139, 92, 246, 0.1);
+  border-radius: 8px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bgmCard:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.bgmCard:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bgmCard:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.bgmCardActive {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.bgmCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bgmCardHeader svg {
+  flex-shrink: 0;
+  color: #c084fc;
+}
+
+.bgmCardActive .bgmCardHeader svg {
+  color: #e9d5ff;
+}
+
+.bgmCardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  line-height: 1.2;
+}
+
+.bgmCardMood {
+  font-size: 0.85rem;
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.bgmCardDescription {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+/* BGM使用上の注意 */
+.bgmNotice {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.bgmNoticeIcon {
+  flex-shrink: 0;
+  color: #c084fc;
+}
+
+.bgmNoticeIcon svg {
+  display: block;
+}
+
+.bgmNoticeText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bgmNoticeText p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+
+.bgmNoticeSubtext {
+  color: #9ca3af !important;
+  font-size: 0.85rem !important;
+}
+
+/* レスポンシブ対応 */
+@media (min-width: 768px) {
+  .bgmGrid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  
+  .currentBgmDisplay {
+    padding: 2rem;
+  }
+  
+  .bgmCard {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bgmGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

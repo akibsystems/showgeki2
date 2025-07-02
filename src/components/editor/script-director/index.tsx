@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SpeechSettings } from './components/SpeechSettings';
 import { BeatsEditor } from './components/BeatsEditor';
 import { ImageSettings } from './components/ImageSettings';
+import { AudioSettings } from './components/AudioSettings';
 import { SpeakerModal } from './components/modals/SpeakerModal';
 import { ImageModal } from './components/modals/ImageModal';
 import { useScriptDirector } from './hooks/useScriptDirector';
@@ -195,6 +196,32 @@ export function ScriptDirector({
     setEditingImage(null);
   };
 
+  // BGM更新
+  const handleUpdateBgm = (bgm: string) => {
+    const updatedScript = {
+      ...currentScript,
+      audioParams: bgm === 'none' ? undefined : {
+        padding: currentScript.audioParams?.padding ?? 0.3,
+        introPadding: currentScript.audioParams?.introPadding ?? 1.0,
+        closingPadding: currentScript.audioParams?.closingPadding ?? 0.8,
+        outroPadding: currentScript.audioParams?.outroPadding ?? 1.0,
+        bgmVolume: currentScript.audioParams?.bgmVolume ?? 0.2,
+        audioVolume: currentScript.audioParams?.audioVolume ?? 1.0,
+        bgm: {
+          kind: 'url' as const,
+          url: bgm
+        }
+      }
+    };
+    updateScript(updatedScript);
+  };
+
+  // 音量更新（MulmoScriptでは音量設定がないようなので、この関数は削除または空にする）
+  const handleUpdateVolume = (volume: number) => {
+    // MulmoScriptでは音量設定をサポートしていないため、何もしない
+    console.log('Volume setting is not supported in MulmoScript format');
+  };
+
   return (
     <div className={`${styles.scriptDirector} ${className}`}>
       {/* タイトル編集セクションを削除 - ヘッダーで編集するため */}
@@ -227,6 +254,15 @@ export function ScriptDirector({
           disabled={isReadOnly}
         >
           📝 台本
+        </button>
+        <button
+          className={`${styles.tabButton} ${
+            state.activeTab === 'audio' ? styles.tabButtonActive : ''
+          }`}
+          onClick={() => setActiveTab('audio')}
+          disabled={isReadOnly}
+        >
+          🎵 BGM
         </button>
       </div>
 
@@ -284,6 +320,19 @@ export function ScriptDirector({
             onAddBeat={beatsManager.addBeat}
             onDeleteBeat={beatsManager.deleteBeat}
             onMoveBeat={beatsManager.moveBeat}
+            isReadOnly={isReadOnly}
+          />
+        </div>
+
+        {/* BGM設定タブ */}
+        <div
+          className={`${styles.tabContent} ${
+            state.activeTab === 'audio' ? styles.tabContentActive : ''
+          }`}
+        >
+          <AudioSettings
+            bgm={currentScript.audioParams?.bgm?.url || 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3'}
+            onUpdateBgm={handleUpdateBgm}
             isReadOnly={isReadOnly}
           />
         </div>

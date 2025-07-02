@@ -51,7 +51,7 @@ export function useScriptDirector(
   // タイトル更新を削除 - ヘッダーで管理するため
 
   // タブ切り替え（モバイル用）
-  const setActiveTab = useCallback((tab: 'image' | 'speech' | 'beats') => {
+  const setActiveTab = useCallback((tab: 'image' | 'speech' | 'beats' | 'audio') => {
     setState(prev => ({ ...prev, activeTab: tab }));
   }, []);
 

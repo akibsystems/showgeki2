@@ -6,8 +6,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8080
-      - WATCH_MODE=true
-      - OPENAI_IMAGE_QUALITY_DEFAULT=medium
+      # - WATCH_MODE=true
+      - OPENAI_IMAGE_QUALITY_DEFAULT=low
     env_file:
       - .env.local
     volumes:

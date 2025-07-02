@@ -113,6 +113,10 @@ export const MulmoAudioParamsSchema = z.object({
   outroPadding: z.number().default(1.0),
   bgmVolume: z.number().default(0.2),
   audioVolume: z.number().default(1.0),
+  bgm: z.object({
+    kind: z.literal('url'),
+    url: z.string().url(),
+  }).optional(),
 });
 
 export const MulmoTextSlideSchema = z.object({
