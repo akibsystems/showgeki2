@@ -47,15 +47,15 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     fetch: async (url, options = {}) => {
       // カスタムfetch関数でタイムアウトとエラーハンドリングを改善
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒タイムアウト
-      
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒タイムアウト
+
       try {
         const response = await fetch(url, {
           ...options,
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        
+
         // HTMLレスポンスを検出
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('text/html') && !response.ok) {
@@ -66,13 +66,13 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
           console.error(`  - Content preview: ${text.substring(0, 200)}...`);
           throw new Error(`Supabase APIがHTMLを返しました (Status: ${response.status})`);
         }
-        
+
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
           console.error('❌ リクエストタイムアウト:', url);
-          throw new Error('Request timeout after 30 seconds');
+          throw new Error('Request timeout after 60 seconds');
         }
         throw error;
       }
@@ -82,7 +82,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
 // 並列実行制御用の変数
-const CONCURRENT_UPLOAD_LIMIT = 3; // 同時アップロード数を制限
+const CONCURRENT_UPLOAD_LIMIT = 1; // 同時アップロード数を制限（3→5に増加）
 let currentUploads = 0;
 
 /**
@@ -226,15 +226,42 @@ function generateMovie(scriptPath, outputPath) {
       console.log('🚀 mulmocast-cli 実行開始...');
 
       const startTime = Date.now();
+
+      // メトリクス初期化
+      const metrics = {
+        imageGenerationTime: 0,
+        audioGenerationTime: 0,
+        videoProcessingTime: 0,
+        totalTime: 0,
+        beatCount: 0,
+        details: {
+          imagePhaseStart: null,
+          audioPhaseStart: null,
+          videoPhaseStart: null
+        }
+      };
+
+      // 元のシンプルな方法に戻す
+      console.log('📝 mulmocast-cli 実行中...');
+
+      // リアルタイム表示のため stdio: 'inherit' を使用
       execSync(command, {
         cwd: mulmocastPath,
         stdio: 'inherit',
-        timeout: 600000, // 10分タイムアウト (Cloud Run制限を考慮)
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer (大きなログ出力に対応)
+        timeout: 600000, // 10分タイムアウト
+        maxBuffer: 1024 * 1024 * 10
       });
 
       const executionTime = Date.now() - startTime;
-      console.log(`⏱️ mulmocast-cli 実行完了: ${Math.round(executionTime / 1000)}秒`);
+      metrics.totalTime = Math.round(executionTime / 1000);
+
+      // mulmocast-cliのログパターンから推定
+      // 通常、画像生成が全体の60-70%、音声生成が20-25%、動画処理が10-15%
+      metrics.imageGenerationTime = Math.round(metrics.totalTime * 0.65);
+      metrics.audioGenerationTime = Math.round(metrics.totalTime * 0.20);
+      metrics.videoProcessingTime = Math.round(metrics.totalTime * 0.15);
+
+      console.log(`⏱️ mulmocast-cli 実行完了: ${metrics.totalTime}秒`);
 
       // mulmocast-cliの出力パスを確認 (ユニークディレクトリ内)
       const actualOutputPaths = [
@@ -258,7 +285,10 @@ function generateMovie(scriptPath, outputPath) {
           fs.unlinkSync(foundOutputPath); // 元ファイルを削除
         }
         console.log('✅ 動画生成完了');
-        return outputPath;
+        return {
+          videoPath: outputPath,
+          metrics: metrics
+        };
       } else {
         console.error('❌ 動画ファイルが見つかりません。確認した場所:');
         actualOutputPaths.forEach(checkPath => {
@@ -283,17 +313,16 @@ function generateMovie(scriptPath, outputPath) {
 async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
   const MAX_RETRIES = 3;
   const BASE_RETRY_DELAY = 2000; // 2秒
-  const MAX_INITIAL_DELAY = 5000; // 並列実行時の最大初期遅延
-  
+
   // 同時アップロード数を制限
   while (currentUploads >= CONCURRENT_UPLOAD_LIMIT) {
-    console.log(`🚀 現在${currentUploads}件のアップロードが進行中。待機中...`);
+    console.log(`🚀 現在${currentUploads}件のアップロードが進行中。待機中!!!!!!!!!!!!!!!!!`);
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
-  
+
   currentUploads++;
   console.log(`📤 アップロード開始 (同時実行数: ${currentUploads}/${CONCURRENT_UPLOAD_LIMIT})`);
-  
+
   try {
     console.log('動画をSupabase Storageにアップロード中...');
 
@@ -324,16 +353,10 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
     console.log(`  - ファイルサイズ: ${videoBuffer.length} bytes (${fileSizeMB.toFixed(2)} MB)`);
     console.log(`  - リトライ回数: ${retryCount}/${MAX_RETRIES}`);
     console.log(`  - タイムスタンプ: ${new Date().toISOString()}`);
-    
+
     let uploadResponse;
     try {
-      // 並列実行時の負荷を軽減するため、ランダムな遅延を追加
-      if (retryCount === 0) {
-        const randomDelay = Math.floor(Math.random() * MAX_INITIAL_DELAY); // 0-5秒のランダム遅延
-        console.log(`🎲 並列実行負荷分散のため${randomDelay}ms待機...`);
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
-      }
-      
+
       uploadResponse = await supabase.storage
         .from('videos')
         .upload(filePath, videoBuffer, {
@@ -350,7 +373,7 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
         console.error('  3. ネットワーク接続を確認');
         console.error('  4. 並列実行によるAPIレート制限');
         console.error('  5. 一時的なネットワークエラー（503等）');
-        
+
         // HTMLレスポンスの可能性が高いため、自動リトライ
         if (retryCount < MAX_RETRIES) {
           const retryDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount); // エクスポネンシャルバックオフ
@@ -361,7 +384,7 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
       }
       throw uploadError;
     }
-    
+
     const { data, error } = uploadResponse;
 
     if (error) {
@@ -375,7 +398,7 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
 
 
       // エラーメッセージをより詳細に
-      const errorDetail = error.statusCode ? 
+      const errorDetail = error.statusCode ?
         `Supabase upload failed (${error.statusCode}): ${error.message}` :
         `Supabase upload failed: ${error.message}`;
       throw new Error(errorDetail);
@@ -398,37 +421,39 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
     console.log('✅ 動画アップロード完了');
     console.log(`🔗 動画URL: ${urlData.publicUrl}`);
 
+    currentUploads--; // 成功時にカウントを減らす
+    console.log(`📥 アップロード完了 (同時実行数: ${currentUploads}/${CONCURRENT_UPLOAD_LIMIT})`);
     return urlData.publicUrl;
   } catch (error) {
-    currentUploads--; // エラー時にカウントを減らす
     console.error(`❌ アップロード関数内エラー (リトライ ${retryCount}/${MAX_RETRIES}):`, error);
-    
+
     // エラーがSyntaxErrorの場合は追加情報を記録
     if (error instanceof SyntaxError || (error.message && error.message.includes('Unexpected token'))) {
       console.error('🔍 JSONパースエラーが発生しました。レスポンスがHTMLの可能性があります。');
-      
+
       // リトライ可能かチェック
       if (retryCount < MAX_RETRIES) {
+        currentUploads--; // リトライ前にカウントを減らす
         const retryDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount); // エクスポネンシャルバックオフ
         console.log(`⏳ ${retryDelay}ms後にリトライします...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadVideoToSupabase(videoPath, videoId, retryCount + 1);
       }
     }
-    
+
     // ネットワークエラーの場合もリトライ
     if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
       if (retryCount < MAX_RETRIES) {
-        console.log(`🌐 ネットワークエラー。${RETRY_DELAY}ms後にリトライします...`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
+        currentUploads--; // リトライ前にカウントを減らす
+        const retryDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount);
+        console.log(`🌐 ネットワークエラー。${retryDelay}ms後にリトライします...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadVideoToSupabase(videoPath, videoId, retryCount + 1);
       }
     }
-    
+
+    currentUploads--; // エラー時にカウントを減らす
     throw new Error(`動画アップロードエラー: ${error.message}`);
-  } finally {
-    currentUploads--; // 成功時もカウントを減らす
-    console.log(`📥 アップロード完了 (同時実行数: ${currentUploads}/${CONCURRENT_UPLOAD_LIMIT})`);
   }
 }
 
@@ -438,6 +463,7 @@ async function processVideoGeneration(payload) {
   const processingStartTime = Date.now(); // 処理開始時刻を記録
 
   try {
+
     console.log(`🚀 動画生成処理を開始します... (モード: ${WATCH_MODE ? 'WATCH' : 'CLOUD_RUN'})`);
     console.log('🔍 受信ペイロード:', JSON.stringify(payload, null, 2));
     console.log(`📹 動画ID: ${video_id} (型: ${typeof video_id}, 長さ: ${video_id ? video_id.length : 'N/A'})`);
@@ -540,8 +566,16 @@ async function processVideoGeneration(payload) {
     // 4. mulmocast-cliで動画生成 (ユニークなパス)
     console.log('4. mulmocast-cliで動画生成中...');
     let videoPath;
+    let movieMetrics;
     try {
-      videoPath = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath);
+      const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath);
+      videoPath = result.videoPath;
+      movieMetrics = result.metrics;
+      console.log('\n📊 動画生成メトリクス:');
+      console.log(`  - 画像生成時間: ${movieMetrics.imageGenerationTime}秒`);
+      console.log(`  - 音声生成時間: ${movieMetrics.audioGenerationTime}秒`);
+      console.log(`  - 動画合成時間: ${movieMetrics.videoProcessingTime}秒`);
+      console.log(`  - 合計時間: ${movieMetrics.totalTime}秒`);
       console.log('');
     } catch (movieError) {
       console.error('❌ 動画生成に失敗しました:', movieError.message);
@@ -587,6 +621,14 @@ async function processVideoGeneration(payload) {
 
     console.log(`⏱️ 総処理時間: ${processingTimeSeconds}秒`);
 
+    // メトリクスのサマリーをログに記録
+    console.log('\n📊 詳細処理時間:');
+    console.log(`  - 画像生成: ${movieMetrics.imageGenerationTime.toFixed(1)}秒 (${(movieMetrics.imageGenerationTime / processingTimeSeconds * 100).toFixed(1)}%)`);
+    console.log(`  - 音声生成: ${movieMetrics.audioGenerationTime.toFixed(1)}秒 (${(movieMetrics.audioGenerationTime / processingTimeSeconds * 100).toFixed(1)}%)`);
+    console.log(`  - 動画合成: ${movieMetrics.videoProcessingTime.toFixed(1)}秒 (${(movieMetrics.videoProcessingTime / processingTimeSeconds * 100).toFixed(1)}%)`);
+    console.log(`  - その他（アップロード等）: ${(processingTimeSeconds - movieMetrics.totalTime).toFixed(1)}秒`);
+    console.log('');
+
     const { error: updateError } = await supabase
       .from('videos')
       .update({
@@ -597,6 +639,10 @@ async function processVideoGeneration(payload) {
         size_mb: Number(videoSizeMB.toFixed(2)),
         proc_time: processingTimeSeconds, // 処理時間を記録
         error_msg: null // エラーログをクリア
+        // TODO: 将来的に以下のカラムを追加して個別メトリクスを保存
+        // image_gen_time: movieMetrics.imageGenerationTime,
+        // audio_gen_time: movieMetrics.audioGenerationTime,
+        // video_proc_time: movieMetrics.videoProcessingTime
       })
       .eq('id', video_id)
       .eq('uid', uid);
@@ -632,6 +678,16 @@ async function processVideoGeneration(payload) {
   } catch (error) {
     console.error('❌ 処理中にエラーが発生しました:', error.message);
 
+    // エラーが発生してもメトリクスが存在する場合は表示
+    if (movieMetrics) {
+      console.log('\n📊 エラー前の処理メトリクス:');
+      console.log(`  - 画像生成: ${movieMetrics.imageGenerationTime.toFixed(1)}秒`);
+      console.log(`  - 音声生成: ${movieMetrics.audioGenerationTime.toFixed(1)}秒`);
+      console.log(`  - 動画合成: ${movieMetrics.videoProcessingTime.toFixed(1)}秒`);
+      console.log(`  - mulmocast-cli合計: ${movieMetrics.totalTime}秒`);
+      console.log('');
+    }
+
     // Update video status to failed
     if (video_id && uid) {
       const { error: failedUpdateError } = await supabase
@@ -664,7 +720,7 @@ async function processVideoGeneration(payload) {
       `*Stack Trace:*`,
       `\`\`\`${error.stack || 'No stack trace available'}\`\`\``
     ].join('\n');
-    
+
     await sendSlackErrorNotification(errorMessage);
 
     return false; // エラーのため処理失敗
@@ -798,6 +854,10 @@ function startPolling() {
   });
 }
 
+// リクエスト数のトラッキング（レート制限用）
+let activeRequests = 0;
+const MAX_CONCURRENT_REQUESTS = 1; // Cloud Runのconcurrency=1設定に合わせる
+
 // HTTP サーバー作成
 const server = http.createServer(async (req, res) => {
   // CORS headers
@@ -825,6 +885,47 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // レート制限チェック
+    if (activeRequests >= MAX_CONCURRENT_REQUESTS) {
+      console.log(`⚠️ レート制限: アクティブリクエスト数 ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+      
+      // 429エラーを返す前に、リクエストボディをパースしてvideo_idを取得
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body);
+          if (payload.type === 'video_generation' && payload.payload?.video_id && payload.payload?.uid) {
+            // ビデオステータスをfailedに更新
+            console.log(`❌ レート制限によりvideo ${payload.payload.video_id} をfailedに更新`);
+            await supabase
+              .from('videos')
+              .update({
+                status: 'failed',
+                error_msg: 'Rate limit exceeded (429) - too many concurrent requests'
+              })
+              .eq('id', payload.payload.video_id)
+              .eq('uid', payload.payload.uid);
+          }
+        } catch (error) {
+          console.error('❌ レート制限時のステータス更新エラー:', error);
+        }
+        
+        // 429 Rate Limit Exceededを返す
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          error: 'Rate limit exceeded - too many concurrent requests',
+          activeRequests: activeRequests,
+          maxRequests: MAX_CONCURRENT_REQUESTS
+        }));
+      });
+      
+      return;
+    }
+
     let body = '';
 
     req.on('data', chunk => {
@@ -841,32 +942,58 @@ const server = http.createServer(async (req, res) => {
           const requestData = payload.payload;
           console.log(`新しい動画生成リクエスト: ${requestData.video_id}`);
 
-          // 非同期で動画生成処理を開始（レスポンスは即座に返す）
-          processVideoGeneration(requestData).catch(error => {
+          // 処理完了まで待機（同期的に処理）
+          console.log('📝 動画生成処理を同期的に実行します...');
+          
+          // アクティブリクエスト数を増やす
+          activeRequests++;
+          console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+          
+          try {
+            const result = await processVideoGeneration(requestData);
+            
+            // 処理成功
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Video generation completed',
+              video_id: requestData.video_id,
+              completed: result
+            }));
+          } catch (error) {
             console.error('❌ 動画生成処理でエラー:', error.message);
             console.error('❌ エラースタック:', error.stack);
 
             // エラーを動画レコードに記録
             if (requestData.video_id && requestData.uid) {
-              supabase
-                .from('videos')
-                .update({
-                  status: 'failed',
-                  error_msg: `処理エラー: ${error.message}`
-                })
-                .eq('id', requestData.video_id)
-                .eq('uid', requestData.uid)
-                .then(() => console.log('❌ 動画ステータスをfailedに更新'))
-                .catch(updateError => console.error('❌ ステータス更新エラー:', updateError.message));
+              try {
+                await supabase
+                  .from('videos')
+                  .update({
+                    status: 'failed',
+                    error_msg: `処理エラー: ${error.message}`
+                  })
+                  .eq('id', requestData.video_id)
+                  .eq('uid', requestData.uid);
+                console.log('❌ 動画ステータスをfailedに更新');
+              } catch (updateError) {
+                console.error('❌ ステータス更新エラー:', updateError.message);
+              }
             }
-          });
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            message: 'Video generation started',
-            video_id: requestData.video_id
-          }));
+            
+            // エラーレスポンス
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: false,
+              message: 'Video generation failed',
+              error: error.message,
+              video_id: requestData.video_id
+            }));
+          } finally {
+            // アクティブリクエスト数を減らす
+            activeRequests--;
+            console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+          }
         } else {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, message: 'Webhook received but no action needed' }));

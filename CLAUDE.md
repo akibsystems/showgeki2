@@ -82,6 +82,18 @@ node scripts/video-manager.js --download-only --excel-file showgeki2_videos_2025
 
 # Custom date range
 node scripts/video-manager.js --from "2025-06-28 09:00" --to "2025-06-28 18:00"
+
+# Export videos with JST timezone support
+node scripts/export-videos.js --from "2025-07-01 16:00" --to "2025-07-01 17:00"
+```
+
+### Load Testing
+```bash
+# Run comprehensive load test with 10 concurrent users
+node scripts/load-test-concurrent.js
+
+# Check failed videos after load test
+node scripts/check-failed-videos.js
 ```
 
 ### Cloud Run Webhook Testing
@@ -109,6 +121,11 @@ node scripts/test-webhook-concurrent.js
 - **`export-stories-excel.js`**: Data export to Excel
 - **`video-manager.js`**: Unified video export and download tool (default: past 24 hours to ~/Downloads)
 - **`fix-video-metadata.js`**: Fixes duration/resolution for existing videos by downloading and analyzing them
+- **`export-videos.js`**: Video export script with JST timezone support for specific time ranges
+- **`load-test-concurrent.js`**: Comprehensive load testing script for concurrent user simulation
+- **`check-failed-videos.js`**: Monitor and analyze failed video generation attempts
+- **`test-webhook-concurrent.js`**: Test webhook endpoint with concurrent requests
+- **`test-webhook-curl.sh`**: Simple webhook health check using curl
 
 ### Frontend Pages
 - **`/`**: Homepage and service introduction
@@ -245,10 +262,12 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 ## Deployment Architecture
 
 ### Cloud Run Configuration
-- **Scaling**: 0-10 instances (cost-optimized)
-- **Resources**: 1 vCPU, 2GB RAM
+- **Scaling**: 0-100 instances (increased for higher throughput)
+- **Resources**: 4 vCPU, 8GB RAM (gen2 execution environment)
 - **Timeout**: 3600 seconds (for long video processing)
 - **Platform**: linux/amd64 (required for mulmocast-cli)
+- **Concurrency**: 1 request per container (prevents global variable conflicts)
+- **Rate Limiting**: Automatic handling of 429 errors with video status update
 
 ### Cost Optimization
 - Serverless scaling with zero minimum instances
@@ -277,6 +296,7 @@ The system supports two operation modes:
 - `test-local.js`: Local webhook testing
 - `test-cloud-run.js`: End-to-end production testing with real story creation
 - `test-mulmocast.js`: Video generation verification
+- `test-webhook-concurrent.js`: Concurrent webhook processing test
 
 ### Admin Interface
 - Access via `/mgmt-x7k9n2p8q5` (secure URL pattern)
@@ -291,3 +311,50 @@ The system supports two operation modes:
 - **`src/app/`**: Next.js App Router pages and API routes
 - **`src/components/`**: Reusable React components
 - **Docker files**: `Dockerfile` (production), `Dockerfile.dev` (development)
+
+## Recently Added Scripts (2025-07-02)
+
+### 1. export-videos.js
+**Purpose**: Export video data with JST timezone support  
+**Features**:
+- Accepts time input in JST format (e.g., "2025-07-01 16:00")
+- Exports video metadata to Excel with JST timestamps
+- Downloads video files to local directory
+- Properly handles timezone conversion between JST and UTC
+
+### 2. load-test-concurrent.js
+**Purpose**: Comprehensive load testing for the entire story-to-video pipeline  
+**Features**:
+- Simulates multiple concurrent users (configurable via --users flag, default: 1)
+- Tests full workflow: story creation → script generation → video generation
+- Automatically sets image quality to "low" for test efficiency
+- Optional Excel report generation with --excel flag
+- Measures success rate, processing time, and identifies bottlenecks
+- Synchronous webhook processing with proper 429 rate limit handling
+**Usage**:
+```bash
+node scripts/load-test-concurrent.js --users 20  # Test with 20 concurrent users
+node scripts/load-test-concurrent.js -u 5 --excel  # Test with 5 users and export Excel
+```
+
+### 3. check-failed-videos.js
+**Purpose**: Monitor and analyze failed video generation attempts  
+**Features**:
+- Lists recent failed videos with error details
+- Identifies load test failures separately
+- Shows video ID, story ID, UID, and error messages
+- Useful for debugging production issues
+
+### 4. test-webhook-concurrent.js
+**Purpose**: Test webhook endpoint under concurrent load  
+**Features**:
+- Sends multiple concurrent webhook requests
+- Measures response times and success rates
+- Helps identify scaling issues with Cloud Run service
+
+### 5. test-webhook-curl.sh
+**Purpose**: Simple webhook health check  
+**Features**:
+- Quick curl-based health check for Cloud Run service
+- Verifies webhook endpoint is accessible
+- Useful for deployment verification
