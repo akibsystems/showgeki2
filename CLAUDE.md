@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Showgeki2 is an AI-powered Japanese web application that transforms user stories into Shakespeare-style 5-act theatrical videos. Users submit stories about their future dreams, receive an 8-digit registration ID, and get AI-generated videos featuring Ghibli-style anime visuals with synthesized voices.
+Showgeki2 is an AI-powered Japanese web application that transforms user stories into Shakespeare-style 5-act theatrical videos. Users submit stories about their future dreams, receive an 8-digit registration ID, and get AI-generated videos featuring anime-style visuals with synthesized voices.
 
 ## Core Architecture
 
@@ -230,12 +230,12 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
   - **重要**: gpt-4oは古いモデルなので使用しないでください
   - gpt-4.1の方が性能が良く、料金も安いです
 - **Format**: JSON with dynamic beats (1-20 scenes), characters, dialogue, image prompts
-- **Style**: Shakespeare-style Japanese dialogue with Ghibli anime visuals
+- **Style**: Shakespeare-style Japanese dialogue with anime visuals
 - **Voices**: Dynamic assignment from OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
 
 ### Video Output
 - **Duration**: Typically 30-60 seconds (automatically detected from video file)
-- **Style**: Ghibli anime with soft pastel colors
+- **Style**: anime with soft pastel colors
 - **Resolution**: Optimized for mobile viewing (automatically detected from video file)
 - **Processing time**: 2-5 minutes per video
 - **Metadata**: Duration and resolution are extracted using ffprobe after generation

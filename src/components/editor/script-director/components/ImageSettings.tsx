@@ -23,8 +23,8 @@ interface ImageSettingsProps {
 
 const STYLE_PRESETS = [
   {
-    value: 'ジブリ風アニメ、ソフトパステルカラー、繊細な線画、シネマティック照明',
-    label: 'ジブリ風アニメ（デフォルト）',
+    value: 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
+    label: 'アニメ風（デフォルト）',
     description: 'ソフトパステルカラー、繊細な線画'
   },
   {

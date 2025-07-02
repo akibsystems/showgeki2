@@ -397,7 +397,7 @@ function generateEnhancedMockMulmoscript(
       speakers,
     },
     imageParams: {
-      style: `Ghibli style anime, ${variation.imageStyle}, soft pastel colors, high quality`,
+      style: `anime style, ${variation.imageStyle}, soft pastel colors, high quality`,
     },
     beats,
   };

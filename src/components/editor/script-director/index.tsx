@@ -239,7 +239,7 @@ export function ScriptDirector({
           }`}
         >
           <ImageSettings
-            style={currentScript.imageParams?.style || 'ジブリ風アニメ、ソフトパステルカラー、繊細な線画、シネマティック照明'}
+            style={currentScript.imageParams?.style || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明'}
             images={imageManager.images}
             onUpdateStyle={handleUpdateStyle}
             onAddImage={handleAddImage}

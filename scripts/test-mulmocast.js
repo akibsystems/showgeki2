@@ -16,7 +16,7 @@ const testScript = {
     "version": "1.0"
   },
   "imageParams": {
-    "style": "Ghibli style anime, soft pastel colors, delicate line art, cinematic lighting",
+    "style": "anime style, soft pastel colors, delicate line art, cinematic lighting",
     "model": "gpt-image-1"
   },
   "speechParams": {
@@ -34,12 +34,12 @@ const testScript = {
     {
       "speaker": "ナレーター",
       "text": "昔々、ある森に小さなウサギが住んでいました。",
-      "imagePrompt": "A small rabbit in a beautiful forest, Ghibli style anime"
+      "imagePrompt": "A small rabbit in a beautiful forest, anime style"
     },
     {
       "speaker": "ウサギ",
       "text": "今日はいい天気だなあ。お散歩に行こう！",
-      "imagePrompt": "A happy rabbit looking at the sunny sky, Ghibli style"
+      "imagePrompt": "A happy rabbit looking at the sunny sky, anime style"
     },
     {
       "speaker": "ナレーター",
