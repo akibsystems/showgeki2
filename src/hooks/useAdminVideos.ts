@@ -101,12 +101,18 @@ export function useAdminVideos(): UseAdminVideosReturn {
     setIsDeleting(true);
     
     try {
-      // Use request method directly for DELETE with body
-      await apiClient.request({
+      // Make custom DELETE request with body
+      const response = await fetch('/api/admin/videos', {
         method: 'DELETE',
-        url: '/api/admin/videos',
-        data: { videoIds }
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoIds }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete videos: ${response.statusText}`);
+      }
       
       success(`${videoIds.length}件の動画を削除しました`);
       

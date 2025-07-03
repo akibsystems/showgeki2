@@ -22,10 +22,14 @@ const DashboardPage: React.FC = () => {
   // Ensure workspace exists for first-time users
   useEffect(() => {
     const initializeWorkspace = async () => {
-      // Check if already attempting to create workspace
-      const isCreatingWorkspace = sessionStorage.getItem('creatingWorkspace');
-      
-      if (!workspaceLoading && !workspace && !state.isLoading && !isCreatingWorkspace) {
+      // Only run when loading is complete and no workspace exists
+      if (!workspaceLoading && !workspace && !state.isLoading) {
+        // Check if already attempting to create workspace
+        const isCreatingWorkspace = sessionStorage.getItem('creatingWorkspace');
+        if (isCreatingWorkspace) {
+          return;
+        }
+        
         try {
           console.log('[Dashboard] Initializing workspace...');
           sessionStorage.setItem('creatingWorkspace', 'true');
@@ -40,8 +44,9 @@ const DashboardPage: React.FC = () => {
     };
 
     initializeWorkspace();
-    // Remove ensureWorkspace and error from dependencies to prevent infinite loop
-  }, [workspace, workspaceLoading, state.isLoading]);
+    // Only depend on loading states to avoid re-running when workspace is created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceLoading, state.isLoading]);
 
   // Show loading state while essential data is loading
   const isLoading = state.isLoading || workspaceLoading;

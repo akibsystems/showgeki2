@@ -73,7 +73,9 @@ export function SessionProvider({ children, initialSession = null }: SessionProv
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('Auth state change:', event);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Auth state change:', event);
+        }
         
         setSession(newSession);
         setUser(newSession?.user ?? null);
@@ -92,7 +94,9 @@ export function SessionProvider({ children, initialSession = null }: SessionProv
 
         // Handle token refresh
         if (event === 'TOKEN_REFRESHED' && newSession) {
-          console.log('Token refreshed, updating stored session');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Token refreshed, updating stored session');
+          }
           await saveSession({
             access_token: newSession.access_token,
             refresh_token: newSession.refresh_token,
@@ -100,8 +104,9 @@ export function SessionProvider({ children, initialSession = null }: SessionProv
           });
         }
 
-        // Force router refresh to update server components
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        // Force router refresh to update server components on sign out only
+        // Don't reload on sign in as it causes infinite reload loops
+        if (event === 'SIGNED_OUT') {
           window.location.reload();
         }
       }

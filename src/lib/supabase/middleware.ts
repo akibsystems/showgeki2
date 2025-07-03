@@ -54,6 +54,19 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   );
 
+  // Skip auth checks for auth callback
+  if (request.nextUrl.pathname === '/auth/callback') {
+    return response;
+  }
+
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Middleware - path:', request.nextUrl.pathname);
+    console.log('Middleware - user:', user ? `${user.email} (${user.id})` : 'null');
+    console.log('Middleware - isProtectedPath:', isProtectedPath);
+    console.log('Middleware - isAuthPath:', isAuthPath);
+  }
+
   // Redirect to login if accessing protected route without authentication
   if (isProtectedPath && !user) {
     const redirectUrl = new URL('/auth/login', request.url);

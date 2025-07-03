@@ -88,9 +88,10 @@ export const swrConfig: SWRConfiguration = {
   // Success handling
   onSuccess: (data, key, config) => {
     // Could log successful API calls for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('SWR Success:', key, data);
-    }
+    // Commented out to reduce console noise
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log('SWR Success:', key, data);
+    // }
   },
 };
 

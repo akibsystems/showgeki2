@@ -225,9 +225,9 @@ export async function getAdminList(): Promise<Array<{ id: string; email?: string
       return [];
     }
     
-    return admins.map(admin => ({
+    return admins.map((admin: any) => ({
       id: admin.id,
-      email: admin.profiles?.email,
+      email: admin.profiles?.email || '',
       created_at: admin.created_at,
     }));
   } catch (error) {

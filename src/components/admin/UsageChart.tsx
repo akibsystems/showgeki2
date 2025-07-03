@@ -114,10 +114,14 @@ export function UsageChart({ data, loading = false }: UsageChartProps) {
               labelStyle={{ color: '#e5e7eb' }}
               itemStyle={{ color: '#e5e7eb' }}
               formatter={(value: number) => value.toLocaleString()}
-              labelFormatter={(label: string, payload: any[]) => {
-                if (payload && payload[0]) {
-                  const date = new Date(payload[0].payload.date);
-                  return format(date, 'yyyy年M月d日', { locale: ja });
+              labelFormatter={(label: any) => {
+                try {
+                  const date = new Date(label);
+                  if (!isNaN(date.getTime())) {
+                    return format(date, 'yyyy年M月d日', { locale: ja });
+                  }
+                } catch (e) {
+                  // Fallback to original label
                 }
                 return label;
               }}
