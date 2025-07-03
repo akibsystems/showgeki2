@@ -12,7 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { ja } from 'date-fns/locale/ja';
 
 // ================================================================
 // Types

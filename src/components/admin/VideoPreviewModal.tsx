@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui';
 import { VideoPlayer } from '@/components/video';
 import { VideoWithRelations } from '@/hooks/useAdminVideos';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { ja } from 'date-fns/locale/ja';
 
 // ================================================================
 // Types

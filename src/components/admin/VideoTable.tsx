@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { VideoWithRelations } from '@/hooks/useAdminVideos';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { ja } from 'date-fns/locale/ja';
 import { Button } from '@/components/ui';
 import { TableSkeleton } from '@/components/ui/skeleton';
 
