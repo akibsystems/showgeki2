@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from '@/components/auth/SessionProvider';
 
 // ================================================================
 // Sidebar Component Types
@@ -91,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   className = '',
 }) => {
   const pathname = usePathname();
+  const { user } = useSession();
 
   const navigation: NavigationItem[] = [
     {
@@ -199,8 +201,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-100 truncate">匿名ユーザー</p>
-                <p className="text-xs text-gray-400 truncate">ローカルセッション</p>
+                <p className="text-sm font-medium text-gray-100 truncate">
+                  {user?.email || 'ゲストユーザー'}
+                </p>
+                <p className="text-xs text-gray-400 truncate">
+                  {user ? 'ログイン中' : 'ローカルセッション'}
+                </p>
               </div>
             </div>
           </div>

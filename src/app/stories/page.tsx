@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStories } from '@/hooks';
 import type { StoryStatus } from '@/types';
@@ -18,7 +19,7 @@ type StatusFilter = 'all' | StoryStatus;
 // Stories List Page Component
 // ================================================================
 
-const StoriesPage: React.FC = () => {
+const StoriesContent: React.FC = () => {
   const { state } = useApp();
   const { error } = useToast();
   
@@ -244,6 +245,14 @@ const StoriesPage: React.FC = () => {
         )}
       </div>
     </Layout>
+  );
+};
+
+const StoriesPage: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <StoriesContent />
+    </ProtectedRoute>
   );
 };
 

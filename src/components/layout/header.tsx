@@ -1,7 +1,10 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui';
 import { UserMenu } from '@/components/auth/UserMenu';
+import { useSession } from '@/components/auth/SessionProvider';
 
 // ================================================================
 // Header Component Types
@@ -20,6 +23,11 @@ export const Header: React.FC<HeaderProps> = ({
   onMobileMenuClick,
   className = '',
 }) => {
+  const { user } = useSession();
+  
+  // 認証が無効化されている場合は常に表示
+  const showMobileMenu = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' || !!user;
+
   return (
     <header className={`bg-gray-900/80 backdrop-blur-md border-b border-purple-500/20 shadow-lg ${className}`}>
       <div className="px-4 sm:px-6 lg:px-8">
@@ -45,28 +53,30 @@ export const Header: React.FC<HeaderProps> = ({
             {/* User Menu */}
             <UserMenu />
 
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden"
-              onClick={onMobileMenuClick}
-              aria-label="Open menu"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* Mobile menu button - only show when authenticated */}
+            {showMobileMenu && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden"
+                onClick={onMobileMenuClick}
+                aria-label="Open menu"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </Button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </Button>
+            )}
           </div>
         </div>
       </div>

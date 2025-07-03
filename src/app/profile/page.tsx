@@ -130,7 +130,7 @@ function ProfileContent() {
               </div>
 
               <p className="text-xs text-gray-500">
-                ※ 同じGoogleアカウントでログインするか、Magic Linkを使用してください
+                ※ 同じGoogleアカウントでログインするか、Login Linkを使用してください
               </p>
             </CardContent>
           </Card>

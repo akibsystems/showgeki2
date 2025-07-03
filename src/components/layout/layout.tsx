@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
+import { useSession } from '@/components/auth/SessionProvider';
 
 // ================================================================
 // Layout Component Types
@@ -22,6 +23,10 @@ export const Layout: React.FC<LayoutProps> = ({
   className = '',
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, loading } = useSession();
+
+  // 認証が無効化されている場合は常に表示
+  const showSidebar = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' || !!user;
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -40,11 +45,13 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main container with sidebar and content */}
       <div className="flex h-[calc(100vh-4rem)]">
-        {/* Sidebar */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={handleSidebarClose}
-        />
+        {/* Sidebar - only show when authenticated */}
+        {showSidebar && (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={handleSidebarClose}
+          />
+        )}
 
         {/* Main content area */}
         <main className="flex-1 overflow-y-auto">

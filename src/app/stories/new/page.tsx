@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStories, useUserWorkspace } from '@/hooks';
 
@@ -11,7 +12,7 @@ import { useStories, useUserWorkspace } from '@/hooks';
 // New Story Page Component
 // ================================================================
 
-const NewStoryPage: React.FC = () => {
+const NewStoryContent: React.FC = () => {
   const router = useRouter();
   const { } = useApp();
   const { error } = useToast();
@@ -225,6 +226,14 @@ const NewStoryPage: React.FC = () => {
         </Card>
       </div>
     </Layout>
+  );
+};
+
+const NewStoryPage: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <NewStoryContent />
+    </ProtectedRoute>
   );
 };
 

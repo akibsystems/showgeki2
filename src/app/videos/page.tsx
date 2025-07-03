@@ -8,6 +8,7 @@ import { VideoModal, FullscreenVideoPlayer } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
 import { useVideos, useStories } from '@/hooks';
 import type { VideoStatus, Video } from '@/types';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // ================================================================
 // Types
@@ -19,7 +20,7 @@ type StatusFilter = 'all' | VideoStatus;
 // Videos Page Component
 // ================================================================
 
-const VideosPage: React.FC = () => {
+const VideosContent: React.FC = () => {
   const { state } = useApp();
   const { error, success } = useToast();
 
@@ -451,6 +452,14 @@ const VideosPage: React.FC = () => {
         />
       )}
     </Layout>
+  );
+};
+
+const VideosPage: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <VideosContent />
+    </ProtectedRoute>
   );
 };
 

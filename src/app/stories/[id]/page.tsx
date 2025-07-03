@@ -7,6 +7,7 @@ import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor, ScriptDirector } from '@/components/editor';
 import { VideoModal } from '@/components/video';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStory, useVideos } from '@/hooks';
 
@@ -14,7 +15,7 @@ import { useStory, useVideos } from '@/hooks';
 // Story Editor Page Component
 // ================================================================
 
-const StoryEditorPage: React.FC = () => {
+const StoryEditorContent: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -663,6 +664,14 @@ const StoryEditorPage: React.FC = () => {
         </ModalFooter>
       </Modal>
     </Layout>
+  );
+};
+
+const StoryEditorPage: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <StoryEditorContent />
+    </ProtectedRoute>
   );
 };
 

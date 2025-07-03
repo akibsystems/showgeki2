@@ -21,6 +21,11 @@ export function ProtectedRoute({
   const pathname = usePathname();
 
   useEffect(() => {
+    // 認証が無効化されている場合はスキップ
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+      return;
+    }
+
     if (!loading) {
       if (requireAuth && !user) {
         // Save current path for redirect after login
@@ -30,6 +35,11 @@ export function ProtectedRoute({
       }
     }
   }, [user, loading, requireAuth, router, pathname, redirectTo]);
+
+  // 認証が無効化されている場合は常に表示
+  if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return <AuthLoading />;

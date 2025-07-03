@@ -338,6 +338,54 @@ export async function logAuthStatus(request: NextRequest): Promise<void> {
 }
 
 // ================================================================
+// New Authentication Helpers
+// ================================================================
+
+/**
+ * サーバーサイドで認証をチェックする関数（簡易版）
+ * App RouterのRoute Handlersで使用
+ */
+export async function checkAuth(request: NextRequest) {
+  // 認証が無効化されている場合は常に認証済みとして扱う
+  if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    return { authenticated: true, session: null };
+  }
+
+  const supabase = await createClient();
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  if (error || !session) {
+    return { authenticated: false, session: null };
+  }
+
+  return { authenticated: true, session };
+}
+
+/**
+ * 認証エラーレスポンスを返す（簡易版）
+ */
+export function unauthorizedResponse(message: string = 'Unauthorized') {
+  return NextResponse.json(
+    { error: message },
+    { status: 401 }
+  );
+}
+
+/**
+ * リダイレクトURLを取得する
+ */
+export function getRedirectUrl(request: NextRequest): string {
+  const redirectTo = request.nextUrl.searchParams.get('redirectTo');
+  
+  // 安全なリダイレクト先かチェック
+  if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+    return redirectTo;
+  }
+  
+  return '/dashboard';
+}
+
+// ================================================================
 // Export commonly used patterns
 // ================================================================
 

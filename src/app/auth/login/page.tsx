@@ -9,8 +9,8 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-gold-400 bg-clip-text text-transparent mb-2">
-              ShowGeki2
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-gold-400 bg-clip-text text-transparent mb-2">
+              Tokyo Shakespeare Anime Studio
             </h1>
             <p className="text-gray-400">
               AIが紡ぐシェイクスピア風物語
@@ -21,7 +21,7 @@ export default function LoginPage() {
             <AuthError />
           </Suspense>
           
-          <AuthForm mode="signin" />
+          <AuthForm mode="signin" redirectTo="/dashboard" />
         </div>
       </div>
     </Layout>

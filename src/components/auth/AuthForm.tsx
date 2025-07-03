@@ -67,7 +67,7 @@ export function AuthForm({ mode = 'signin', redirectTo = '/dashboard' }: AuthFor
             {mode === 'signin' ? 'ログイン' : 'アカウント作成'}
           </h2>
           <p className="text-gray-400">
-            ShowGeki2でシェイクスピア風の動画を作成しましょう
+            Tokyo Shakespeare Anime Studioでシェイクスピア風の動画を作成しましょう
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export function AuthForm({ mode = 'signin', redirectTo = '/dashboard' }: AuthFor
                 disabled={!email || isLoading || isBlocked}
                 className="w-full"
               >
-                Magic Linkを送信
+                Login Linkを送信
               </Button>
 
               {remainingAttempts < 3 && !isBlocked && (

@@ -7,12 +7,13 @@ import { useApp, useToast } from '@/contexts';
 import { useUserWorkspace } from '@/hooks';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // ================================================================
 // Dashboard Page Component
 // ================================================================
 
-const DashboardPage: React.FC = () => {
+const DashboardContent: React.FC = () => {
   const { state } = useApp();
   const { error } = useToast();
 
@@ -236,6 +237,14 @@ const DashboardPage: React.FC = () => {
 
       </div>
     </Layout>
+  );
+};
+
+const DashboardPage: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   );
 };
 
