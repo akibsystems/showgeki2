@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import styles from '../styles/ScriptDirector.module.css';
+import cssStyles from '../styles/ScriptDirector.module.css';
 
 // ================================================================
 // Types
@@ -230,36 +230,36 @@ export function CaptionSettings({
   };
 
   return (
-    <div className={styles.sectionContent}>
+    <div className={cssStyles.captionContent}>
       {/* メインコントロール */}
-      <div className={styles.captionMainControl}>
-        <div className={styles.captionToggleWrapper}>
+      <div className={cssStyles.captionMainControl}>
+        <div className={cssStyles.captionToggleWrapper}>
           <button
             onClick={toggleEnabled}
             disabled={isReadOnly}
-            className={`${styles.captionToggleButton} ${enabled ? styles.captionToggleButtonActive : ''}`}
+            className={`${cssStyles.captionToggleButton} ${enabled ? cssStyles.captionToggleButtonActive : ''}`}
           >
-            <div className={styles.captionToggleInner}>
+            <div className={cssStyles.captionToggleInner}>
               <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M5 4v3h5.5v12h3V7H19V4z"/>
               </svg>
               <span>字幕</span>
-              <div className={`${styles.captionToggleSwitch} ${enabled ? styles.captionToggleSwitchActive : ''}`}>
-                <div className={styles.captionToggleSlider} />
+              <div className={`${cssStyles.captionToggleSwitch} ${enabled ? cssStyles.captionToggleSwitchActive : ''}`}>
+                <div className={cssStyles.captionToggleSlider} />
               </div>
             </div>
           </button>
           
           {enabled && (
-            <div className={styles.captionLangSelect}>
+            <div className={cssStyles.captionLangSelect}>
               {LANGUAGE_OPTIONS.map(option => (
                 <button
                   key={option.value}
                   onClick={() => !isReadOnly && onUpdateLang(option.value)}
                   disabled={isReadOnly}
-                  className={`${styles.captionLangButton} ${lang === option.value ? styles.captionLangButtonActive : ''}`}
+                  className={`${cssStyles.captionLangButton} ${lang === option.value ? cssStyles.captionLangButtonActive : ''}`}
                 >
-                  <span className={styles.captionLangFlag}>{option.flag}</span>
+                  <span className={cssStyles.captionLangFlag}>{option.flag}</span>
                   <span>{option.label}</span>
                 </button>
               ))}
@@ -271,18 +271,18 @@ export function CaptionSettings({
       {enabled && (
         <>
           {/* プレビューエリア */}
-          <div className={styles.captionPreviewSection}>
-            <div className={styles.captionPreviewHeader}>
+          <div className={cssStyles.captionPreviewSection}>
+            <div className={cssStyles.captionPreviewHeader}>
               <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              <span className={styles.captionPreviewTitle}>字幕プレビュー</span>
+              <span className={cssStyles.captionPreviewTitle}>字幕プレビュー</span>
             </div>
-            <div className={styles.captionPreviewContainer}>
-              <div className={styles.captionPreviewScreen}>
+            <div className={cssStyles.captionPreviewContainer}>
+              <div className={cssStyles.captionPreviewScreen}>
                 <div 
                   ref={previewRef}
-                  className={styles.captionPreviewText}
+                  className={cssStyles.captionPreviewText}
                   style={getPreviewStyle()}
                 >
                   {previewText}
@@ -293,25 +293,25 @@ export function CaptionSettings({
                 value={previewText}
                 onChange={(e) => setPreviewText(e.target.value)}
                 placeholder="プレビューテキストを入力"
-                className={styles.captionPreviewInput}
+                className={cssStyles.captionPreviewInput}
                 disabled={isReadOnly}
               />
             </div>
           </div>
 
           {/* スタイル設定 */}
-          <div className={styles.captionStyleControls}>
+          <div className={cssStyles.captionStyleControls}>
             {/* フォント設定 */}
-            <div className={styles.captionControlGroup}>
-              <h4 className={styles.captionControlGroupTitle}>フォント設定</h4>
+            <div className={cssStyles.captionControlGroup}>
+              <h4 className={cssStyles.captionControlGroupTitle}>フォント設定</h4>
               
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>フォント</label>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>フォント</label>
                 <select
                   value={currentStyle.fontFamily}
                   onChange={(e) => updateStyle({ fontFamily: e.target.value })}
                   disabled={isReadOnly}
-                  className={styles.captionControlSelect}
+                  className={cssStyles.captionControlSelect}
                 >
                   {FONT_FAMILIES.map(font => (
                     <option key={font.value} value={font.value}>
@@ -321,9 +321,9 @@ export function CaptionSettings({
                 </select>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>サイズ</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>サイズ</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="20"
@@ -332,19 +332,19 @@ export function CaptionSettings({
                     value={currentStyle.fontSize}
                     onChange={(e) => updateStyle({ fontSize: parseInt(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{currentStyle.fontSize}px</span>
+                  <span className={cssStyles.captionControlValue}>{currentStyle.fontSize}px</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>太さ</label>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>太さ</label>
                 <select
                   value={currentStyle.fontWeight}
                   onChange={(e) => updateStyle({ fontWeight: e.target.value })}
                   disabled={isReadOnly}
-                  className={styles.captionControlSelect}
+                  className={cssStyles.captionControlSelect}
                 >
                   {FONT_WEIGHTS.map(weight => (
                     <option key={weight.value} value={weight.value}>
@@ -354,9 +354,9 @@ export function CaptionSettings({
                 </select>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>文字間隔</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>文字間隔</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="-0.1"
@@ -365,48 +365,48 @@ export function CaptionSettings({
                     value={currentStyle.letterSpacing}
                     onChange={(e) => updateStyle({ letterSpacing: parseFloat(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{currentStyle.letterSpacing.toFixed(2)}em</span>
+                  <span className={cssStyles.captionControlValue}>{currentStyle.letterSpacing.toFixed(2)}em</span>
                 </div>
               </div>
             </div>
 
             {/* 色設定 */}
-            <div className={styles.captionControlGroup}>
-              <h4 className={styles.captionControlGroupTitle}>色設定</h4>
+            <div className={cssStyles.captionControlGroup}>
+              <h4 className={cssStyles.captionControlGroupTitle}>色設定</h4>
               
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>文字色</label>
-                <div className={styles.captionControlColorWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>文字色</label>
+                <div className={cssStyles.captionControlColorWrapper}>
                   <input
                     type="color"
                     value={currentStyle.color}
                     onChange={(e) => updateStyle({ color: e.target.value })}
                     disabled={isReadOnly}
-                    className={styles.captionControlColor}
+                    className={cssStyles.captionControlColor}
                   />
-                  <span className={styles.captionControlColorValue}>{currentStyle.color}</span>
+                  <span className={cssStyles.captionControlColorValue}>{currentStyle.color}</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>背景色</label>
-                <div className={styles.captionControlColorWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>背景色</label>
+                <div className={cssStyles.captionControlColorWrapper}>
                   <input
                     type="color"
                     value={currentStyle.backgroundColor}
                     onChange={(e) => updateStyle({ backgroundColor: e.target.value })}
                     disabled={isReadOnly}
-                    className={styles.captionControlColor}
+                    className={cssStyles.captionControlColor}
                   />
-                  <span className={styles.captionControlColorValue}>{currentStyle.backgroundColor}</span>
+                  <span className={cssStyles.captionControlColorValue}>{currentStyle.backgroundColor}</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>背景の透明度</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>背景の透明度</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="0"
@@ -415,34 +415,34 @@ export function CaptionSettings({
                     value={currentStyle.backgroundOpacity}
                     onChange={(e) => updateStyle({ backgroundOpacity: parseFloat(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{(currentStyle.backgroundOpacity * 100).toFixed(0)}%</span>
+                  <span className={cssStyles.captionControlValue}>{(currentStyle.backgroundOpacity * 100).toFixed(0)}%</span>
                 </div>
               </div>
             </div>
 
             {/* 影とスタイル設定 */}
-            <div className={styles.captionControlGroup}>
-              <h4 className={styles.captionControlGroupTitle}>影とスタイル</h4>
+            <div className={cssStyles.captionControlGroup}>
+              <h4 className={cssStyles.captionControlGroupTitle}>影とスタイル</h4>
               
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>影の色</label>
-                <div className={styles.captionControlColorWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>影の色</label>
+                <div className={cssStyles.captionControlColorWrapper}>
                   <input
                     type="color"
                     value={currentStyle.textShadowColor}
                     onChange={(e) => updateStyle({ textShadowColor: e.target.value })}
                     disabled={isReadOnly}
-                    className={styles.captionControlColor}
+                    className={cssStyles.captionControlColor}
                   />
-                  <span className={styles.captionControlColorValue}>{currentStyle.textShadowColor}</span>
+                  <span className={cssStyles.captionControlColorValue}>{currentStyle.textShadowColor}</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>影の濃さ</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>影の濃さ</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="0"
@@ -451,15 +451,15 @@ export function CaptionSettings({
                     value={currentStyle.textShadowOpacity}
                     onChange={(e) => updateStyle({ textShadowOpacity: parseFloat(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{(currentStyle.textShadowOpacity * 100).toFixed(0)}%</span>
+                  <span className={cssStyles.captionControlValue}>{(currentStyle.textShadowOpacity * 100).toFixed(0)}%</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>影のぼかし</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>影のぼかし</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="0"
@@ -468,15 +468,15 @@ export function CaptionSettings({
                     value={currentStyle.textShadowBlur}
                     onChange={(e) => updateStyle({ textShadowBlur: parseInt(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{currentStyle.textShadowBlur}px</span>
+                  <span className={cssStyles.captionControlValue}>{currentStyle.textShadowBlur}px</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>余白</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>余白</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="0"
@@ -485,15 +485,15 @@ export function CaptionSettings({
                     value={currentStyle.padding}
                     onChange={(e) => updateStyle({ padding: parseInt(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{currentStyle.padding}px</span>
+                  <span className={cssStyles.captionControlValue}>{currentStyle.padding}px</span>
                 </div>
               </div>
 
-              <div className={styles.captionControlRow}>
-                <label className={styles.captionControlLabel}>角の丸み</label>
-                <div className={styles.captionControlSliderWrapper}>
+              <div className={cssStyles.captionControlRow}>
+                <label className={cssStyles.captionControlLabel}>角の丸み</label>
+                <div className={cssStyles.captionControlSliderWrapper}>
                   <input
                     type="range"
                     min="0"
@@ -502,24 +502,24 @@ export function CaptionSettings({
                     value={currentStyle.borderRadius}
                     onChange={(e) => updateStyle({ borderRadius: parseInt(e.target.value) })}
                     disabled={isReadOnly}
-                    className={styles.captionControlSlider}
+                    className={cssStyles.captionControlSlider}
                   />
-                  <span className={styles.captionControlValue}>{currentStyle.borderRadius}px</span>
+                  <span className={cssStyles.captionControlValue}>{currentStyle.borderRadius}px</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 使用上の注意 */}
-          <div className={styles.captionNotice}>
-            <div className={styles.captionNoticeIcon}>
+          <div className={cssStyles.captionNotice}>
+            <div className={cssStyles.captionNoticeIcon}>
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className={styles.captionNoticeText}>
+            <div className={cssStyles.captionNoticeText}>
               <p>字幕は動画の下部に表示されます。背景と十分なコントラストがあることを確認してください。</p>
-              <p className={styles.captionNoticeSubtext}>設定はリアルタイムでプレビューに反映されます。</p>
+              <p className={cssStyles.captionNoticeSubtext}>設定はリアルタイムでプレビューに反映されます。</p>
             </div>
           </div>
         </>
