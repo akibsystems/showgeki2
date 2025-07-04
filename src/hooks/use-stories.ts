@@ -23,6 +23,7 @@ interface UseStoriesReturn {
   updateStory: (id: string, data: UpdateStoryRequest) => Promise<Story>;
   deleteStory: (id: string) => Promise<void>;
   generateScript: (id: string, options?: { beats?: number }) => Promise<Story>;
+  copyStory: (id: string) => Promise<Story>;
 }
 
 interface UseStoryReturn {
@@ -115,6 +116,22 @@ export function useStories(params?: StoriesQueryParams): UseStoriesReturn {
     }
   };
 
+  // Copy a story
+  const copyStory = async (id: string): Promise<Story> => {
+    try {
+      const response = await apiClient.post<{ story: Story }>(`/api/stories/${id}/copy`, {});
+      const newStory = response.story;
+      
+      // Invalidate all stories cache to include the new copy
+      await mutate(createMutatePattern(swrKeys.stories()));
+      
+      return newStory;
+    } catch (error) {
+      console.error('Failed to copy story:', error);
+      throw error;
+    }
+  };
+
 
   return {
     stories,
@@ -125,6 +142,7 @@ export function useStories(params?: StoriesQueryParams): UseStoriesReturn {
     updateStory,
     deleteStory,
     generateScript,
+    copyStory,
   };
 }
 

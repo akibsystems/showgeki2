@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -20,14 +21,16 @@ type StatusFilter = 'all' | StoryStatus;
 // ================================================================
 
 const StoriesContent: React.FC = () => {
+  const router = useRouter();
   const { state } = useApp();
   const { error } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [copyingStoryId, setCopyingStoryId] = useState<string | null>(null);
 
   // Fetch stories using SWR hook
-  const { stories, isLoading } = useStories();
+  const { stories, isLoading, copyStory } = useStories();
 
   // Filter and search stories
   const filteredStories = (stories || []).filter(story => {
@@ -91,6 +94,22 @@ const StoriesContent: React.FC = () => {
   };
 
   const statusCounts = getStatusCounts();
+
+  const handleCopyStory = async (e: React.MouseEvent, storyId: string) => {
+    e.preventDefault(); // Prevent navigation to story detail
+    e.stopPropagation(); // Stop event bubbling
+    
+    setCopyingStoryId(storyId);
+    try {
+      const newStory = await copyStory(storyId);
+      router.push(`/stories/${newStory.id}?tab=content`);
+    } catch (err) {
+      console.error('Failed to copy story:', err);
+      error('台本のコピーに失敗しました');
+    } finally {
+      setCopyingStoryId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -205,9 +224,9 @@ const StoriesContent: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredStories.map((story) => (
-              <Link key={story.id} href={`/stories/${story.id}`}>
-                <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer group">
-                  <CardContent className="p-4 sm:p-6">
+              <Card key={story.id} className="h-full hover:shadow-lg transition-all duration-200 group">
+                <CardContent className="p-4 sm:p-6">
+                  <Link href={`/stories/${story.id}`} className="block">
                     <div className="flex justify-between items-start mb-2 sm:mb-3">
                       <h3 className="text-base sm:text-lg font-medium text-gray-100 group-hover:text-purple-400 transition-colors line-clamp-2 mr-2">
                         {story.title}
@@ -220,26 +239,46 @@ const StoriesContent: React.FC = () => {
                     <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
                       {story.text_raw}
                     </p>
+                  </Link>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-gray-500">
+                      <span>{(story.text_raw || '').length} 文字</span>
+                      <span className="hidden sm:inline">更新: {formatDate(story.updated_at)}</span>
+                      <span className="sm:hidden">{formatDate(story.updated_at).split(' ')[0]}</span>
+                    </div>
                     
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs text-gray-500">
-                      <div className="flex items-center space-x-3">
-                        <span>{(story.text_raw || '').length} 文字</span>
-                        <span className="hidden sm:inline">更新: {formatDate(story.updated_at)}</span>
-                        <span className="sm:hidden">{formatDate(story.updated_at).split(' ')[0]}</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {story.status === 'completed' && (
+                        <button
+                          onClick={(e) => handleCopyStory(e, story.id)}
+                          disabled={copyingStoryId === story.id}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="動画生成済みの台本をコピー"
+                        >
+                          {copyingStoryId === story.id ? (
+                            <Spinner size="sm" />
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                       
-                      <div className="flex items-center justify-end space-x-1">
-                        {story.status === 'processing' && (
-                          <Spinner size="sm" className="text-purple-400" />
-                        )}
-                        <svg className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <Link href={`/stories/${story.id}`} className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                      </div>
+                      </Link>
+                      
+                      {story.status === 'processing' && (
+                        <Spinner size="sm" className="text-purple-400 ml-1" />
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
