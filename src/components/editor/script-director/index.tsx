@@ -22,6 +22,8 @@ export function ScriptDirector({
   className = '',
   previewData = null,
   previewStatus,
+  isPreviewLoading = false,
+  onGeneratePreview,
 }: ScriptDirectorProps) {
   const [editingSpeaker, setEditingSpeaker] = useState<{
     speakerId: string;
@@ -378,6 +380,8 @@ export function ScriptDirector({
             faceReferences={((currentScript.imageParams as { images?: Record<string, ImageReference> })?.images || {}) as Record<string, ImageReference>}
             previewData={previewData}
             previewStatus={previewStatus}
+            isPreviewLoading={isPreviewLoading}
+            onGeneratePreview={onGeneratePreview}
             onUpdateBeat={beatsManager.updateBeat}
             onAddBeat={beatsManager.addBeat}
             onDeleteBeat={beatsManager.deleteBeat}

@@ -766,6 +766,13 @@
   display: block;
   margin-bottom: 1rem;
   object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+.previewImage:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  transform: scale(1.02);
 }
 
 .previewPrompt {
@@ -774,21 +781,42 @@
 
 .promptLabel {
   display: block;
-  font-size: 0.85rem;
-  color: #9ca3af;
-  margin-bottom: 0.25rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  color: #a78bfa;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 
 .promptText {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #e5e7eb;
   margin: 0;
   line-height: 1.5;
-  background: rgba(31, 41, 55, 0.5);
+  background: rgba(31, 41, 55, 0.8);
   padding: 0.75rem;
   border-radius: 4px;
-  border-left: 2px solid #8b5cf6;
+  border-left: 3px solid #8b5cf6;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+/* スクロールバーのスタイル */
+.promptText::-webkit-scrollbar {
+  width: 6px;
+}
+
+.promptText::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 3px;
+}
+
+.promptText::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 3px;
+}
+
+.promptText::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7);
 }
 
 /* Preview Placeholder Styles */
@@ -827,6 +855,153 @@
 
 .loadingSpinner {
   margin-bottom: 1rem;
+}
+
+/* Preview Generate Button */
+.previewGenerateButton {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  color: #c084fc;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.previewGenerateButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.previewGenerateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Image Modal Styles */
+.imageModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.imageModalContent {
+  background: #1f2937;
+  border-radius: 12px;
+  max-width: 1200px;
+  max-height: 90vh;
+  width: 100%;
+  overflow: auto;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.imageModalClose {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #e5e7eb;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.imageModalClose:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+  transform: scale(1.1);
+}
+
+.imageModalImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px 8px 0 0;
+}
+
+.imageModalInfo {
+  padding: 2rem;
+  background: #111827;
+  border-radius: 0 0 8px 8px;
+}
+
+.imageModalTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0 0 1.5rem 0;
+}
+
+.imageModalPrompt {
+  margin-bottom: 1.5rem;
+}
+
+.imageModalPrompt:last-child {
+  margin-bottom: 0;
+}
+
+.imageModalPromptLabel {
+  display: block;
+  font-size: 0.9rem;
+  color: #a78bfa;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.imageModalPromptText {
+  font-size: 1rem;
+  color: #e5e7eb;
+  line-height: 1.6;
+  margin: 0;
+  background: rgba(31, 41, 55, 0.5);
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid #8b5cf6;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+  .imageModal {
+    padding: 1rem;
+  }
+  
+  .imageModalContent {
+    max-height: 95vh;
+  }
+  
+  .imageModalInfo {
+    padding: 1.5rem;
+  }
+  
+  .imageModalTitle {
+    font-size: 1.25rem;
+  }
 }
 
 .beatsHint {

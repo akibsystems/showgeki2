@@ -17,6 +17,8 @@ interface BeatsEditorProps {
   faceReferences: Record<string, any>;
   previewData?: PreviewData | null;
   previewStatus?: string;
+  isPreviewLoading?: boolean;
+  onGeneratePreview?: () => void;
   onUpdateBeat: (index: number, beat: MulmoBeat) => void;
   onAddBeat: () => void;
   onDeleteBeat: (index: number) => void;
@@ -30,6 +32,8 @@ export function BeatsEditor({
   faceReferences,
   previewData,
   previewStatus,
+  isPreviewLoading,
+  onGeneratePreview,
   onUpdateBeat,
   onAddBeat,
   onDeleteBeat,
@@ -76,6 +80,8 @@ export function BeatsEditor({
                 previewImage={previewImage}
                 previewTimestamp={previewData?.generatedAt}
                 previewStatus={previewStatus}
+                isPreviewLoading={isPreviewLoading}
+                onGeneratePreview={onGeneratePreview}
                 onUpdate={(updatedBeat) => onUpdateBeat(index, updatedBeat)}
                 onDelete={() => onDeleteBeat(index)}
                 onMoveUp={index > 0 ? () => onMoveBeat(index, 'up') : undefined}

@@ -13,6 +13,8 @@ export interface ScriptDirectorProps {
   className?: string;
   previewData?: PreviewData | null;
   previewStatus?: string;
+  isPreviewLoading?: boolean;
+  onGeneratePreview?: () => void;
 }
 
 // 内部状態管理

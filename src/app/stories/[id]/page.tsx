@@ -11,7 +11,6 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStory, useVideos } from '@/hooks';
 import { useImagePreview } from '@/hooks/useImagePreview';
-import PreviewButton from '@/components/preview/PreviewButton';
 
 // ================================================================
 // Story Editor Page Component
@@ -220,12 +219,7 @@ const StoryEditorContent: React.FC = () => {
   };
 
   const handleDeletePreview = async () => {
-    try {
-      await deletePreview();
-    } catch (err) {
-      console.error('Failed to delete preview:', err);
-      error('プレビューの削除に失敗しました');
-    }
+    // プレビューは削除しない
   };
 
   const handleDownloadVideo = async () => {
@@ -477,25 +471,16 @@ const StoryEditorContent: React.FC = () => {
                     </Button>
                   )}
                   {story.status === 'script_generated' && (
-                    <>
-                      <PreviewButton
-                        status={previewStatus}
-                        isLoading={isPreviewLoading}
-                        onGenerate={handleGeneratePreview}
-                        onDelete={handleDeletePreview}
-                        disabled={isReadOnly || !story.script_json}
-                      />
-                      <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
-                        {isGeneratingVideo ? (
-                          <>
-                            <Spinner size="sm" color="white" className="mr-2" />
-                            開始中...
-                          </>
-                        ) : (
-                          '動画を生成'
-                        )}
-                      </Button>
-                    </>
+                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
+                      {isGeneratingVideo ? (
+                        <>
+                          <Spinner size="sm" color="white" className="mr-2" />
+                          開始中...
+                        </>
+                      ) : (
+                        '動画を生成'
+                      )}
+                    </Button>
                   )}
                 </>
               )}
@@ -510,9 +495,9 @@ const StoryEditorContent: React.FC = () => {
           )}
         </div>
 
-        <div className={story.status === 'completed' ? '' : 'grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8'}>
+        <div>
           {/* Main Content */}
-          <div className={story.status === 'completed' ? 'space-y-6' : 'lg:col-span-2 space-y-6'}>
+          <div className="space-y-6">
             {/* Tab Navigation */}
             <div className="border-b border-gray-200 overflow-x-auto">
               <nav className="flex space-x-4 sm:space-x-8 min-w-max">
@@ -566,6 +551,8 @@ const StoryEditorContent: React.FC = () => {
                   isReadOnly={isReadOnly}
                   previewData={previewData}
                   previewStatus={previewStatus}
+                  isPreviewLoading={isPreviewLoading}
+                  onGeneratePreview={handleGeneratePreview}
                 />
               </div>
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
@@ -617,6 +604,8 @@ const StoryEditorContent: React.FC = () => {
                 isReadOnly={isReadOnly}
                 previewData={previewData}
                 previewStatus={previewStatus}
+                isPreviewLoading={isPreviewLoading}
+                onGeneratePreview={handleGeneratePreview}
               />
             )}
 
@@ -647,49 +636,6 @@ const StoryEditorContent: React.FC = () => {
             )}
           </div>
 
-          {/* Sidebar - Video only (hide for completed status) */}
-          {story.status !== 'completed' && (
-            <div className="lg:col-span-1">
-              {video && (
-                <Card>
-                  <CardContent className="p-4 sm:p-6">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-100 mb-4">動画</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${video.status === 'completed' ? 'bg-green-400' : video.status === 'processing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-                        <span className="text-sm capitalize">
-                          {video.status === 'completed' ? '完了' : video.status === 'processing' ? '処理中' : video.status}
-                        </span>
-                      </div>
-
-                      {video.duration_sec && (
-                        <p className="text-xs sm:text-sm text-gray-400">
-                          再生時間: {Math.floor(video.duration_sec / 60)}:{(video.duration_sec % 60).toString().padStart(2, '0')}
-                        </p>
-                      )}
-
-                      {video.status === 'completed' && video.url && (
-                        <div className="space-y-2">
-                          <Button size="sm" className="w-full text-xs sm:text-sm" onClick={() => setShowVideoModal(true)}>
-                            <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            動画を見る
-                          </Button>
-                          <Button variant="secondary" size="sm" className="w-full text-xs sm:text-sm" onClick={handleDownloadVideo}>
-                            <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            ダウンロード
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

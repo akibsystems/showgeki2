@@ -671,7 +671,15 @@ async function processImagePreview(payload) {
       throw new Error('script_jsonが存在しません。プレビュー生成にはスクリプトが必要です。');
     }
 
-    const jsonContent = JSON.stringify(script_json, null, 2);
+    // プレビュー生成時は常にquality=lowに強制
+    const previewScript = JSON.parse(JSON.stringify(script_json));
+    if (!previewScript.imageParams) {
+      previewScript.imageParams = {};
+    }
+    previewScript.imageParams.quality = 'low';
+    console.log('🔧 プレビュー生成のため画像品質をlowに設定');
+
+    const jsonContent = JSON.stringify(previewScript, null, 2);
 
     // script.jsonに書き込み
     console.log('📝 script.jsonファイルに書き込み中...');
