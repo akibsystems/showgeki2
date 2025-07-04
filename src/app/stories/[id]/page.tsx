@@ -11,6 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStory, useVideos } from '@/hooks';
 import { useImagePreview } from '@/hooks/useImagePreview';
+import { useAudioPreview } from '@/hooks/useAudioPreview';
 
 // ================================================================
 // Story Editor Page Component
@@ -59,6 +60,18 @@ const StoryEditorContent: React.FC = () => {
     refreshStatus,
     deletePreview
   } = useImagePreview({
+    storyId
+  });
+
+  // 音声プレビュー機能のフック
+  const {
+    status: audioPreviewStatus,
+    isGenerating: isAudioPreviewGenerating,
+    error: audioPreviewError,
+    audioPreviewData,
+    generateAudioPreview,
+    refreshStatus: refreshAudioStatus
+  } = useAudioPreview({
     storyId
   });
 
@@ -214,6 +227,21 @@ const StoryEditorContent: React.FC = () => {
     } catch (err) {
       console.error('Failed to generate preview:', err);
       const errorMessage = err instanceof Error ? err.message : 'プレビュー生成に失敗しました';
+      error(errorMessage);
+    }
+  };
+
+  const handleGenerateAudioPreview = async () => {
+    if (!story?.script_json) {
+      error('台本が生成されていません。先に台本を生成してください。');
+      return;
+    }
+
+    try {
+      await generateAudioPreview();
+    } catch (err) {
+      console.error('Failed to generate audio preview:', err);
+      const errorMessage = err instanceof Error ? err.message : '音声プレビュー生成に失敗しました';
       error(errorMessage);
     }
   };
@@ -471,16 +499,18 @@ const StoryEditorContent: React.FC = () => {
                     </Button>
                   )}
                   {story.status === 'script_generated' && (
-                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
-                      {isGeneratingVideo ? (
-                        <>
-                          <Spinner size="sm" color="white" className="mr-2" />
-                          開始中...
-                        </>
-                      ) : (
-                        '動画を生成'
-                      )}
-                    </Button>
+                    <>
+                      <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
+                        {isGeneratingVideo ? (
+                          <>
+                            <Spinner size="sm" color="white" className="mr-2" />
+                            開始中...
+                          </>
+                        ) : (
+                          '動画を生成'
+                        )}
+                      </Button>
+                    </>
                   )}
                 </>
               )}
@@ -553,6 +583,12 @@ const StoryEditorContent: React.FC = () => {
                   previewStatus={previewStatus}
                   isPreviewLoading={isPreviewLoading}
                   onGeneratePreview={handleGeneratePreview}
+                  onGenerateAudioPreview={handleGenerateAudioPreview}
+                  isAudioPreviewLoading={isAudioPreviewGenerating}
+                  audioPreviewStatus={audioPreviewStatus}
+                  storyId={storyId}
+                  hasAudioPreview={!!audioPreviewData}
+                  audioPreviewData={audioPreviewData}
                 />
               </div>
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
@@ -606,6 +642,12 @@ const StoryEditorContent: React.FC = () => {
                 previewStatus={previewStatus}
                 isPreviewLoading={isPreviewLoading}
                 onGeneratePreview={handleGeneratePreview}
+                onGenerateAudioPreview={handleGenerateAudioPreview}
+                isAudioPreviewLoading={isAudioPreviewGenerating}
+                audioPreviewStatus={audioPreviewStatus}
+                storyId={storyId}
+                hasAudioPreview={!!audioPreviewData}
+                audioPreviewData={audioPreviewData}
               />
             )}
 

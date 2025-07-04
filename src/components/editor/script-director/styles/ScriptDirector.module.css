@@ -689,6 +689,72 @@
   color: #e5e7eb;
 }
 
+.beatLabelContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.audioButtonsContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.audioPreviewButton {
+  padding: 0.25rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  color: #a78bfa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audioPreviewButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+  transform: scale(1.1);
+}
+
+.audioPreviewButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.audioGenerateButton {
+  padding: 0.375rem 0.75rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  color: #a78bfa;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.audioGenerateButton:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+.audioGenerateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .beatSelect {
   padding: 0.75rem;
   border: 2px solid rgba(139, 92, 246, 0.2);
@@ -857,11 +923,17 @@
   margin-bottom: 1rem;
 }
 
+/* Preview Buttons Container */
+.previewButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 /* Preview Generate Button */
 .previewGenerateButton {
-  width: 100%;
+  flex: 1;
   padding: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 6px;
@@ -883,6 +955,35 @@
 }
 
 .previewGenerateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Audio Play Button */
+.audioPlayButton {
+  width: 48px;
+  height: 38px;
+  padding: 0;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  color: #4ade80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.audioPlayButton:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.audioPlayButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

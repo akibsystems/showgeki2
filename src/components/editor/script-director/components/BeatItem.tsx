@@ -23,6 +23,12 @@ interface BeatItemProps {
   previewStatus?: string;
   isPreviewLoading?: boolean;
   onGeneratePreview?: () => void;
+  onGenerateAudioPreview?: () => void;
+  isAudioPreviewLoading?: boolean;
+  audioPreviewStatus?: string | null;
+  storyId?: string;
+  hasAudioPreview?: boolean;
+  audioPreviewData?: any;
   onUpdate: (beat: MulmoBeat) => void;
   onDelete: () => void;
   onMoveUp?: () => void;
@@ -41,6 +47,12 @@ export function BeatItem({
   previewStatus,
   isPreviewLoading,
   onGeneratePreview,
+  onGenerateAudioPreview,
+  isAudioPreviewLoading = false,
+  audioPreviewStatus = null,
+  storyId,
+  hasAudioPreview = false,
+  audioPreviewData = null,
   onUpdate,
   onDelete,
   onMoveUp,
@@ -49,6 +61,23 @@ export function BeatItem({
 }: BeatItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  // Check if this specific beat has audio
+  const beatHasAudio = audioPreviewData?.audioFiles?.some(
+    (audioFile: any) => audioFile.beatIndex === index
+  ) || false;
+
+  // クリーンアップ: コンポーネントがアンマウントされた時に音声を停止
+  React.useEffect(() => {
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+    };
+  }, [currentAudio]);
 
   const handleSpeakerChange = (speaker: string) => {
     onUpdate({ ...beat, speaker });
@@ -79,6 +108,81 @@ export function BeatItem({
   const getSpeakerDisplayName = (speakerId: string) => {
     const speaker = speakers[speakerId];
     return speaker?.displayName?.ja || speaker?.displayName?.['ja'] || speakerId;
+  };
+
+  const handleAudioPreview = async () => {
+    // 再生中の場合は停止
+    if (isPlayingAudio && currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setIsPlayingAudio(false);
+      setCurrentAudio(null);
+      return;
+    }
+
+    if (!beat.text || !beat.speaker) return;
+
+    const speaker = speakers[beat.speaker];
+    if (!speaker?.voiceId) return;
+
+    if (!beatHasAudio) {
+      alert('この台詞の音声プレビューがまだ生成されていません。先に音声プレビューを生成してください。');
+      return;
+    }
+
+    setIsPlayingAudio(true);
+
+    try {
+      // storyIdとbeatIndexを使って音声プレビューを取得
+      const currentStoryId = storyId || window.location.pathname.split('/')[2]; // propsまたはURLからstoryIdを取得
+      const response = await fetch('/api/tts/preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storyId: currentStoryId,
+          beatIndex: index,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error === 'Audio preview not generated yet') {
+          throw new Error('音声プレビューがまだ生成されていません');
+        } else if (errorData.error === 'Video record not found') {
+          throw new Error('音声プレビューデータが見つかりません');
+        } else {
+          throw new Error('音声の再生に失敗しました');
+        }
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      setCurrentAudio(audio);
+
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsPlayingAudio(false);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        alert('音声の再生に失敗しました');
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('音声再生エラー:', error);
+      setIsPlayingAudio(false);
+      setCurrentAudio(null);
+      alert(error instanceof Error ? error.message : '音声再生中にエラーが発生しました');
+    }
   };
 
   return (
@@ -154,7 +258,64 @@ export function BeatItem({
 
             {/* 台詞入力 */}
             <div className={styles.beatField}>
-              <label className={styles.beatLabel}>台詞:</label>
+              <div className={styles.beatLabelContainer}>
+                <label className={styles.beatLabel}>台詞:</label>
+                <div className={styles.audioButtonsContainer}>
+                  {/* 音声再生ボタン */}
+                  {beat.text && beat.speaker && beatHasAudio && (
+                    <button
+                      className={styles.audioPreviewButton}
+                      onClick={handleAudioPreview}
+                      type="button"
+                      title={isPlayingAudio ? "音声を停止" : "音声を再生"}
+                    >
+                      {isPlayingAudio ? (
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="6" y="6" width="12" height="12" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  {/* 音声生成/再生成ボタン */}
+                  {!isReadOnly && onGenerateAudioPreview && beat.text && beat.speaker && (
+                    <button
+                      className={styles.audioGenerateButton}
+                      onClick={onGenerateAudioPreview}
+                      disabled={isAudioPreviewLoading || audioPreviewStatus === 'processing' || audioPreviewStatus === 'pending'}
+                      type="button"
+                      title={beatHasAudio ? "音声を再生成" : "音声を生成"}
+                    >
+                      {isAudioPreviewLoading || audioPreviewStatus === 'processing' || audioPreviewStatus === 'pending' ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          生成中...
+                        </>
+                      ) : beatHasAudio ? (
+                        <>
+                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          再生成
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          </svg>
+                          音声生成
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
               <textarea
                 value={beat.text || ''}
                 onChange={(e) => handleTextChange(e.target.value)}
@@ -211,13 +372,14 @@ export function BeatItem({
 
           {/* プレビュー画像表示（右側） */}
           <div className={styles.beatContentRight}>
-            {/* プレビュー生成/再生成ボタン */}
+            {/* 画像プレビュー生成/再生成ボタン */}
             {!isReadOnly && onGeneratePreview && (
               <button
                 className={styles.previewGenerateButton}
                 onClick={onGeneratePreview}
                 disabled={isPreviewLoading || previewStatus === 'processing' || previewStatus === 'pending'}
                 type="button"
+                title={previewImage ? "画像を再生成" : "画像プレビューを生成"}
               >
                 {isPreviewLoading || previewStatus === 'processing' || previewStatus === 'pending' ? (
                   <>

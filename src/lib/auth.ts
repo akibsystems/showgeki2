@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isValidUid } from './schemas';
 import { ErrorType } from '@/types';
 import { createClient } from '@/lib/supabase/server';
+import { getOrCreateUid as getServerUid } from './uid-server';
 
 // ================================================================
 // Types
@@ -110,10 +111,10 @@ async function extractUidFromBody(request: NextRequest): Promise<string | null> 
  * リクエストからUIDを抽出（複数のソースから試行）
  * 
  * 優先順位:
- * 1. ヘッダー (x-uid または Authorization Bearer)
- * 2. クエリパラメータ
- * 3. Cookie
- * 4. リクエストボディ（POST等の場合）
+ * 1. 統一されたサーバーサイドUID取得（認証ユーザー > Cookie > 新規生成）
+ * 2. ヘッダー (x-uid または Authorization Bearer) - 後方互換性のため
+ * 3. クエリパラメータ - 後方互換性のため
+ * 4. リクエストボディ（POST等の場合）- 後方互換性のため
  */
 export async function extractUid(
   request: NextRequest,
@@ -121,16 +122,18 @@ export async function extractUid(
 ): Promise<string | null> {
   const { headerName, queryParam } = options;
   
-  // 1. ヘッダーから抽出
+  // 1. 統一されたサーバーサイドUID取得を最優先
+  const serverUid = await getServerUid(request);
+  if (serverUid && isValidUid(serverUid)) return serverUid;
+  
+  // 以下は後方互換性のため残す
+  
+  // 2. ヘッダーから抽出
   let uid = extractUidFromHeader(request, headerName);
   if (uid && isValidUid(uid)) return uid;
   
-  // 2. クエリパラメータから抽出
+  // 3. クエリパラメータから抽出
   uid = extractUidFromQuery(request, queryParam);
-  if (uid && isValidUid(uid)) return uid;
-  
-  // 3. Cookieから抽出
-  uid = extractUidFromCookie(request);
   if (uid && isValidUid(uid)) return uid;
   
   // 4. リクエストボディから抽出（POST/PUT等の場合）

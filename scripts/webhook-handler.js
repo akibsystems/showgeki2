@@ -182,6 +182,96 @@ function writeScriptJson(jsonContent, scriptPath) {
 }
 
 /**
+ * mulmocast-cliで音声のみを生成
+ */
+function generateAudio(scriptPath, outputDir) {
+  try {
+    console.log('mulmocast-cliで音声生成中...');
+    console.log('🎤 音声のみ生成モードで実行...');
+
+    // mulmocast-cliが存在するかチェック
+    const mulmocastPath = '/app/mulmocast-cli';
+    console.log(`🔍 mulmocast-cli パスを確認: ${mulmocastPath}`);
+    console.log(`  - 存在確認: ${fs.existsSync(mulmocastPath) ? '存在する' : '存在しない'}`);
+    if (fs.existsSync(mulmocastPath)) {
+      console.log(`  - package.json: ${fs.existsSync(path.join(mulmocastPath, 'package.json')) ? '存在する' : '存在しない'}`);
+    }
+    if (!fs.existsSync(path.join(mulmocastPath, 'package.json'))) {
+      console.error('❌ mulmocast-cli が見つかりません');
+      console.error('  - 現在の作業ディレクトリ:', process.cwd());
+      console.error('  - /app の内容:', fs.existsSync('/app') ? fs.readdirSync('/app') : 'ディレクトリが存在しません');
+      throw new Error('mulmocast-cli が見つかりません');
+    }
+
+    // 出力ディレクトリを確保
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    console.log('📊 システム情報:');
+    console.log(`  - Node.js: ${process.version}`);
+    console.log(`  - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
+    console.log(`  - Script Path: ${scriptPath}`);
+    console.log(`  - Output Dir: ${outputDir}`);
+
+    try {
+      // 相対パスでスクリプトと出力ディレクトリを指定
+      const relativeScriptPath = path.relative(mulmocastPath, scriptPath);
+      const relativeOutputDir = path.relative(mulmocastPath, outputDir);
+      const command = `yarn audio "${relativeScriptPath}" -o "${relativeOutputDir}"`;
+      console.log(`実行コマンド: ${command}`);
+
+      const startTime = Date.now();
+
+      // リアルタイム表示のため stdio: 'inherit' を使用
+      execSync(command, {
+        cwd: mulmocastPath,
+        stdio: 'inherit',
+        timeout: 300000, // 5分タイムアウト
+        maxBuffer: 1024 * 1024 * 10
+      });
+
+      const executionTime = Date.now() - startTime;
+      console.log(`⏱️ 音声生成完了: ${Math.round(executionTime / 1000)}秒`);
+
+      // 生成された音声ファイルを確認
+      const audioPath = path.join(outputDir, 'audio');
+      const audioScriptPath = path.join(audioPath, 'script');
+      
+      // audio/script/ ディレクトリの音声ファイルを確認
+      if (fs.existsSync(audioScriptPath)) {
+        const audioFiles = fs.readdirSync(audioScriptPath).filter(f => f.endsWith('.mp3') || f.endsWith('.wav'));
+        console.log(`✅ 音声生成完了: ${audioFiles.length}ファイルを生成`);
+        console.log('  生成されたファイル:', audioFiles);
+        return {
+          audioPath: audioPath,
+          audioCount: audioFiles.length,
+          executionTime: Math.round(executionTime / 1000)
+        };
+      } else if (fs.existsSync(audioPath)) {
+        // フォールバック: audio/ ディレクトリ直下を確認
+        const audioFiles = fs.readdirSync(audioPath).filter(f => f.endsWith('.mp3') || f.endsWith('.wav'));
+        console.log(`✅ 音声生成完了: ${audioFiles.length}ファイルを生成 (audio直下)`);
+        return {
+          audioPath: audioPath,
+          audioCount: audioFiles.length,
+          executionTime: Math.round(executionTime / 1000)
+        };
+      } else {
+        throw new Error('音声出力ディレクトリが見つかりません');
+      }
+
+    } catch (execError) {
+      console.error('mulmocast-cli音声生成エラー:', execError.message);
+      throw execError;
+    }
+
+  } catch (error) {
+    throw new Error(`音声生成エラー: ${error.message}`);
+  }
+}
+
+/**
  * mulmocast-cliで画像のみを生成
  */
 function generateImages(scriptPath, outputDir) {
@@ -587,6 +677,7 @@ async function uploadOutputDirectoryToSupabase(localDir, videoId, basePath = '')
 
         uploadedFiles.push({
           path: storagePath,
+          fileName: entry.name,
           url: urlData.publicUrl,
           size: fileBuffer.length
         });
@@ -761,6 +852,168 @@ async function processImagePreview(payload) {
         console.error('❌ 失敗ステータス更新エラー:', failedUpdateError);
       } else {
         console.log('✅ 失敗ステータス更新成功: failed');
+      }
+    }
+
+    return false;
+
+  } finally {
+    // 一時ファイルのクリーンアップ
+    if (uniquePaths && uniquePaths.tempDir) {
+      try {
+        console.log('🧹 一時ファイルをクリーンアップ中...');
+        if (fs.existsSync(uniquePaths.tempDir)) {
+          fs.rmSync(uniquePaths.tempDir, { recursive: true, force: true });
+          console.log(`✅ 一時ディレクトリを削除: ${uniquePaths.tempDir}`);
+        }
+      } catch (cleanupError) {
+        console.error('⚠️ クリーンアップエラー:', cleanupError.message);
+      }
+    }
+  }
+}
+
+/**
+ * 音声プレビューを処理する
+ */
+async function processAudioPreview(payload) {
+  const { video_id, story_id, uid, title, text_raw, script_json } = payload;
+  let uniquePaths = null;
+
+  try {
+    console.log(`🎤 音声プレビュー生成処理を開始します...`);
+    console.log(`📹 動画ID: ${video_id}`);
+    console.log(`📝 ストーリーID: ${story_id}`);
+    console.log(`👤 UID: ${uid}`);
+
+    // UUID形式チェック
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(video_id)) {
+      throw new Error(`無効なvideo_id形式: "${video_id}"`);
+    }
+
+    // Create unique paths
+    uniquePaths = createUniquePaths(video_id);
+    console.log(`🗂️ ユニーク作業ディレクトリ: ${uniquePaths.tempDir}`);
+
+    // ステータスをprocessingに更新
+    const { error: statusUpdateError } = await supabase
+      .from('videos')
+      .update({
+        preview_status: 'processing'
+      })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    if (statusUpdateError) {
+      console.error('❌ ステータス更新エラー:', statusUpdateError);
+      throw new Error(`ステータス更新失敗: ${statusUpdateError.message}`);
+    }
+
+    // script_jsonが存在しない場合はエラー
+    if (!script_json) {
+      throw new Error('Script JSON is required for audio preview generation');
+    }
+
+    // script.jsonファイルに書き込み
+    const jsonContent = JSON.stringify(script_json, null, 2);
+    writeScriptJson(jsonContent, uniquePaths.scriptPath);
+    console.log('✅ script.jsonファイル作成完了');
+
+    // mulmocast-cliで音声生成
+    const audioResult = generateAudio(uniquePaths.scriptPath, uniquePaths.tempDir);
+    console.log(`✅ 音声生成完了:`, audioResult);
+
+    // outputディレクトリ全体をSupabaseにアップロード
+    console.log('📤 音声ファイルをSupabaseにアップロード中...');
+    const uploadedFiles = await uploadOutputDirectoryToSupabase(uniquePaths.tempDir, video_id, 'audio-preview');
+    console.log(`✅ アップロード完了: ${uploadedFiles.length}ファイル`);
+
+    // 音声ファイルのURLリストを作成
+    const audioData = [];
+    const audioScriptPath = path.join(uniquePaths.tempDir, 'audio', 'script');
+    
+    console.log('🔍 音声ファイルのマッピング開始...');
+    console.log(`  - audioScriptPath: ${audioScriptPath}`);
+    console.log(`  - 存在確認: ${fs.existsSync(audioScriptPath)}`);
+    
+    // mulmocast-cliは audio/script/ ディレクトリに生成する
+    if (fs.existsSync(audioScriptPath)) {
+      const allFiles = fs.readdirSync(audioScriptPath);
+      console.log('  - 全ファイル:', allFiles);
+      
+      const audioFiles = allFiles
+        .filter(f => f.endsWith('.mp3') && f.startsWith('script_') && f !== 'script.mp3')
+        .sort(); // ファイル名でソート
+      
+      console.log('  - 対象音声ファイル:', audioFiles);
+      console.log('  - アップロード済みファイル数:', uploadedFiles.length);
+      
+      // beatsの数だけループ
+      const beats = script_json.beats || [];
+      console.log(`  - beats数: ${beats.length}`);
+      
+      for (let i = 0; i < beats.length && i < audioFiles.length; i++) {
+        const fileName = audioFiles[i];
+        // uploadedFilesのfileNameから該当するファイルを検索
+        const uploadedFile = uploadedFiles.find(f => f.fileName === fileName);
+        console.log(`  - Beat ${i}: ${fileName} -> ${uploadedFile ? 'マッチ' : 'マッチなし'}`);
+        
+        if (uploadedFile) {
+          audioData.push({
+            beatIndex: i,
+            fileName: fileName,
+            url: uploadedFile.url,
+            speakerId: beats[i].speaker || null,
+            text: beats[i].text || ''
+          });
+        }
+      }
+    }
+    
+    console.log(`✅ 音声データマッピング完了: ${audioData.length}件`);
+
+    // 音声プレビューデータを保存
+    const audioPreviewData = {
+      audioFiles: audioData,
+      generatedAt: new Date().toISOString(),
+      audioCount: audioData.length
+    };
+
+    // videosテーブルを更新
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({
+        audio_preview_data: audioPreviewData,
+        preview_status: 'completed'
+      })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    if (updateError) {
+      console.error('❌ データベース更新エラー:', updateError);
+      throw new Error(`データベース更新失敗: ${updateError.message}`);
+    }
+
+    console.log('✅ 音声プレビュー生成完了');
+    return true;
+
+  } catch (error) {
+    console.error('❌ 音声プレビュー生成エラー:', error);
+
+    // エラー時はステータスをfailedに更新
+    if (video_id && uid) {
+      const { error: failedUpdateError } = await supabase
+        .from('videos')
+        .update({
+          preview_status: 'failed',
+          error_msg: `音声プレビューエラー: ${error.message}`
+        })
+        .eq('id', video_id)
+        .eq('uid', uid);
+
+      if (failedUpdateError) {
+        console.error('❌ 失敗ステータス更新エラー:', failedUpdateError);
       }
     }
 
@@ -1302,6 +1555,47 @@ const server = http.createServer(async (req, res) => {
             res.end(JSON.stringify({
               success: false,
               message: 'Image preview generation failed',
+              error: error.message,
+              video_id: requestData.video_id
+            }));
+          } finally {
+            // アクティブリクエスト数を減らす
+            activeRequests--;
+            console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+          }
+        }
+        // Handle audio preview requests from API Routes
+        else if (payload.type === 'audio-preview' && payload.payload) {
+          const requestData = payload.payload;
+          console.log(`新しい音声プレビューリクエスト: ${requestData.video_id}`);
+
+          // 処理完了まで待機（同期的に処理）
+          console.log('🎤 音声プレビュー処理を同期的に実行します...');
+
+          // アクティブリクエスト数を増やす
+          activeRequests++;
+          console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+
+          try {
+            const result = await processAudioPreview(requestData);
+
+            // 処理成功
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Audio preview generation completed',
+              video_id: requestData.video_id,
+              completed: result
+            }));
+          } catch (error) {
+            console.error('❌ 音声プレビュー処理でエラー:', error.message);
+            console.error('❌ エラースタック:', error.stack);
+
+            // エラーレスポンス
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: false,
+              message: 'Audio preview generation failed',
               error: error.message,
               video_id: requestData.video_id
             }));

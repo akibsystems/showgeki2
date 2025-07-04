@@ -15,6 +15,12 @@ export interface ScriptDirectorProps {
   previewStatus?: string;
   isPreviewLoading?: boolean;
   onGeneratePreview?: () => void;
+  onGenerateAudioPreview?: () => void;
+  isAudioPreviewLoading?: boolean;
+  audioPreviewStatus?: string | null;
+  storyId?: string;
+  audioPreviewData?: any | null;
+  hasAudioPreview?: boolean;
 }
 
 // 内部状態管理

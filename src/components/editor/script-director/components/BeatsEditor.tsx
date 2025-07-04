@@ -19,6 +19,12 @@ interface BeatsEditorProps {
   previewStatus?: string;
   isPreviewLoading?: boolean;
   onGeneratePreview?: () => void;
+  onGenerateAudioPreview?: () => void;
+  isAudioPreviewLoading?: boolean;
+  audioPreviewStatus?: string | null;
+  storyId?: string;
+  hasAudioPreview?: boolean;
+  audioPreviewData?: any;
   onUpdateBeat: (index: number, beat: MulmoBeat) => void;
   onAddBeat: () => void;
   onDeleteBeat: (index: number) => void;
@@ -34,6 +40,12 @@ export function BeatsEditor({
   previewStatus,
   isPreviewLoading,
   onGeneratePreview,
+  onGenerateAudioPreview,
+  isAudioPreviewLoading = false,
+  audioPreviewStatus = null,
+  storyId,
+  hasAudioPreview = false,
+  audioPreviewData = null,
   onUpdateBeat,
   onAddBeat,
   onDeleteBeat,
@@ -82,6 +94,12 @@ export function BeatsEditor({
                 previewStatus={previewStatus}
                 isPreviewLoading={isPreviewLoading}
                 onGeneratePreview={onGeneratePreview}
+                onGenerateAudioPreview={onGenerateAudioPreview}
+                isAudioPreviewLoading={isAudioPreviewLoading}
+                audioPreviewStatus={audioPreviewStatus}
+                storyId={storyId}
+                hasAudioPreview={hasAudioPreview}
+                audioPreviewData={audioPreviewData}
                 onUpdate={(updatedBeat) => onUpdateBeat(index, updatedBeat)}
                 onDelete={() => onDeleteBeat(index)}
                 onMoveUp={index > 0 ? () => onMoveBeat(index, 'up') : undefined}

@@ -24,6 +24,12 @@ export function ScriptDirector({
   previewStatus,
   isPreviewLoading = false,
   onGeneratePreview,
+  onGenerateAudioPreview,
+  isAudioPreviewLoading = false,
+  audioPreviewStatus = null,
+  storyId,
+  audioPreviewData = null,
+  hasAudioPreview = false,
 }: ScriptDirectorProps) {
   const [editingSpeaker, setEditingSpeaker] = useState<{
     speakerId: string;
@@ -382,6 +388,12 @@ export function ScriptDirector({
             previewStatus={previewStatus}
             isPreviewLoading={isPreviewLoading}
             onGeneratePreview={onGeneratePreview}
+            onGenerateAudioPreview={onGenerateAudioPreview}
+            isAudioPreviewLoading={isAudioPreviewLoading}
+            audioPreviewStatus={audioPreviewStatus}
+            storyId={storyId}
+            hasAudioPreview={!!audioPreviewData}
+            audioPreviewData={audioPreviewData}
             onUpdateBeat={beatsManager.updateBeat}
             onAddBeat={beatsManager.addBeat}
             onDeleteBeat={beatsManager.deleteBeat}
