@@ -16,12 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tokyo Shakespeare Anime Studio",
+  title: "Tokyo Shakespeare Studio",
   description: "AIを活用したストーリー動画生成プラットフォーム",
   icons: {
-    icon: "/TSAS_logo.png",
-    shortcut: "/TSAS_logo.png",
-    apple: "/TSAS_logo.png",
+    icon: "/TSS_logo.png",
+    shortcut: "/TSS_logo.png",
+    apple: "/TSS_logo.png",
   },
 };
 

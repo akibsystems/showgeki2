@@ -37,12 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 group">
               <img
-                src="/TSAS_logo.jpg"
-                alt="Tokyo Shakespeare Anime Studio"
+                src="/TSS_logo.jpg"
+                alt="Tokyo Shakespeare Studio"
                 className="h-10 w-auto rounded-lg shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/40 transition-all duration-300"
               />
               <span className="text-sm sm:text-xl font-bold bg-gradient-to-r from-amber-400 to-purple-400 bg-clip-text text-transparent group-hover:from-amber-300 group-hover:to-purple-300 transition-all duration-300">
-                Tokyo Shakespeare Anime Studio
+                Tokyo Shakespeare Studio
               </span>
             </Link>
           </div>

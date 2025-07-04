@@ -67,7 +67,7 @@ export function AuthForm({ mode = 'signin', redirectTo = '/dashboard' }: AuthFor
             {mode === 'signin' ? 'ログイン' : 'アカウント作成'}
           </h2>
           <p className="text-gray-400">
-            Tokyo Shakespeare Anime Studioでシェイクスピア風の動画を作成しましょう
+            Tokyo Shakespeare Studioでシェイクスピア風の動画を作成しましょう
           </p>
         </div>
 

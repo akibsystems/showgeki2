@@ -163,7 +163,7 @@ const DashboardContent: React.FC = () => {
         {/* Header */}
         <div className="mb-8 sm:mb-12 text-center">
           <h1 className="text-2xl sm:text-3xl font-bold mb-3">
-            <span className="shakespeare-title">Tokyo Shakespeare Anime Studio</span>
+            <span className="shakespeare-title">Tokyo Shakespeare Studio</span>
           </h1>
           <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto px-4 sm:px-0">
             あなたの物語をシェイクスピア風のアニメ動画に変換します

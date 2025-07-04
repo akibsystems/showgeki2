@@ -10,7 +10,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-gold-400 bg-clip-text text-transparent mb-2">
-              Tokyo Shakespeare Anime Studio
+              Tokyo Shakespeare Studio
             </h1>
             <p className="text-gray-400">
               AIが紡ぐシェイクスピア風物語

@@ -268,7 +268,7 @@ function generateMovie(scriptPath, outputPath, captionLang = null) {
         path.join(outputDir, 'script.mp4'), // mulmocast-cliの実際の出力名（字幕なし）
         outputPath // 期待するパス
       ];
-      
+
       // 字幕ありの場合は、言語別のファイル名も確認
       if (captionLang) {
         const captionPath = path.join(outputDir, `script__${captionLang}.mp4`);
@@ -540,7 +540,7 @@ async function processVideoGeneration(payload) {
             "type": "image",
             "source": {
               "kind": "url",
-              "url": "https://showgeki2-git-main-tobe-tokyo.vercel.app/TSAS_credit.png"
+              "url": "https://showgeki2-git-main-tobe-tokyo.vercel.app/TSS_credit.png"
             }
           }
         };
@@ -903,13 +903,13 @@ const server = http.createServer(async (req, res) => {
     // レート制限チェック
     if (activeRequests >= MAX_CONCURRENT_REQUESTS) {
       console.log(`⚠️ レート制限: アクティブリクエスト数 ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
-      
+
       // 429エラーを返す前に、リクエストボディをパースしてvideo_idを取得
       let body = '';
       req.on('data', chunk => {
         body += chunk.toString();
       });
-      
+
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body);
@@ -928,16 +928,16 @@ const server = http.createServer(async (req, res) => {
         } catch (error) {
           console.error('❌ レート制限時のステータス更新エラー:', error);
         }
-        
+
         // 429 Rate Limit Exceededを返す
         res.writeHead(429, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
+        res.end(JSON.stringify({
           error: 'Rate limit exceeded - too many concurrent requests',
           activeRequests: activeRequests,
           maxRequests: MAX_CONCURRENT_REQUESTS
         }));
       });
-      
+
       return;
     }
 
@@ -959,14 +959,14 @@ const server = http.createServer(async (req, res) => {
 
           // 処理完了まで待機（同期的に処理）
           console.log('📝 動画生成処理を同期的に実行します...');
-          
+
           // アクティブリクエスト数を増やす
           activeRequests++;
           console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
-          
+
           try {
             const result = await processVideoGeneration(requestData);
-            
+
             // 処理成功
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -995,7 +995,7 @@ const server = http.createServer(async (req, res) => {
                 console.error('❌ ステータス更新エラー:', updateError.message);
               }
             }
-            
+
             // エラーレスポンス
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
