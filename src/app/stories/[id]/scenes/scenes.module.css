@@ -58,6 +58,28 @@
   box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
+.sceneActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.moveButton {
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  font-size: 16px;
+}
+
+.moveButton:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 .deleteButton {
   padding: 4px 8px;
   background: none;
@@ -90,6 +112,12 @@
 
   .sceneTitle,
   .titleInput {
+    font-size: 14px;
+  }
+
+  .moveButton,
+  .deleteButton {
+    padding: 2px 6px;
     font-size: 14px;
   }
 }

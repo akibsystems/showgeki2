@@ -92,9 +92,20 @@ const StoryEditorContent: React.FC = () => {
       setTimeout(() => {
         console.log('[StoryEditor] Second revalidation...');
         mutateStory();
+        
+        // さらに遅れて確認
+        setTimeout(() => {
+          console.log('[StoryEditor] Checking after revalidation:', {
+            hasStory: !!story,
+            hasScriptJson: !!story?.script_json,
+            scriptJsonType: typeof story?.script_json,
+            scriptJsonKeys: story?.script_json ? Object.keys(story.script_json) : null,
+            storyObject: story  // storyオブジェクト全体を確認
+          });
+        }, 1000);
       }, 500);
     }
-  }, [success, mutateStory]);
+  }, [success, mutateStory, story]);
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -111,7 +122,8 @@ const StoryEditorContent: React.FC = () => {
         console.log('[StoryEditor] Script loaded:', {
           hasBeats: !!script.beats,
           beatsCount: script.beats?.length,
-          beats: script.beats
+          beats: script.beats,
+          fullScript: script
         });
       }
     }
@@ -631,28 +643,39 @@ const StoryEditorContent: React.FC = () => {
             {currentTab === 'content' ? (
               <div className="space-y-6">
                 {/* ScriptDirector */}
-                <ScriptDirector
-                  script={(story.script_json as Mulmoscript) || { 
+                {(() => {
+                  const scriptToPass = (story.script_json as Mulmoscript) || { 
                     $mulmocast: { version: '1.0' }, 
                     beats: [],
                     lang: 'ja',
                     title: story.title || '',
                     speechParams: { provider: 'openai', speakers: {} },
                     imageParams: {}
-                  }}
-                  onChange={handleScriptSave}
-                  isReadOnly={isReadOnly}
-                  previewData={previewData}
-                  previewStatus={previewStatus}
-                  isPreviewLoading={isPreviewLoading}
-                  onGeneratePreview={handleGeneratePreview}
-                  onGenerateAudioPreview={handleGenerateAudioPreview}
-                  isAudioPreviewLoading={isAudioPreviewGenerating}
-                  audioPreviewStatus={audioPreviewStatus}
-                  storyId={storyId}
-                  hasAudioPreview={!!audioPreviewData}
-                  audioPreviewData={audioPreviewData}
-                />
+                  };
+                  console.log('[StoryEditor] Passing script to ScriptDirector:', {
+                    hasStoryScriptJson: !!story.script_json,
+                    scriptJsonType: typeof story.script_json,
+                    beatsInScript: (story.script_json as any)?.beats?.length,
+                    passedScript: scriptToPass
+                  });
+                  return (
+                    <ScriptDirector
+                      script={scriptToPass}
+                      onChange={handleScriptSave}
+                      isReadOnly={isReadOnly}
+                      previewData={previewData}
+                      previewStatus={previewStatus}
+                      isPreviewLoading={isPreviewLoading}
+                      onGeneratePreview={handleGeneratePreview}
+                      onGenerateAudioPreview={handleGenerateAudioPreview}
+                      isAudioPreviewLoading={isAudioPreviewGenerating}
+                      audioPreviewStatus={audioPreviewStatus}
+                      storyId={storyId}
+                      hasAudioPreview={!!audioPreviewData}
+                      audioPreviewData={audioPreviewData}
+                    />
+                  );
+                })()}
               </div>
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
               /* Script Editor */

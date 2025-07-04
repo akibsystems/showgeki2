@@ -225,6 +225,14 @@ async function generateScript(
       generated_with_ai: generated_with_ai,
       generation_options: generationOptions
     };
+    
+    // デバッグ: レスポンスの内容を確認
+    console.log(`[Script Generation] Response data:`, {
+      has_script_json: !!responseData.script_json,
+      script_json_beats_count: responseData.script_json?.beats?.length,
+      story_has_script_json: !!responseData.story?.script_json,
+      story_script_json_beats_count: (responseData.story?.script_json as any)?.beats?.length
+    });
 
     // Validate response format - ensuring type consistency
     validateSchema(GenerateScriptResponseSchema, {

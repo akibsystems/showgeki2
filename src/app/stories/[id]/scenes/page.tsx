@@ -9,6 +9,8 @@ import { useStory } from '@/hooks';
 import { useToast } from '@/contexts';
 import Link from 'next/link';
 import styles from './scenes.module.css';
+import { mutate } from 'swr';
+import { swrKeys } from '@/lib/swr-config';
 
 interface SceneInfo {
   number: number;
@@ -20,7 +22,7 @@ const SceneEditorContent: React.FC = () => {
   const router = useRouter();
   const { error: showError } = useToast();
   const storyId = params.id as string;
-  const { story, isLoading } = useStory(storyId);
+  const { story, isLoading, generateScript: generateScriptFromHook } = useStory(storyId);
   const [scenes, setScenes] = useState<SceneInfo[]>([]);
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
@@ -84,6 +86,21 @@ const SceneEditorContent: React.FC = () => {
     setScenes(newScenes);
   };
 
+  const handleMoveScene = (index: number, direction: 'up' | 'down') => {
+    const newScenes = [...scenes];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // スワップ
+    [newScenes[index], newScenes[targetIndex]] = [newScenes[targetIndex], newScenes[index]];
+    
+    // シーン番号を再割り当て
+    newScenes.forEach((scene, i) => {
+      scene.number = i + 1;
+    });
+    
+    setScenes(newScenes);
+  };
+
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
     
@@ -109,6 +126,19 @@ const SceneEditorContent: React.FC = () => {
       // レスポンスを確認
       const result = await response.json();
       console.log('[SceneEditor] Script generation response:', result);
+      if (result.data?.script_json) {
+        console.log('[SceneEditor] Generated script details:', {
+          hasBeats: !!result.data.script_json.beats,
+          beatsCount: result.data.script_json.beats?.length,
+          firstBeat: result.data.script_json.beats?.[0]
+        });
+      }
+      
+      // SWRキャッシュを手動で更新
+      if (result.data?.story) {
+        console.log('[SceneEditor] Updating SWR cache with new story data');
+        await mutate(swrKeys.story(storyId), result.data.story, false);
+      }
 
       // 台本生成成功をストレージに保存
       sessionStorage.setItem('scriptGenerationSuccess', 'true');
@@ -192,7 +222,7 @@ const SceneEditorContent: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.sceneList}>
-                  {scenes.map((scene) => (
+                  {scenes.map((scene, index) => (
                     <div key={scene.number} className={styles.sceneItem}>
                       <div className={styles.sceneNumber}>
                         シーン {scene.number}
@@ -226,14 +256,34 @@ const SceneEditorContent: React.FC = () => {
                           {scene.title}
                         </div>
                       )}
-                      <button
-                        onClick={() => handleDeleteScene(scene.number)}
-                        className={styles.deleteButton}
-                        disabled={scenes.length <= 1}
-                        title="削除"
-                      >
-                        🗑️
-                      </button>
+                      <div className={styles.sceneActions}>
+                        {index > 0 && (
+                          <button
+                            onClick={() => handleMoveScene(index, 'up')}
+                            className={styles.moveButton}
+                            title="上に移動"
+                          >
+                            ⬆️
+                          </button>
+                        )}
+                        {index < scenes.length - 1 && (
+                          <button
+                            onClick={() => handleMoveScene(index, 'down')}
+                            className={styles.moveButton}
+                            title="下に移動"
+                          >
+                            ⬇️
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteScene(scene.number)}
+                          className={styles.deleteButton}
+                          disabled={scenes.length <= 1}
+                          title="削除"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
