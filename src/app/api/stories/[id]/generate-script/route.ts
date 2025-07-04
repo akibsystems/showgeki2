@@ -67,7 +67,7 @@ async function parseScriptGenerationOptions(request: NextRequest): Promise<Scrip
         ? body.style_preference
         : 'dramatic',
       language: ['ja', 'en'].includes(body.language) ? body.language : 'ja',
-      beats: typeof body.beats === 'number' ? body.beats : 5,
+      beats: typeof body.beats === 'number' ? body.beats : (Array.isArray(body.scenes) ? body.scenes.length : 5),
       retryCount: typeof body.retry_count === 'number' ? Math.min(body.retry_count, 3) : 2,
       enableCaptions: typeof body.enable_captions === 'boolean' ? body.enable_captions : false,
       captionStyles: Array.isArray(body.caption_styles) ? body.caption_styles : undefined,
@@ -150,7 +150,8 @@ async function generateScript(
     console.log(`[Script Generation] Starting for story ${storyId} with options:`, {
       ...generationOptions,
       story_title: story.title,
-      story_length: story.text_raw.length
+      story_length: story.text_raw.length,
+      scenes: generationOptions.scenes
     });
 
     // Generate script using OpenAI integration with fallback
@@ -179,7 +180,9 @@ async function generateScript(
       beat_count: generatedScript.beats.length,
       has_speech_params: !!generatedScript.speechParams,
       has_image_params: !!generatedScript.imageParams,
-      language: generatedScript.lang || 'en'
+      language: generatedScript.lang || 'en',
+      first_beat: generatedScript.beats[0],
+      all_beats_titles: generatedScript.beats.map((b: any, i: number) => `Beat ${i + 1}: ${b.speaker} - ${b.text?.substring(0, 30)}...`)
     });
 
     const supabase = createAdminClient();

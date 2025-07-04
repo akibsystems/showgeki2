@@ -86,6 +86,10 @@ const SceneEditorContent: React.FC = () => {
 
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
+    
+    // デバッグ: 送信するシーン情報を確認
+    console.log('[SceneEditor] Generating script with scenes:', scenes);
+    
     try {
       const response = await fetch(`/api/stories/${storyId}/generate-script`, {
         method: 'POST',
@@ -94,18 +98,25 @@ const SceneEditorContent: React.FC = () => {
         },
         body: JSON.stringify({
           scenes: scenes,
+          beats: scenes.length,  // シーン数を明示的に送信
         }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to generate script');
       }
+      
+      // レスポンスを確認
+      const result = await response.json();
+      console.log('[SceneEditor] Script generation response:', result);
 
       // 台本生成成功をストレージに保存
       sessionStorage.setItem('scriptGenerationSuccess', 'true');
       
-      // 台本生成後、編集画面へ遷移
-      router.push(`/stories/${storyId}?tab=content`);
+      // 少し待ってから遷移（データの更新を待つ）
+      setTimeout(() => {
+        router.push(`/stories/${storyId}?tab=content`);
+      }, 1000);  // 1秒待機に変更
     } catch (err) {
       showError('台本の生成に失敗しました');
     } finally {
@@ -202,7 +213,7 @@ const SceneEditorContent: React.FC = () => {
                           }}
                           className={styles.titleInput}
                           autoFocus
-                          maxLength={20}
+                          maxLength={100}
                         />
                       ) : (
                         <div

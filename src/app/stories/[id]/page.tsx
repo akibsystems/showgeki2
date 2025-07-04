@@ -81,8 +81,20 @@ const StoryEditorContent: React.FC = () => {
     if (scriptGenerationSuccess === 'true') {
       success('台本が生成されました');
       sessionStorage.removeItem('scriptGenerationSuccess');
+      
+      // データを強制的に再取得（キャッシュを無視）
+      console.log('[StoryEditor] Force revalidating story data...');
+      
+      // 複数回mutateを呼んで確実に更新
+      mutateStory();
+      
+      // 少し遅れてもう一度
+      setTimeout(() => {
+        console.log('[StoryEditor] Second revalidation...');
+        mutateStory();
+      }, 500);
     }
-  }, [success]);
+  }, [success, mutateStory]);
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -92,6 +104,16 @@ const StoryEditorContent: React.FC = () => {
         text_raw: story.text_raw || '',
         beats: story.beats || 5, // Use story's beats value or default to 5
       });
+      
+      // デバッグ: script_jsonの内容を確認
+      if (story.script_json) {
+        const script = story.script_json as any;
+        console.log('[StoryEditor] Script loaded:', {
+          hasBeats: !!script.beats,
+          beatsCount: script.beats?.length,
+          beats: script.beats
+        });
+      }
     }
   }, [story]);
 

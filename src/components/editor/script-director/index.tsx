@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SpeechSettings } from './components/SpeechSettings';
 import { BeatsEditor } from './components/BeatsEditor';
 import { ImageSettings } from './components/ImageSettings';
@@ -31,6 +31,15 @@ export function ScriptDirector({
   audioPreviewData = null,
   hasAudioPreview = false,
 }: ScriptDirectorProps) {
+  // デバッグ: 受け取ったscriptの内容を確認
+  useEffect(() => {
+    console.log('[ScriptDirector] Received script:', {
+      hasScript: !!script,
+      hasBeats: !!script?.beats,
+      beatsCount: script?.beats?.length,
+      firstBeat: script?.beats?.[0]
+    });
+  }, [script]);
   const [editingSpeaker, setEditingSpeaker] = useState<{
     speakerId: string;
     voiceId: VoiceId;
