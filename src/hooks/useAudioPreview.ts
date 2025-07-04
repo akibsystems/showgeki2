@@ -155,12 +155,18 @@ export function useAudioPreview({ storyId }: UseAudioPreviewOptions) {
       // Get current UID to send in headers
       const currentUid = uid || await import('@/lib/uid').then(m => m.getOrCreateUid());
       
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Only add X-User-UID header if currentUid is not null
+      if (currentUid) {
+        headers['X-User-UID'] = currentUid;
+      }
+      
       const response = await fetch(`/api/stories/${storyId}/audio-preview`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-UID': currentUid,
-        },
+        headers,
       });
 
       console.log('Audio preview API response:', {
