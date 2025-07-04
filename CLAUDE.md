@@ -240,6 +240,18 @@ Use `docker-compose.yml` for local development with actual mulmocast-cli:
 - FFmpeg and ImageMagick for media processing
 - Full mulmocast-cli installation with quality patch
 
+### Output Reuse Optimization
+The webhook handler includes intelligent output reuse for all generation types:
+- **Video Generation**: Checks for existing video in storage (`videos/${video_id}.mp4`) and reuses if found
+- **Image Preview**: Checks for existing preview output in `videos/${video_id}/preview/output/` and downloads for reuse
+- **Audio Preview**: Checks for existing audio output in `videos/${video_id}/audio-preview/output/` and downloads for reuse
+
+This optimization:
+- Significantly reduces processing time for regeneration requests
+- Saves OpenAI API costs by avoiding redundant generation
+- Preserves consistency when retrying failed operations
+- Automatically logs when outputs are reused vs newly generated
+
 ## AI Processing Details
 
 ### Script Generation
