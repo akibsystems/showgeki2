@@ -262,13 +262,14 @@ async function generateVideo(
       }
 
       // webhook呼び出し成功（実際の処理とステータス更新はwebhook handler側で行う）
+      // タイムアウトした場合も含めて、成功として扱う
       return NextResponse.json({
         success: true,
         data: {
           video_id: videoId,
-          status: 'completed'
+          status: 'queued'  // webhook handlerがprocessing→completedに更新する
         },
-        message: 'Video generation completed successfully',
+        message: 'Video generation started successfully',
         timestamp: new Date().toISOString()
       });
     } else {
@@ -388,8 +389,8 @@ async function callCloudRunWebhook(payload: {
         type: 'video_generation',
         payload
       }),
-      // Add timeout for webhook calls (10 minutes for video generation)
-      signal: AbortSignal.timeout(600000) // 600 seconds = 10 minutes timeout
+      // Add timeout for webhook calls (10 seconds for UX, processing continues in background)
+      signal: AbortSignal.timeout(10000) // 10 seconds timeout
     });
 
     if (!response.ok) {
@@ -400,6 +401,13 @@ async function callCloudRunWebhook(payload: {
     return { success: true };
 
   } catch (error) {
+    // タイムアウトエラーをチェック
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      console.log('Webhook call timed out, but processing continues in background');
+      // タイムアウトは成功として扱う（処理は継続される）
+      return { success: true };
+    }
+    
     console.error('Cloud Run webhook call failed:', error);
     return {
       success: false,
