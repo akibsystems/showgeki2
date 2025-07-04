@@ -2,6 +2,7 @@ import React from 'react';
 import { BeatItem } from './BeatItem';
 import type { MulmoBeat, MulmoSpeakerDataSchema } from '@/lib/schemas';
 import type { VoiceId } from '../types';
+import type { PreviewData } from '@/types/preview';
 import { z } from 'zod';
 import styles from '../styles/ScriptDirector.module.css';
 
@@ -14,6 +15,8 @@ interface BeatsEditorProps {
   beats: MulmoBeat[];
   speakers: Record<string, Speaker>;
   faceReferences: Record<string, any>;
+  previewData?: PreviewData | null;
+  previewStatus?: string;
   onUpdateBeat: (index: number, beat: MulmoBeat) => void;
   onAddBeat: () => void;
   onDeleteBeat: (index: number) => void;
@@ -25,6 +28,8 @@ export function BeatsEditor({
   beats,
   speakers,
   faceReferences,
+  previewData,
+  previewStatus,
   onUpdateBeat,
   onAddBeat,
   onDeleteBeat,
@@ -56,21 +61,29 @@ export function BeatsEditor({
             <p>「新しいシーンを追加」ボタンで台本を作成してください。</p>
           </div>
         ) : (
-          beats.map((beat, index) => (
-            <BeatItem
-              key={index}
-              index={index}
-              beat={beat}
-              speakerIds={speakerIds}
-              speakers={speakers}
-              faceReferenceKeys={faceReferenceKeys}
-              onUpdate={(updatedBeat) => onUpdateBeat(index, updatedBeat)}
-              onDelete={() => onDeleteBeat(index)}
-              onMoveUp={index > 0 ? () => onMoveBeat(index, 'up') : undefined}
-              onMoveDown={index < beats.length - 1 ? () => onMoveBeat(index, 'down') : undefined}
-              isReadOnly={isReadOnly}
-            />
-          ))
+          beats.map((beat, index) => {
+            // Find the preview image for this beat index
+            const previewImage = previewData?.images.find(img => img.beatIndex === index);
+            
+            return (
+              <BeatItem
+                key={index}
+                index={index}
+                beat={beat}
+                speakerIds={speakerIds}
+                speakers={speakers}
+                faceReferenceKeys={faceReferenceKeys}
+                previewImage={previewImage}
+                previewTimestamp={previewData?.generatedAt}
+                previewStatus={previewStatus}
+                onUpdate={(updatedBeat) => onUpdateBeat(index, updatedBeat)}
+                onDelete={() => onDeleteBeat(index)}
+                onMoveUp={index > 0 ? () => onMoveBeat(index, 'up') : undefined}
+                onMoveDown={index < beats.length - 1 ? () => onMoveBeat(index, 'down') : undefined}
+                isReadOnly={isReadOnly}
+              />
+            );
+          })
         )}
       </div>
 

@@ -1,4 +1,5 @@
 import type { Mulmoscript } from '@/lib/schemas';
+import type { PreviewData } from '@/types/preview';
 
 // OpenAI音声ID
 export type VoiceId = 'alloy' | 'echo' | 'fable' | 'nova' | 'onyx' | 'shimmer';
@@ -10,6 +11,8 @@ export interface ScriptDirectorProps {
   onSave?: () => void;
   isReadOnly?: boolean;
   className?: string;
+  previewData?: PreviewData | null;
+  previewStatus?: string;
 }
 
 // 内部状態管理

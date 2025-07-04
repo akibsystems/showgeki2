@@ -181,6 +181,83 @@ function writeScriptJson(jsonContent, scriptPath) {
   }
 }
 
+/**
+ * mulmocast-cliで画像のみを生成
+ */
+function generateImages(scriptPath, outputDir) {
+  try {
+    console.log('mulmocast-cliで画像生成中...');
+    console.log('🎬 画像のみ生成モードで実行...');
+
+    // mulmocast-cliが存在するかチェック
+    const mulmocastPath = '/app/mulmocast-cli';
+    console.log(`🔍 mulmocast-cli パスを確認: ${mulmocastPath}`);
+    console.log(`  - 存在確認: ${fs.existsSync(mulmocastPath) ? '存在する' : '存在しない'}`);
+    if (fs.existsSync(mulmocastPath)) {
+      console.log(`  - package.json: ${fs.existsSync(path.join(mulmocastPath, 'package.json')) ? '存在する' : '存在しない'}`);
+    }
+    if (!fs.existsSync(path.join(mulmocastPath, 'package.json'))) {
+      console.error('❌ mulmocast-cli が見つかりません');
+      console.error('  - 現在の作業ディレクトリ:', process.cwd());
+      console.error('  - /app の内容:', fs.existsSync('/app') ? fs.readdirSync('/app') : 'ディレクトリが存在しません');
+      throw new Error('mulmocast-cli が見つかりません');
+    }
+
+    // 出力ディレクトリを確保
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    console.log('📊 システム情報:');
+    console.log(`  - Node.js: ${process.version}`);
+    console.log(`  - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
+    console.log(`  - Script Path: ${scriptPath}`);
+    console.log(`  - Output Dir: ${outputDir}`);
+
+    try {
+      // 相対パスでスクリプトと出力ディレクトリを指定
+      const relativeScriptPath = path.relative(mulmocastPath, scriptPath);
+      const relativeOutputDir = path.relative(mulmocastPath, outputDir);
+      const command = `yarn images "${relativeScriptPath}" -o "${relativeOutputDir}"`;
+      console.log(`実行コマンド: ${command}`);
+
+      const startTime = Date.now();
+
+      // リアルタイム表示のため stdio: 'inherit' を使用
+      execSync(command, {
+        cwd: mulmocastPath,
+        stdio: 'inherit',
+        timeout: 300000, // 5分タイムアウト
+        maxBuffer: 1024 * 1024 * 10
+      });
+
+      const executionTime = Date.now() - startTime;
+      console.log(`⏱️ 画像生成完了: ${Math.round(executionTime / 1000)}秒`);
+
+      // 生成された画像ファイルを確認
+      const imagesPath = path.join(outputDir, 'images', 'script');
+      if (fs.existsSync(imagesPath)) {
+        const imageFiles = fs.readdirSync(imagesPath).filter(f => f.endsWith('.png'));
+        console.log(`✅ 画像生成完了: ${imageFiles.length}枚の画像を生成`);
+        return {
+          imagesPath: imagesPath,
+          imageCount: imageFiles.length,
+          executionTime: Math.round(executionTime / 1000)
+        };
+      } else {
+        throw new Error('画像出力ディレクトリが見つかりません');
+      }
+
+    } catch (execError) {
+      console.error('mulmocast-cli画像生成エラー:', execError.message);
+      throw execError;
+    }
+
+  } catch (error) {
+    throw new Error(`画像生成エラー: ${error.message}`);
+  }
+}
+
 function generateMovie(scriptPath, outputPath, captionLang = null) {
   try {
     console.log('mulmocast-cliで動画生成中...');
@@ -461,6 +538,239 @@ async function uploadVideoToSupabase(videoPath, videoId, retryCount = 0) {
 
     currentUploads--; // エラー時にカウントを減らす
     throw new Error(`動画アップロードエラー: ${error.message}`);
+  }
+}
+
+/**
+ * Upload entire output directory to Supabase Storage
+ */
+async function uploadOutputDirectoryToSupabase(localDir, videoId, basePath = '') {
+  const uploadedFiles = [];
+
+  try {
+    console.log(`📁 アップロード開始: ${localDir}`);
+
+    // ディレクトリ内のファイルとサブディレクトリを取得
+    const entries = fs.readdirSync(localDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const localPath = path.join(localDir, entry.name);
+      const storagePath = basePath ? `${basePath}/${entry.name}` : entry.name;
+
+      if (entry.isDirectory()) {
+        // サブディレクトリを再帰的に処理
+        const subFiles = await uploadOutputDirectoryToSupabase(localPath, videoId, storagePath);
+        uploadedFiles.push(...subFiles);
+      } else if (entry.isFile()) {
+        // ファイルをアップロード
+        const fileBuffer = fs.readFileSync(localPath);
+        const fullPath = `videos/${videoId}/preview/output/${storagePath}`;
+
+        console.log(`📤 ファイルアップロード: ${fullPath}`);
+
+        const { data, error } = await supabase.storage
+          .from('videos')
+          .upload(fullPath, fileBuffer, {
+            contentType: getContentType(entry.name),
+            upsert: true, // プレビューは上書き可能
+          });
+
+        if (error) {
+          console.error(`❌ ファイルアップロードエラー (${storagePath}):`, error.message);
+          throw error;
+        }
+
+        // 公開URLを取得
+        const { data: urlData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(fullPath);
+
+        uploadedFiles.push({
+          path: storagePath,
+          url: urlData.publicUrl,
+          size: fileBuffer.length
+        });
+      }
+    }
+
+    console.log(`✅ ディレクトリアップロード完了: ${uploadedFiles.length}ファイル`);
+    return uploadedFiles;
+
+  } catch (error) {
+    console.error('❌ ディレクトリアップロードエラー:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get content type based on file extension
+ */
+function getContentType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  const contentTypes = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.json': 'application/json',
+    '.xml': 'application/xml',
+    '.mp4': 'video/mp4',
+    '.mp3': 'audio/mp3',
+    '.wav': 'audio/wav',
+  };
+  return contentTypes[ext] || 'application/octet-stream';
+}
+
+/**
+ * Process image preview generation
+ */
+async function processImagePreview(payload) {
+  const { video_id, story_id, uid, title, script_json } = payload;
+  let uniquePaths = null;
+  const processingStartTime = Date.now();
+
+  try {
+    console.log(`🖼️ 画像プレビュー生成処理を開始します...`);
+    console.log(`📹 動画ID: ${video_id}`);
+    console.log(`📝 ストーリーID: ${story_id}`);
+    console.log(`👤 UID: ${uid}`);
+    console.log(`📄 タイトル: ${title}`);
+    console.log(`⏰ 処理開始時刻: ${new Date(processingStartTime).toISOString()}`);
+    console.log('');
+
+    // UUID形式チェック
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(video_id)) {
+      throw new Error(`無効なvideo_id形式: "${video_id}"`);
+    }
+    if (!uuidRegex.test(story_id)) {
+      throw new Error(`無効なstory_id形式: "${story_id}"`);
+    }
+
+    // Create unique paths
+    uniquePaths = createUniquePaths(video_id);
+    console.log(`🗂️ ユニーク作業ディレクトリ: ${uniquePaths.tempDir}`);
+
+    // ステータスを更新
+    const { error: statusUpdateError } = await supabase
+      .from('videos')
+      .update({
+        preview_status: 'processing'
+      })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    if (statusUpdateError) {
+      console.error('❌ ステータス更新エラー:', statusUpdateError);
+      throw new Error(`ステータス更新失敗: ${statusUpdateError.message}`);
+    }
+
+    console.log('✅ プレビューステータス更新: processing');
+
+    // script_jsonが必須
+    if (!script_json || typeof script_json !== 'object') {
+      throw new Error('script_jsonが存在しません。プレビュー生成にはスクリプトが必要です。');
+    }
+
+    const jsonContent = JSON.stringify(script_json, null, 2);
+
+    // script.jsonに書き込み
+    console.log('📝 script.jsonファイルに書き込み中...');
+    writeScriptJson(jsonContent, uniquePaths.scriptPath);
+
+    // mulmocast-cliで画像生成
+    console.log('🎨 mulmocast-cliで画像生成中...');
+    const outputDir = path.join(uniquePaths.tempDir, 'output');
+    const result = generateImages(uniquePaths.scriptPath, outputDir);
+
+    console.log(`✅ 画像生成完了: ${result.imageCount}枚の画像`);
+    console.log(`⏱️ 生成時間: ${result.executionTime}秒`);
+
+    // outputフォルダ全体をSupabaseにアップロード
+    console.log('📤 outputフォルダをSupabase Storageにアップロード中...');
+    const uploadedFiles = await uploadOutputDirectoryToSupabase(outputDir, video_id);
+
+    // 画像ファイルのみ抽出してpreview_dataを作成
+    const imageFiles = uploadedFiles.filter(f => f.path.includes('images/script/') && f.path.endsWith('.png'));
+    const previewData = {
+      images: imageFiles.map((file, index) => {
+        // beat番号を推測（ファイル名から）
+        const beatMatch = file.path.match(/beat_(\d+)\.png$/);
+        const beatIndex = beatMatch ? parseInt(beatMatch[1]) - 1 : index;
+
+        return {
+          beatIndex: beatIndex,
+          fileName: path.basename(file.path),
+          url: file.url,
+          prompt: script_json.beats[beatIndex]?.image?.source?.prompt || ''
+        };
+      }).sort((a, b) => a.beatIndex - b.beatIndex),
+      generatedAt: new Date().toISOString(),
+      outputPath: `videos/${video_id}/preview/output`
+    };
+
+    // videosテーブルを更新
+    const processingEndTime = Date.now();
+    const processingTimeSeconds = Math.round((processingEndTime - processingStartTime) / 1000);
+
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({
+        preview_status: 'completed',
+        preview_data: previewData,
+        preview_storage_path: `videos/${video_id}/preview/output`
+      })
+      .eq('id', video_id)
+      .eq('uid', uid);
+
+    if (updateError) {
+      console.error('❌ プレビュー完了更新エラー:', updateError);
+      throw new Error(`プレビューレコード更新エラー: ${updateError.message}`);
+    }
+
+    console.log('🎉 プレビュー生成が完了しました！');
+    console.log(`📹 動画ID ${video_id} のプレビューが完成しました。`);
+    console.log(`🖼️ 生成画像数: ${imageFiles.length}枚`);
+    console.log(`⏱️ 総処理時間: ${processingTimeSeconds}秒`);
+    console.log('');
+
+    return true;
+
+  } catch (error) {
+    console.error('❌ プレビュー処理中にエラーが発生しました:', error.message);
+
+    // エラーステータスを更新
+    if (video_id && uid) {
+      const { error: failedUpdateError } = await supabase
+        .from('videos')
+        .update({
+          preview_status: 'failed',
+          error_msg: `プレビューエラー: ${error.message}`
+        })
+        .eq('id', video_id)
+        .eq('uid', uid);
+
+      if (failedUpdateError) {
+        console.error('❌ 失敗ステータス更新エラー:', failedUpdateError);
+      } else {
+        console.log('✅ 失敗ステータス更新成功: failed');
+      }
+    }
+
+    return false;
+
+  } finally {
+    // 一時ファイルのクリーンアップ
+    if (uniquePaths && uniquePaths.tempDir) {
+      try {
+        console.log('🧹 一時ファイルをクリーンアップ中...');
+        if (fs.existsSync(uniquePaths.tempDir)) {
+          fs.rmSync(uniquePaths.tempDir, { recursive: true, force: true });
+          console.log(`✅ 一時ディレクトリを削除: ${uniquePaths.tempDir}`);
+        }
+      } catch (cleanupError) {
+        console.error('⚠️ クリーンアップエラー:', cleanupError.message);
+      }
+    }
   }
 }
 
@@ -952,8 +1262,49 @@ const server = http.createServer(async (req, res) => {
         const payload = JSON.parse(body);
         console.log('Webhook受信:', payload);
 
+        // Handle image preview requests from API Routes
+        if (payload.type === 'image_preview' && payload.payload) {
+          const requestData = payload.payload;
+          console.log(`新しい画像プレビューリクエスト: ${requestData.video_id}`);
+
+          // 処理完了まで待機（同期的に処理）
+          console.log('🖼️ 画像プレビュー処理を同期的に実行します...');
+
+          // アクティブリクエスト数を増やす
+          activeRequests++;
+          console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+
+          try {
+            const result = await processImagePreview(requestData);
+
+            // 処理成功
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Image preview generation completed',
+              video_id: requestData.video_id,
+              completed: result
+            }));
+          } catch (error) {
+            console.error('❌ 画像プレビュー処理でエラー:', error.message);
+            console.error('❌ エラースタック:', error.stack);
+
+            // エラーレスポンス
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: false,
+              message: 'Image preview generation failed',
+              error: error.message,
+              video_id: requestData.video_id
+            }));
+          } finally {
+            // アクティブリクエスト数を減らす
+            activeRequests--;
+            console.log(`📊 アクティブリクエスト数: ${activeRequests}/${MAX_CONCURRENT_REQUESTS}`);
+          }
+        }
         // Handle video generation requests from API Routes
-        if (payload.type === 'video_generation' && payload.payload) {
+        else if (payload.type === 'video_generation' && payload.payload) {
           const requestData = payload.payload;
           console.log(`新しい動画生成リクエスト: ${requestData.video_id}`);
 

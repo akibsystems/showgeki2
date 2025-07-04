@@ -93,6 +93,9 @@ export interface Database {
           status: 'queued' | 'processing' | 'completed' | 'failed';
           error_msg?: string;
           created_at: string;
+          preview_status?: string;
+          preview_data?: any;
+          preview_storage_path?: string;
         };
         Insert: {
           id?: string;
@@ -105,6 +108,9 @@ export interface Database {
           status?: 'queued' | 'processing' | 'completed' | 'failed';
           error_msg?: string;
           created_at?: string;
+          preview_status?: string;
+          preview_data?: any;
+          preview_storage_path?: string;
         };
         Update: {
           id?: string;
@@ -117,6 +123,9 @@ export interface Database {
           status?: 'queued' | 'processing' | 'completed' | 'failed';
           error_msg?: string;
           created_at?: string;
+          preview_status?: string;
+          preview_data?: any;
+          preview_storage_path?: string;
         };
       };
       reviews: {

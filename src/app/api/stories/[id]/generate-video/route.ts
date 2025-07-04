@@ -57,12 +57,16 @@ async function getExistingVideo(storyId: string, uid: string) {
   
   const { data, error } = await supabase
     .from('videos')
-    .select('*')
+    .select('*, preview_status')
     .eq('story_id', storyId)
     .eq('uid', uid)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching existing video:', error);
+  }
 
   return { data, error };
 }
@@ -131,8 +135,8 @@ async function generateVideo(
       console.error('Error checking existing video:', videoCheckError);
     }
 
-    // If video already exists and is completed, return existing video
-    if (existingVideo && existingVideo.status === 'completed') {
+    // If video already exists and is completed with actual video, return existing video
+    if (existingVideo && existingVideo.status === 'completed' && existingVideo.url) {
       return NextResponse.json({
         success: true,
         data: {
@@ -144,42 +148,98 @@ async function generateVideo(
       });
     }
 
-    // If video exists but is processing/queued, return current status
+    // If video exists but is processing/queued (skip if it's only for preview)
+    // プレビュー生成のためだけに作成されたレコードは無視する
     if (existingVideo && (existingVideo.status === 'processing' || existingVideo.status === 'queued')) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          video_id: existingVideo.id,
-          status: existingVideo.status as 'processing' | 'queued'
-        },
-        message: 'Video generation already in progress',
-        timestamp: new Date().toISOString()
+      // プレビュー専用のレコードかチェック（preview_statusがあり、かつurlがない場合）
+      const isPreviewOnly = existingVideo.preview_status && !existingVideo.url;
+      
+      console.log('Existing video check:', {
+        videoId: existingVideo.id,
+        status: existingVideo.status,
+        hasUrl: !!existingVideo.url,
+        previewStatus: existingVideo.preview_status,
+        isPreviewOnly
       });
+      
+      if (!isPreviewOnly) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            video_id: existingVideo.id,
+            status: existingVideo.status as 'processing' | 'queued'
+          },
+          message: 'Video generation already in progress',
+          timestamp: new Date().toISOString()
+        });
+      }
+      // プレビュー専用レコードの場合は、新しい動画生成を続行
     }
 
-    // Create new video record with 'queued' status
-    const videoInsertData: SupabaseVideoInsert = {
-      story_id: storyId,
-      uid: auth.uid,
-      status: 'queued'
-    };
+    // プレビュー専用レコードがある場合は、それを動画生成用に再利用
+    let videoId: string;
+    
+    if (existingVideo && existingVideo.preview_status && !existingVideo.url) {
+      console.log('Reusing preview video record:', existingVideo.id);
+      
+      // 既存のプレビュー専用レコードを動画生成用に更新
+      const { data: updatedVideo, error: updateError } = await supabase
+        .from('videos')
+        .update({
+          status: 'queued'
+        })
+        .eq('id', existingVideo.id)
+        .eq('uid', auth.uid)  // 追加: uidも条件に含める
+        .select()
+        .single();
 
-    const { data: newVideo, error: createError } = await supabase
-      .from('videos')
-      .insert(videoInsertData)
-      .select()
-      .single();
+      if (updateError) {
+        console.error('Database error updating video:', updateError);
+        console.error('Update query details:', {
+          videoId: existingVideo.id,
+          uid: auth.uid,
+          currentStatus: existingVideo.status,
+          currentPreviewStatus: existingVideo.preview_status
+        });
+        return NextResponse.json(
+          {
+            error: 'Failed to update video record',
+            type: ErrorType.INTERNAL,
+            details: updateError.message,
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        );
+      }
+      
+      videoId = updatedVideo.id;
+    } else {
+      // 新しいvideoレコードを作成
+      const videoInsertData: SupabaseVideoInsert = {
+        story_id: storyId,
+        uid: auth.uid,
+        status: 'queued'
+      };
 
-    if (createError) {
-      console.error('Database error creating video:', createError);
-      return NextResponse.json(
-        {
-          error: 'Failed to create video record',
-          type: ErrorType.INTERNAL,
-          timestamp: new Date().toISOString()
-        },
-        { status: 500 }
-      );
+      const { data: newVideo, error: createError } = await supabase
+        .from('videos')
+        .insert(videoInsertData)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Database error creating video:', createError);
+        return NextResponse.json(
+          {
+            error: 'Failed to create video record',
+            type: ErrorType.INTERNAL,
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        );
+      }
+      
+      videoId = newVideo.id;
     }
 
     // webhook処理（DISABLE_WEBHOOK=trueの場合はスキップ）
@@ -187,11 +247,11 @@ async function generateVideo(
     
     if (!DISABLE_WEBHOOK) {
       // webhook有効時のみ非同期処理開始
-      generateVideoAsync(newVideo.id, story, auth.uid).catch(error => {
+      generateVideoAsync(videoId, story, auth.uid).catch(error => {
         console.error('Video generation setup failed:', error);
       });
     } else {
-      console.log('Webhook disabled - video queued for local processing:', newVideo.id);
+      console.log('Webhook disabled - video queued for local processing:', videoId);
     }
 
     // 即座にレスポンス返却
@@ -202,8 +262,8 @@ async function generateVideo(
     return NextResponse.json({
       success: true,
       data: {
-        video_id: newVideo.id,
-        status: newVideo.status as 'queued'
+        video_id: videoId,
+        status: 'queued'
       },
       message,
       timestamp: new Date().toISOString()
@@ -252,8 +312,7 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
     await supabase
       .from('videos')
       .update({ 
-        status: 'processing',
-        updated_at: new Date().toISOString()
+        status: 'processing'
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);
@@ -282,8 +341,7 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
       .from('videos')
       .update({ 
         status: 'failed',
-        error_msg: error instanceof Error ? error.message : 'Unknown error occurred',
-        updated_at: new Date().toISOString()
+        error_msg: error instanceof Error ? error.message : 'Unknown error occurred'
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);

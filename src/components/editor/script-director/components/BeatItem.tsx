@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { MulmoBeat } from '@/lib/schemas';
+import type { PreviewImage } from '@/types/preview';
 import styles from '../styles/ScriptDirector.module.css';
 
 import type { MulmoSpeakerDataSchema } from '@/lib/schemas';
@@ -17,6 +18,9 @@ interface BeatItemProps {
   speakerIds: string[];
   speakers: Record<string, Speaker>;
   faceReferenceKeys: string[];
+  previewImage?: PreviewImage;
+  previewTimestamp?: string;
+  previewStatus?: string;
   onUpdate: (beat: MulmoBeat) => void;
   onDelete: () => void;
   onMoveUp?: () => void;
@@ -30,6 +34,9 @@ export function BeatItem({
   speakerIds,
   speakers,
   faceReferenceKeys,
+  previewImage,
+  previewTimestamp,
+  previewStatus,
   onUpdate,
   onDelete,
   onMoveUp,
@@ -121,79 +128,125 @@ export function BeatItem({
 
       {isExpanded && (
         <div className={styles.beatContent}>
-          {/* 話者選択 */}
-          <div className={styles.beatField}>
-            <label className={styles.beatLabel}>話者:</label>
-            <select
-              value={beat.speaker || ''}
-              onChange={(e) => handleSpeakerChange(e.target.value)}
-              className={styles.beatSelect}
-              disabled={isReadOnly}
-            >
-              <option value="">話者を選択してください</option>
-              {speakerIds.map((speakerId) => (
-                <option key={speakerId} value={speakerId}>
-                  {getSpeakerDisplayName(speakerId)} ({speakerId})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 台詞入力 */}
-          <div className={styles.beatField}>
-            <label className={styles.beatLabel}>台詞:</label>
-            <textarea
-              value={beat.text || ''}
-              onChange={(e) => handleTextChange(e.target.value)}
-              className={styles.beatTextarea}
-              placeholder="この場面の台詞を入力してください..."
-              disabled={isReadOnly}
-              rows={3}
-            />
-            <div className={styles.characterCount}>
-              {(beat.text || '').length} 文字
-            </div>
-          </div>
-
-          {/* 画像プロンプト入力 */}
-          <div className={styles.beatField}>
-            <label className={styles.beatLabel}>画像の指示:</label>
-            <textarea
-              value={beat.imagePrompt || ''}
-              onChange={(e) => handleImagePromptChange(e.target.value)}
-              className={styles.beatTextarea}
-              placeholder="この場面で表示したい画像の内容を詳しく説明してください..."
-              disabled={isReadOnly}
-              rows={3}
-            />
-            <div className={styles.characterCount}>
-              {(beat.imagePrompt || '').length} 文字
-            </div>
-          </div>
-
-          {/* 顔参照選択 */}
-          {faceReferenceKeys.length > 0 && (
+          <div className={styles.beatContentLeft}>
+            {/* 話者選択 */}
             <div className={styles.beatField}>
-              <label className={styles.beatLabel}>顔参照:</label>
-              <div className={styles.faceReferenceGrid}>
-                {faceReferenceKeys.map((faceName) => (
-                  <label key={faceName} className={styles.faceReferenceItem}>
-                    <input
-                      type="checkbox"
-                      checked={((beat as any).imageNames || []).includes(faceName)}
-                      onChange={() => handleFaceReferenceToggle(faceName)}
-                      disabled={isReadOnly}
-                      className={styles.faceReferenceCheckbox}
-                    />
-                    <span className={styles.faceReferenceName}>{faceName}</span>
-                  </label>
+              <label className={styles.beatLabel}>話者:</label>
+              <select
+                value={beat.speaker || ''}
+                onChange={(e) => handleSpeakerChange(e.target.value)}
+                className={styles.beatSelect}
+                disabled={isReadOnly}
+              >
+                <option value="">話者を選択してください</option>
+                {speakerIds.map((speakerId) => (
+                  <option key={speakerId} value={speakerId}>
+                    {getSpeakerDisplayName(speakerId)} ({speakerId})
+                  </option>
                 ))}
-              </div>
-              <div className={styles.formHint}>
-                選択した顔参照が画像生成時に使用されます
+              </select>
+            </div>
+
+            {/* 台詞入力 */}
+            <div className={styles.beatField}>
+              <label className={styles.beatLabel}>台詞:</label>
+              <textarea
+                value={beat.text || ''}
+                onChange={(e) => handleTextChange(e.target.value)}
+                className={styles.beatTextarea}
+                placeholder="この場面の台詞を入力してください..."
+                disabled={isReadOnly}
+                rows={3}
+              />
+              <div className={styles.characterCount}>
+                {(beat.text || '').length} 文字
               </div>
             </div>
-          )}
+
+            {/* 画像プロンプト入力 */}
+            <div className={styles.beatField}>
+              <label className={styles.beatLabel}>画像の指示:</label>
+              <textarea
+                value={beat.imagePrompt || ''}
+                onChange={(e) => handleImagePromptChange(e.target.value)}
+                className={styles.beatTextarea}
+                placeholder="この場面で表示したい画像の内容を詳しく説明してください..."
+                disabled={isReadOnly}
+                rows={3}
+              />
+              <div className={styles.characterCount}>
+                {(beat.imagePrompt || '').length} 文字
+              </div>
+            </div>
+
+            {/* 顔参照選択 */}
+            {faceReferenceKeys.length > 0 && (
+              <div className={styles.beatField}>
+                <label className={styles.beatLabel}>顔参照:</label>
+                <div className={styles.faceReferenceGrid}>
+                  {faceReferenceKeys.map((faceName) => (
+                    <label key={faceName} className={styles.faceReferenceItem}>
+                      <input
+                        type="checkbox"
+                        checked={((beat as any).imageNames || []).includes(faceName)}
+                        onChange={() => handleFaceReferenceToggle(faceName)}
+                        disabled={isReadOnly}
+                        className={styles.faceReferenceCheckbox}
+                      />
+                      <span className={styles.faceReferenceName}>{faceName}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className={styles.formHint}>
+                  選択した顔参照が画像生成時に使用されます
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* プレビュー画像表示（右側） */}
+          <div className={styles.beatContentRight}>
+            <div className={styles.previewImageContainer}>
+              {previewImage ? (
+                // プレビュー画像がある場合
+                <>
+                  <img
+                    src={previewTimestamp 
+                      ? `${previewImage.url}${previewImage.url.includes('?') ? '&' : '?'}t=${new Date(previewTimestamp).getTime()}`
+                      : previewImage.url
+                    }
+                    alt={`シーン ${index + 1} プレビュー`}
+                    className={styles.previewImage}
+                    loading="lazy"
+                  />
+                  <div className={styles.previewPrompt}>
+                    <span className={styles.promptLabel}>使用されたプロンプト:</span>
+                    <p className={styles.promptText}>{previewImage.prompt}</p>
+                  </div>
+                </>
+              ) : previewStatus === 'processing' || previewStatus === 'pending' ? (
+                // プレビュー生成中
+                <div className={styles.previewPlaceholder}>
+                  <div className={styles.loadingSpinner}>
+                    <svg className="animate-spin h-8 w-8 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                  <p className={styles.placeholderText}>画像を生成中...</p>
+                </div>
+              ) : (
+                // プレビュー未生成
+                <div className={styles.previewPlaceholder}>
+                  <svg className={styles.placeholderIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className={styles.placeholderText}>プレビュー未生成</p>
+                  <p className={styles.placeholderHint}>上部のプレビューボタンから生成できます</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -10,6 +10,8 @@ import { VideoModal } from '@/components/video';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStory, useVideos } from '@/hooks';
+import { useImagePreview } from '@/hooks/useImagePreview';
+import PreviewButton from '@/components/preview/PreviewButton';
 
 // ================================================================
 // Story Editor Page Component
@@ -47,6 +49,19 @@ const StoryEditorContent: React.FC = () => {
   });
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
+
+  // 画像プレビュー機能のフック
+  const {
+    status: previewStatus,
+    isLoading: isPreviewLoading,
+    error: previewError,
+    previewData,
+    generatePreview,
+    refreshStatus,
+    deletePreview
+  } = useImagePreview({
+    storyId
+  });
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -186,6 +201,30 @@ const StoryEditorContent: React.FC = () => {
     } catch (err) {
       console.error('Failed to save script:', err);
       error('台本の保存に失敗しました');
+    }
+  };
+
+  const handleGeneratePreview = async () => {
+    if (!story?.script_json) {
+      error('台本が生成されていません。先に台本を生成してください。');
+      return;
+    }
+
+    try {
+      await generatePreview();
+    } catch (err) {
+      console.error('Failed to generate preview:', err);
+      const errorMessage = err instanceof Error ? err.message : 'プレビュー生成に失敗しました';
+      error(errorMessage);
+    }
+  };
+
+  const handleDeletePreview = async () => {
+    try {
+      await deletePreview();
+    } catch (err) {
+      console.error('Failed to delete preview:', err);
+      error('プレビューの削除に失敗しました');
     }
   };
 
@@ -438,21 +477,37 @@ const StoryEditorContent: React.FC = () => {
                     </Button>
                   )}
                   {story.status === 'script_generated' && (
-                    <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
-                      {isGeneratingVideo ? (
-                        <>
-                          <Spinner size="sm" color="white" className="mr-2" />
-                          開始中...
-                        </>
-                      ) : (
-                        '動画を生成'
-                      )}
-                    </Button>
+                    <>
+                      <PreviewButton
+                        status={previewStatus}
+                        isLoading={isPreviewLoading}
+                        onGenerate={handleGeneratePreview}
+                        onDelete={handleDeletePreview}
+                        disabled={isReadOnly || !story.script_json}
+                      />
+                      <Button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="text-sm sm:text-base">
+                        {isGeneratingVideo ? (
+                          <>
+                            <Spinner size="sm" color="white" className="mr-2" />
+                            開始中...
+                          </>
+                        ) : (
+                          '動画を生成'
+                        )}
+                      </Button>
+                    </>
                   )}
                 </>
               )}
             </div>
           </div>
+          
+          {/* プレビューエラーメッセージ */}
+          {previewError && story.status === 'script_generated' && (
+            <div className="mt-2">
+              <p className="text-sm text-red-400">{previewError}</p>
+            </div>
+          )}
         </div>
 
         <div className={story.status === 'completed' ? '' : 'grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8'}>
@@ -496,18 +551,23 @@ const StoryEditorContent: React.FC = () => {
 
             {/* Tab Content */}
             {currentTab === 'content' ? (
-              <ScriptDirector
-                script={(story.script_json as Mulmoscript) || { 
-                  $mulmocast: { version: '1.0' }, 
-                  beats: [],
-                  lang: 'ja',
-                  title: story.title || '',
-                  speechParams: { provider: 'openai', speakers: {} },
-                  imageParams: {}
-                }}
-                onChange={handleScriptSave}
-                isReadOnly={isReadOnly}
-              />
+              <div className="space-y-6">
+                {/* ScriptDirector */}
+                <ScriptDirector
+                  script={(story.script_json as Mulmoscript) || { 
+                    $mulmocast: { version: '1.0' }, 
+                    beats: [],
+                    lang: 'ja',
+                    title: story.title || '',
+                    speechParams: { provider: 'openai', speakers: {} },
+                    imageParams: {}
+                  }}
+                  onChange={handleScriptSave}
+                  isReadOnly={isReadOnly}
+                  previewData={previewData}
+                  previewStatus={previewStatus}
+                />
+              </div>
             ) : process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' ? (
               /* Script Editor */
               <div className="script-editor-container">
@@ -555,6 +615,8 @@ const StoryEditorContent: React.FC = () => {
                 }}
                 onChange={handleScriptSave}
                 isReadOnly={isReadOnly}
+                previewData={previewData}
+                previewStatus={previewStatus}
               />
             )}
 
