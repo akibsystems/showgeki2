@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, SupabaseVideoInsert, SupabaseVideoUpdate } from '@/lib/supabase';
 import { withAuth, type AuthContext } from '@/lib/auth';
-import { 
+import {
   StorySchema,
   VideoSchema,
   GenerateVideoResponseSchema,
@@ -37,7 +37,7 @@ function isValidStoryId(id: string): boolean {
  */
 async function getStoryWithAuth(storyId: string, uid: string) {
   const supabase = createAdminClient();
-  
+
   const { data, error } = await supabase
     .from('stories')
     .select('*')
@@ -54,7 +54,7 @@ async function getStoryWithAuth(storyId: string, uid: string) {
  */
 async function getExistingVideo(storyId: string, uid: string) {
   const supabase = createAdminClient();
-  
+
   const { data, error } = await supabase
     .from('videos')
     .select('*, preview_status')
@@ -117,7 +117,7 @@ async function generateVideo(
         {
           error: 'Cannot generate video from story with error status',
           type: ErrorType.VALIDATION,
-          details: { 
+          details: {
             currentStatus: story.status
           },
           timestamp: new Date().toISOString()
@@ -130,7 +130,7 @@ async function generateVideo(
 
     // Check if video already exists
     const { data: existingVideo, error: videoCheckError } = await getExistingVideo(storyId, auth.uid);
-    
+
     if (videoCheckError) {
       console.error('Error checking existing video:', videoCheckError);
     }
@@ -153,7 +153,7 @@ async function generateVideo(
     if (existingVideo && (existingVideo.status === 'processing' || existingVideo.status === 'queued')) {
       // プレビュー専用のレコードかチェック（preview_statusがあり、かつurlがない場合）
       const isPreviewOnly = existingVideo.preview_status && !existingVideo.url;
-      
+
       console.log('Existing video check:', {
         videoId: existingVideo.id,
         status: existingVideo.status,
@@ -161,7 +161,7 @@ async function generateVideo(
         previewStatus: existingVideo.preview_status,
         isPreviewOnly
       });
-      
+
       if (!isPreviewOnly) {
         return NextResponse.json({
           success: true,
@@ -178,10 +178,10 @@ async function generateVideo(
 
     // プレビュー専用レコードがある場合は、それを動画生成用に再利用
     let videoId: string;
-    
+
     if (existingVideo && existingVideo.preview_status && !existingVideo.url) {
       console.log('Reusing preview video record:', existingVideo.id);
-      
+
       // 既存のプレビュー専用レコードを動画生成用に更新
       const { data: updatedVideo, error: updateError } = await supabase
         .from('videos')
@@ -211,7 +211,7 @@ async function generateVideo(
           { status: 500 }
         );
       }
-      
+
       videoId = updatedVideo.id;
     } else {
       // 新しいvideoレコードを作成
@@ -238,40 +238,57 @@ async function generateVideo(
           { status: 500 }
         );
       }
-      
+
       videoId = newVideo.id;
     }
 
     // webhook処理（DISABLE_WEBHOOK=trueの場合はスキップ）
     const DISABLE_WEBHOOK = process.env.DISABLE_WEBHOOK === 'true';
-    
+
     if (!DISABLE_WEBHOOK) {
-      // webhook有効時のみ非同期処理開始
-      generateVideoAsync(videoId, story, auth.uid).catch(error => {
-        console.error('Video generation setup failed:', error);
+      // webhook有効時は同期処理で動画生成を実行
+      console.log('Calling webhook synchronously for video generation...');
+      const result = await generateVideoAsync(videoId, story, auth.uid);
+
+      if (!result.success) {
+        return NextResponse.json(
+          {
+            error: result.error || 'Video generation failed',
+            type: ErrorType.INTERNAL,
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        );
+      }
+
+      // webhook呼び出し成功（実際の処理とステータス更新はwebhook handler側で行う）
+      return NextResponse.json({
+        success: true,
+        data: {
+          video_id: videoId,
+          status: 'completed'
+        },
+        message: 'Video generation completed successfully',
+        timestamp: new Date().toISOString()
       });
     } else {
       console.log('Webhook disabled - video queued for local processing:', videoId);
-    }
 
-    // 即座にレスポンス返却
-    const message = DISABLE_WEBHOOK 
-      ? 'Video queued for local processing' 
-      : 'Video generation started via Cloud Run';
-      
-    return NextResponse.json({
-      success: true,
-      data: {
-        video_id: videoId,
-        status: 'queued'
-      },
-      message,
-      timestamp: new Date().toISOString()
-    });
+      // webhookが無効の場合は従来通り即座にレスポンス
+      return NextResponse.json({
+        success: true,
+        data: {
+          video_id: videoId,
+          status: 'queued'
+        },
+        message: 'Video queued for local processing',
+        timestamp: new Date().toISOString()
+      });
+    }
 
   } catch (error) {
     console.error('Generate video error:', error);
-    
+
     if (error instanceof SyntaxError) {
       return NextResponse.json(
         {
@@ -301,21 +318,13 @@ async function generateVideo(
 /**
  * Generate video asynchronously via Cloud Run webhook (if enabled)
  */
-async function generateVideoAsync(videoId: string, story: Story, uid: string): Promise<void> {
+async function generateVideoAsync(videoId: string, story: Story, uid: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createAdminClient();
-  
+
   try {
     // webhook有効時：Cloud Run呼び出し処理
     console.log('Webhook enabled - calling Cloud Run for video generation:', videoId);
-    
-    // Update status to 'processing'
-    await supabase
-      .from('videos')
-      .update({ 
-        status: 'processing'
-      } as SupabaseVideoUpdate)
-      .eq('id', videoId)
-      .eq('uid', uid);
+
 
     // Call Cloud Run webhook for video generation
     const webhookResult = await callCloudRunWebhook({
@@ -332,19 +341,25 @@ async function generateVideoAsync(videoId: string, story: Story, uid: string): P
     }
 
     console.log('Cloud Run webhook called successfully for video:', videoId);
+    return { success: true };
 
   } catch (error) {
     console.error('Async video generation failed:', error);
-    
+
     // Update video status to 'failed'
     await supabase
       .from('videos')
-      .update({ 
+      .update({
         status: 'failed',
         error_msg: error instanceof Error ? error.message : 'Unknown error occurred'
       } as SupabaseVideoUpdate)
       .eq('id', videoId)
       .eq('uid', uid);
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
 }
 
@@ -360,10 +375,10 @@ async function callCloudRunWebhook(payload: {
   script_json?: any;
 }): Promise<{ success: boolean; error?: string }> {
   const CLOUD_RUN_WEBHOOK_URL = process.env.CLOUD_RUN_WEBHOOK_URL || 'https://showgeki2-auto-process-598866385095.asia-northeast1.run.app/webhook';
-  
+
   try {
     console.log('Calling Cloud Run webhook for video generation...', CLOUD_RUN_WEBHOOK_URL);
-    
+
     const response = await fetch(CLOUD_RUN_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -373,8 +388,8 @@ async function callCloudRunWebhook(payload: {
         type: 'video_generation',
         payload
       }),
-      // Add timeout for webhook calls
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      // Add timeout for webhook calls (10 minutes for video generation)
+      signal: AbortSignal.timeout(600000) // 600 seconds = 10 minutes timeout
     });
 
     if (!response.ok) {
@@ -386,8 +401,8 @@ async function callCloudRunWebhook(payload: {
 
   } catch (error) {
     console.error('Cloud Run webhook call failed:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown webhook error'
     };
   }
