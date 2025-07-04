@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
-import { useStories, useUserWorkspace } from '@/hooks';
+import { useStories, useUserWorkspace, useStory } from '@/hooks';
 
 // ================================================================
 // New Story Page Component
@@ -14,18 +14,40 @@ import { useStories, useUserWorkspace } from '@/hooks';
 
 const NewStoryContent: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { } = useApp();
   const { error } = useToast();
   
+  // Get storyId and beats from query params
+  const existingStoryId = searchParams.get('storyId');
+  const beatsFromUrl = searchParams.get('beats');
+  
   // Hooks for API calls
   const { ensureWorkspace } = useUserWorkspace();
-  const { createStory } = useStories();
+  const { createStory, updateStory } = useStories();
+  const { story: existingStory, isLoading: storyLoading } = useStory(existingStoryId || '');
   
   const [formData, setFormData] = useState({
     text_raw: '',
     beats: 10,
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load existing story data if editing
+  useEffect(() => {
+    if (existingStory && existingStoryId) {
+      setFormData({
+        text_raw: existingStory.text_raw || '',
+        beats: beatsFromUrl ? parseInt(beatsFromUrl, 10) : (existingStory.beats || 10),
+      });
+    } else if (beatsFromUrl && !existingStoryId) {
+      // If only beats is provided in URL (shouldn't happen normally)
+      setFormData(prev => ({
+        ...prev,
+        beats: parseInt(beatsFromUrl, 10),
+      }));
+    }
+  }, [existingStory, existingStoryId, beatsFromUrl]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -44,36 +66,51 @@ const NewStoryContent: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Ensure workspace exists for the user
-      const workspace = await ensureWorkspace();
+      let storyId: string;
       
-      // Create story without auto script generation
-      const result = await createStory({
-        workspace_id: workspace.id,
-        text_raw: formData.text_raw.trim(),
-        beats: formData.beats,
-        auto_generate_script: false,
-      });
-      
-      console.log('Created story:', result); // Debug log
-      
-      // Check if result contains story data
-      let storyData: { id?: string } | undefined;
-      if (result && typeof result === 'object' && 'story' in result) {
-        storyData = (result as { story: { id?: string } }).story;
+      if (existingStoryId && existingStory) {
+        // Update existing story
+        await updateStory(existingStoryId, {
+          text_raw: formData.text_raw.trim(),
+          beats: formData.beats,
+        });
+        storyId = existingStoryId;
       } else {
-        storyData = result as { id?: string };
+        // Create new story
+        const workspace = await ensureWorkspace();
+        
+        const result = await createStory({
+          workspace_id: workspace.id,
+          text_raw: formData.text_raw.trim(),
+          beats: formData.beats,
+          auto_generate_script: false,
+        });
+        
+        console.log('Created story:', result); // Debug log
+        
+        // Check if result contains story data
+        let storyData: { id?: string } | undefined;
+        if (result && typeof result === 'object' && 'story' in result) {
+          storyData = (result as { story: { id?: string } }).story;
+        } else {
+          storyData = result as { id?: string };
+        }
+        
+        if (!storyData || !storyData.id) {
+          throw new Error('Invalid story response - missing ID');
+        }
+        
+        storyId = storyData.id;
       }
       
-      if (!storyData || !storyData.id) {
-        throw new Error('Invalid story response - missing ID');
-      }
+      // Set navigation path in session storage
+      sessionStorage.setItem('navigationPath', 'story-scenes-script');
       
-      // Navigate to scene editor
-      router.push(`/stories/${storyData.id}/scenes`);
+      // Navigate to scene editor with beats parameter
+      router.push(`/stories/${storyId}/scenes?beats=${formData.beats}`);
     } catch (err) {
-      console.error('Failed to create story:', err);
-      error('ストーリーの作成に失敗しました');
+      console.error('Failed to create/update story:', err);
+      error('ストーリーの処理に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -87,46 +124,97 @@ const NewStoryContent: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Ensure workspace exists for the user
-      const workspace = await ensureWorkspace();
+      let storyId: string;
       
-      // Create story with auto script generation
-      const result = await createStory({
-        workspace_id: workspace.id,
-        text_raw: formData.text_raw.trim(),
-        beats: formData.beats,
-        auto_generate_script: true,
-      });
-      
-      console.log('Created story with script:', result); // Debug log
-      
-      // Check if result contains story data
-      let storyData: { id?: string } | undefined;
-      if (result && typeof result === 'object' && 'story' in result) {
-        storyData = (result as { story: { id?: string } }).story;
+      if (existingStoryId && existingStory) {
+        // Update existing story
+        await updateStory(existingStoryId, {
+          text_raw: formData.text_raw.trim(),
+          beats: formData.beats,
+        });
+        
+        // Generate script for existing story
+        const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
+        const response = await fetch(`/api/stories/${existingStoryId}/generate-script`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': uid,
+          },
+          body: JSON.stringify({ beats: formData.beats }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to generate script');
+        }
+        
+        storyId = existingStoryId;
       } else {
-        storyData = result as { id?: string };
+        // Create new story with auto script generation
+        const workspace = await ensureWorkspace();
+        
+        const result = await createStory({
+          workspace_id: workspace.id,
+          text_raw: formData.text_raw.trim(),
+          beats: formData.beats,
+          auto_generate_script: true,
+        });
+        
+        console.log('Created story with script:', result); // Debug log
+        
+        // Check if result contains story data
+        let storyData: { id?: string } | undefined;
+        if (result && typeof result === 'object' && 'story' in result) {
+          storyData = (result as { story: { id?: string } }).story;
+        } else {
+          storyData = result as { id?: string };
+        }
+        
+        if (!storyData || !storyData.id) {
+          throw new Error('Invalid story response - missing ID');
+        }
+        
+        storyId = storyData.id;
       }
       
-      if (!storyData || !storyData.id) {
-        throw new Error('Invalid story response - missing ID');
-      }
+      // Set navigation path in session storage (direct path)
+      sessionStorage.setItem('navigationPath', 'story-script');
       
       // Navigate to story editor
-      router.push(`/stories/${storyData.id}?tab=content`);
+      router.push(`/stories/${storyId}?tab=content`);
     } catch (err) {
-      console.error('Failed to create story and generate script:', err);
-      error('ストーリーと台本の作成に失敗しました');
+      console.error('Failed to create/update story and generate script:', err);
+      error('ストーリーと台本の処理に失敗しました');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    router.push('/dashboard');
+    if (existingStoryId) {
+      // If editing existing story, go back to scene editor
+      router.push(`/stories/${existingStoryId}/scenes`);
+    } else {
+      // Otherwise go to dashboard
+      router.push('/dashboard');
+    }
   };
 
   const charCount = (formData.text_raw || '').length;
+
+  // Show loading spinner while fetching existing story
+  if (existingStoryId && storyLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-400">読み込み中...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -134,10 +222,12 @@ const NewStoryContent: React.FC = () => {
         {/* Header - Mobile optimized */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">
-            ストーリーから台本を作成
+            {existingStoryId ? 'ストーリーを編集' : 'ストーリーから台本を作成'}
           </h1>
           <p className="text-sm text-gray-400">
-            ストーリーを入力して台本を作成すると、AIが自動でシェイクスピア風の動画を生成します
+            {existingStoryId 
+              ? 'ストーリーを編集して、シーン構成や台本を更新できます'
+              : 'ストーリーを入力して台本を作成すると、AIが自動でシェイクスピア風の動画を生成します'}
           </p>
         </div>
 
@@ -240,8 +330,13 @@ const NewStoryContent: React.FC = () => {
             {/* Button Explanation */}
             <div className="mb-4 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
               <p className="text-sm text-gray-300">
-                <span className="font-semibold">シーン構成を分析</span>: 各シーンのタイトルを確認・編集してから台本を作成します<br/>
-                <span className="font-semibold">台本を作成</span>: 直接台本を生成して編集画面へ進みます
+                <span className="font-semibold">シーン構成を分析</span>: 各シーンのタイトルを確認・編集してから台本を作成します
+                {process.env.NEXT_PUBLIC_ENABLE_DIRECT_SCRIPT_GENERATION === 'true' && (
+                  <>
+                    <br/>
+                    <span className="font-semibold">台本を作成</span>: 直接台本を生成して編集画面へ進みます
+                  </>
+                )}
               </p>
             </div>
 
@@ -257,7 +352,6 @@ const NewStoryContent: React.FC = () => {
               </Button>
               <div className="flex flex-col sm:flex-row gap-3 order-1 sm:order-2">
                 <Button 
-                  variant="secondary"
                   onClick={handleAnalyzeScenes} 
                   disabled={isLoading || !formData.text_raw.trim()}
                   className="w-full sm:w-auto"
@@ -271,20 +365,22 @@ const NewStoryContent: React.FC = () => {
                     'シーン構成を分析'
                   )}
                 </Button>
-                <Button 
-                  onClick={handleGenerateScript} 
-                  disabled={isLoading || !formData.text_raw.trim()}
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? (
-                    <>
-                      <Spinner size="sm" color="white" className="mr-2" />
-                      作成中...
-                    </>
-                  ) : (
-                    '台本を作成'
-                  )}
-                </Button>
+                {process.env.NEXT_PUBLIC_ENABLE_DIRECT_SCRIPT_GENERATION === 'true' && (
+                  <Button 
+                    onClick={handleGenerateScript} 
+                    disabled={isLoading || !formData.text_raw.trim()}
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Spinner size="sm" color="white" className="mr-2" />
+                        作成中...
+                      </>
+                    ) : (
+                      '台本を作成'
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, PageLoading, Spinner } from '@/components/ui';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -20,25 +20,64 @@ interface SceneInfo {
 const SceneEditorContent: React.FC = () => {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { error: showError } = useToast();
   const storyId = params.id as string;
-  const { story, isLoading, generateScript: generateScriptFromHook } = useStory(storyId);
+  const { story, isLoading, generateScript: generateScriptFromHook, mutate: mutateStory } = useStory(storyId);
   const [scenes, setScenes] = useState<SceneInfo[]>([]);
   const [isGeneratingScenes, setIsGeneratingScenes] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [editingScene, setEditingScene] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  
+  // Get beats from URL parameter if available
+  const beatsFromUrl = searchParams.get('beats');
+  const beatsCount = beatsFromUrl ? parseInt(beatsFromUrl, 10) : (story?.beats || 10);
+
+  // Force refresh story data when component mounts or beats changes
+  useEffect(() => {
+    mutateStory();
+    // Reset scenes when beats changes to force regeneration
+    setScenes([]);
+  }, [beatsCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (story && scenes.length === 0) {
-      generateInitialScenes();
+      // 既存の台本がある場合は、そこからシーン情報を抽出
+      if (story.script_json && (story.script_json as any).beats) {
+          const beats = (story.script_json as any).beats;
+          const extractedScenes = beats.map((beat: any, index: number) => {
+          // 台詞の最初の部分を簡潔なタイトルに変換
+          let title = `シーン ${index + 1}`;
+          if (beat.text) {
+            // 最初の20文字を取得して、句読点で区切る
+            const shortText = beat.text.substring(0, 40);
+            const firstPart = shortText.split(/[。、！？]/)[0];
+            title = firstPart.length > 20 ? firstPart.substring(0, 20) + '...' : firstPart;
+          } else if (beat.imagePrompt) {
+            // 画像プロンプトから抽出
+            const shortPrompt = beat.imagePrompt.substring(0, 30);
+            title = shortPrompt + '...';
+          }
+          return {
+            number: index + 1,
+            title: title
+          };
+        });
+        setScenes(extractedScenes);
+      } else {
+        // 台本がない場合は、ストーリーから生成
+        generateInitialScenes();
+      }
     }
-  }, [story]);
+  }, [story, beatsCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateInitialScenes = async () => {
     if (!story) return;
 
     setIsGeneratingScenes(true);
+    console.log('[SceneEditor] Generating scenes with beatCount:', beatsCount);
+    
     try {
       const response = await fetch('/api/stories/generate-scene-overview', {
         method: 'POST',
@@ -47,7 +86,7 @@ const SceneEditorContent: React.FC = () => {
         },
         body: JSON.stringify({
           storyText: story.text_raw,
-          beatCount: story.beats || 10,
+          beatCount: beatsCount,
         }),
       });
 
@@ -115,7 +154,7 @@ const SceneEditorContent: React.FC = () => {
         },
         body: JSON.stringify({
           scenes: scenes,
-          beats: scenes.length,  // シーン数を明示的に送信
+          beats: scenes.length || beatsCount,  // シーン数を明示的に送信
         }),
       });
 
@@ -142,6 +181,12 @@ const SceneEditorContent: React.FC = () => {
 
       // 台本生成成功をストレージに保存
       sessionStorage.setItem('scriptGenerationSuccess', 'true');
+      
+      // Set navigation tracking if coming from scene editor
+      const currentPath = sessionStorage.getItem('navigationPath');
+      if (currentPath === 'story-scenes-script') {
+        sessionStorage.setItem('navigationPath', 'story-scenes-script');
+      }
       
       // 少し待ってから遷移（データの更新を待つ）
       setTimeout(() => {
@@ -178,22 +223,44 @@ const SceneEditorContent: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <Link href="/dashboard" className="text-purple-400 hover:text-purple-300 text-sm mb-4 inline-block">
-            ← ダッシュボードに戻る
+          <Link 
+            href={story?.script_json ? `/stories/${storyId}` : `/stories/new?storyId=${storyId}&beats=${beatsCount}`} 
+            className="text-purple-400 hover:text-purple-300 text-sm mb-4 inline-block"
+          >
+            ← {story?.script_json ? '台本編集画面に戻る' : 'ストーリー入力画面に戻る'}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">
             シーン構成の編集
           </h1>
           <p className="text-sm text-gray-400">
-            {story.title || 'タイトル未設定'} - {story.beats || 10}シーン
+            {story.title || 'タイトル未設定'} - {scenes.length > 0 ? `${scenes.length}シーン` : `${beatsCount}シーン`}
           </p>
+          {story.script_json && (
+            <p className="text-xs text-purple-400 mt-1">
+              ※ 現在の台本から読み込まれたシーン構成です
+            </p>
+          )}
         </div>
 
         <Card>
           <CardContent className="p-4 sm:p-6">
             {/* Story Content Preview */}
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-200 mb-3">ストーリー内容</h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-semibold text-gray-200">ストーリー内容</h2>
+                <Link href={`/stories/new?storyId=${storyId}&beats=${beatsCount}`}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-purple-400 hover:text-purple-300"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    ストーリー入力画面へ
+                  </Button>
+                </Link>
+              </div>
               <div className="bg-gray-800/50 border border-purple-500/20 rounded-md p-4">
                 <p className="text-gray-300 whitespace-pre-wrap line-clamp-3">
                   {story.text_raw}
@@ -215,7 +282,7 @@ const SceneEditorContent: React.FC = () => {
                 </Button>
               </div>
 
-              {isGeneratingScenes ? (
+              {isGeneratingScenes && !story.script_json ? (
                 <div className="text-center py-8">
                   <Spinner size="md" />
                   <p className="mt-4 text-gray-400">シーン構成を生成中...</p>
@@ -292,7 +359,7 @@ const SceneEditorContent: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-between">
-              <Link href="/dashboard">
+              <Link href={story?.script_json ? `/stories/${storyId}` : `/stories/new?storyId=${storyId}&beats=${beatsCount}`}>
                 <Button variant="secondary">
                   キャンセル
                 </Button>
@@ -307,7 +374,7 @@ const SceneEditorContent: React.FC = () => {
                     台本を作成中...
                   </>
                 ) : (
-                  '台本を作成'
+                  story.script_json ? '台本を更新' : '台本を作成'
                 )}
               </Button>
             </div>

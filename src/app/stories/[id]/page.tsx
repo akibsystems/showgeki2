@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Mulmoscript } from '@/lib/schemas';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor, ScriptDirector } from '@/components/editor';
@@ -41,6 +42,7 @@ const StoryEditorContent: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'script'>(initialTab);
+  const [navigationPath, setNavigationPath] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: story?.title || '',
@@ -75,11 +77,14 @@ const StoryEditorContent: React.FC = () => {
     storyId
   });
 
-  // Check for script generation success message
+  // Check for script generation success message and navigation path
   useEffect(() => {
+    // Read navigation path
+    const navPath = sessionStorage.getItem('navigationPath');
+    setNavigationPath(navPath);
+    
     const scriptGenerationSuccess = sessionStorage.getItem('scriptGenerationSuccess');
     if (scriptGenerationSuccess === 'true') {
-      success('台本が生成されました');
       sessionStorage.removeItem('scriptGenerationSuccess');
       
       // データを強制的に再取得（キャッシュを無視）
@@ -105,7 +110,7 @@ const StoryEditorContent: React.FC = () => {
         }, 1000);
       }, 500);
     }
-  }, [success, mutateStory, story]);
+  }, [mutateStory, story]);
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -128,6 +133,7 @@ const StoryEditorContent: React.FC = () => {
       }
     }
   }, [story]);
+
 
   // Update tab when URL parameter changes
   React.useEffect(() => {
@@ -179,8 +185,8 @@ const StoryEditorContent: React.FC = () => {
   const handleAnalyzeScenes = async () => {
     if (!story) return;
     
-    // Navigate to scene editor
-    router.push(`/stories/${storyId}/scenes`);
+    // Navigate to scene editor with current beats
+    router.push(`/stories/${storyId}/scenes?beats=${story.beats || 10}`);
   };
 
   const handleGenerateScript = async () => {
@@ -232,6 +238,8 @@ const StoryEditorContent: React.FC = () => {
 
       if (result.success) {
         // success('Video generation started');
+        // Clear navigation path when leaving the flow
+        sessionStorage.removeItem('navigationPath');
         // Navigate to videos page to see generation progress
         router.push('/videos');
       } else {
@@ -249,6 +257,8 @@ const StoryEditorContent: React.FC = () => {
     try {
       await deleteStory();
       // success('Story deleted successfully');
+      // Clear navigation path when leaving the flow
+      sessionStorage.removeItem('navigationPath');
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to delete story:', err);
@@ -405,6 +415,18 @@ const StoryEditorContent: React.FC = () => {
   return (
     <Layout>
       <div className="p-4 sm:p-6">
+        {/* Back Navigation */}
+        {story.status === 'script_generated' && (
+          <div className="mb-4">
+            <Link 
+              href={navigationPath === 'story-scenes-script' ? `/stories/${storyId}/scenes` : '/stories/new'} 
+              className="text-purple-400 hover:text-purple-300 text-sm inline-block"
+            >
+              ← {navigationPath === 'story-scenes-script' ? 'シーン構成に戻る' : 'ストーリー入力に戻る'}
+            </Link>
+          </div>
+        )}
+        
         {/* Header - Mobile optimized */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
@@ -509,14 +531,16 @@ const StoryEditorContent: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-2 sm:gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push(`/stories/${storyId}/overview`)}
-                title="シーン構成を確認"
-              >
-                シーン構成
-              </Button>
+              {story.status === 'script_generated' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => router.push(`/stories/${storyId}/scenes?beats=${story.beats || 10}`)}
+                  title="シーン構成を編集"
+                >
+                  シーン構成
+                </Button>
+              )}
               {isEditing ? (
                 <>
                   <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving} className="text-sm sm:text-base">
@@ -549,28 +573,29 @@ const StoryEditorContent: React.FC = () => {
                   {story.status === 'draft' && (
                     <>
                       <Button 
-                        variant="secondary" 
                         onClick={handleAnalyzeScenes} 
                         className="text-sm sm:text-base"
                         title="各シーンのタイトルを確認・編集してから台本を作成します"
                       >
                         シーン構成を分析
                       </Button>
-                      <Button 
-                        onClick={handleGenerateScript} 
-                        disabled={isGeneratingScript} 
-                        className="text-sm sm:text-base"
-                        title="直接台本を生成して編集画面へ進みます"
-                      >
-                        {isGeneratingScript ? (
-                          <>
-                            <Spinner size="sm" color="white" className="mr-2" />
-                            生成中...
-                          </>
-                        ) : (
-                          `台本を作成 (${story.beats || 10}シーン)`
-                        )}
-                      </Button>
+                      {process.env.NEXT_PUBLIC_ENABLE_DIRECT_SCRIPT_GENERATION === 'true' && (
+                        <Button 
+                          onClick={handleGenerateScript} 
+                          disabled={isGeneratingScript} 
+                          className="text-sm sm:text-base"
+                          title="直接台本を生成して編集画面へ進みます"
+                        >
+                          {isGeneratingScript ? (
+                            <>
+                              <Spinner size="sm" color="white" className="mr-2" />
+                              生成中...
+                            </>
+                          ) : (
+                            `台本を作成 (${story.beats || 10}シーン)`
+                          )}
+                        </Button>
+                      )}
                     </>
                   )}
                   {story.status === 'script_generated' && (
@@ -638,6 +663,26 @@ const StoryEditorContent: React.FC = () => {
                 )}
               </nav>
             </div>
+
+            {/* Story Content Edit (when in edit mode) */}
+            {isEditing && story.status === 'script_generated' && navigationPath !== 'story-scenes-script' && (
+              <div className="mb-6">
+                <Card>
+                  <CardContent className="p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-gray-200 mb-4">ストーリー内容</h3>
+                    <textarea
+                      value={formData.text_raw}
+                      onChange={(e) => setFormData(prev => ({ ...prev, text_raw: e.target.value }))}
+                      className="w-full min-h-[200px] bg-gray-800 text-gray-100 border border-gray-600 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+                      placeholder="ストーリーの内容を入力してください..."
+                    />
+                    <div className="mt-2 text-right text-sm text-gray-400">
+                      {formData.text_raw.length} 文字
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Tab Content */}
             {currentTab === 'content' ? (
