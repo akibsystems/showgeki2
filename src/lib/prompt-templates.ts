@@ -36,6 +36,7 @@ export interface PromptContext {
   beats?: number;
   enableCaptions?: boolean;
   captionStyles?: string[];
+  scenes?: Array<{ number: number; title: string }>;
 }
 
 export interface PromptGenerationResult {
@@ -85,6 +86,8 @@ Create a {{target_duration}}-second video that:
 - Includes compelling character voices and detailed image prompts
 - Follows a clear narrative arc with setup, development, and resolution
 {{enableCaptions}}
+
+{{scenesTitles}}
 
 ## Validation Requirements
 ⚠️ MUST check before generation:
@@ -222,6 +225,8 @@ const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
 {{enableCaptions}}
+
+{{scenesTitles}}
 
 ## 検証の重要事項
 ⚠️ 生成前に必ず確認：
@@ -402,6 +407,15 @@ export function substituteVariables(
     language: 'ja'
   };
 
+  // Format scene titles if provided
+  let scenesTitlesContent = '';
+  if (context.scenes && context.scenes.length > 0) {
+    scenesTitlesContent = '\n## 指定されたシーン構成\n以下のシーンタイトルに従って台本を作成してください：\n';
+    context.scenes.forEach(scene => {
+      scenesTitlesContent += `- シーン ${scene.number}: ${scene.title}\n`;
+    });
+  }
+
   // Combine context with defaults
   const variables = {
     story_title: context.story_title,
@@ -411,9 +425,10 @@ export function substituteVariables(
     voice_count: (context.voice_count || 3).toString(),
     language: context.language || defaults.language,
     beats: (context.beats !== undefined ? context.beats : 5).toString(),
-    enableCaptions: context.enableCaptions 
+    enableCaptions: context.enableCaptions
       ? `\n- IMPORTANT: Include captionParams in the JSON output with lang="${context.language || 'ja'}" and styles=${JSON.stringify(context.captionStyles || ['font-size: 48px', 'color: white', 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)', 'font-family: \'Noto Sans JP\', sans-serif', 'font-weight: bold'])}`
-      : ''
+      : '',
+    scenesTitles: scenesTitlesContent
   };
 
   // Replace all variables
@@ -467,6 +482,7 @@ export function generatePrompt(
     beats?: number;
     enableCaptions?: boolean;
     captionStyles?: string[];
+    scenes?: Array<{ number: number; title: string }>;
   } = {}
 ): PromptGenerationResult {
   const template = options.templateId
@@ -486,7 +502,8 @@ export function generatePrompt(
     language: options.language || 'ja',
     beats: options.beats !== undefined ? options.beats : 5,
     enableCaptions: options.enableCaptions,
-    captionStyles: options.captionStyles
+    captionStyles: options.captionStyles,
+    scenes: options.scenes
   };
 
   // Validate context
@@ -697,7 +714,7 @@ export function validateGeneratedScript(scriptData: any): {
       } else if (definedSpeakers.length > 0 && !definedSpeakers.includes(beat.speaker)) {
         errors.push(`Beat ${index + 1}: Speaker "${beat.speaker}" is not defined in speechParams.speakers`);
       }
-      
+
       if (!beat.text && typeof beat.text !== 'string') errors.push(`Beat ${index + 1}: Missing or invalid text`);
       // imagePrompt is optional but should be string if present
       if (beat.imagePrompt && typeof beat.imagePrompt !== 'string') {

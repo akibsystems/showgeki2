@@ -36,6 +36,49 @@ const NewStoryContent: React.FC = () => {
   };
 
 
+  const handleAnalyzeScenes = async () => {
+    if (!formData.text_raw.trim()) {
+      error('ストーリー内容を入力してください');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Ensure workspace exists for the user
+      const workspace = await ensureWorkspace();
+      
+      // Create story without auto script generation
+      const result = await createStory({
+        workspace_id: workspace.id,
+        text_raw: formData.text_raw.trim(),
+        beats: formData.beats,
+        auto_generate_script: false,
+      });
+      
+      console.log('Created story:', result); // Debug log
+      
+      // Check if result contains story data
+      let storyData: { id?: string } | undefined;
+      if (result && typeof result === 'object' && 'story' in result) {
+        storyData = (result as { story: { id?: string } }).story;
+      } else {
+        storyData = result as { id?: string };
+      }
+      
+      if (!storyData || !storyData.id) {
+        throw new Error('Invalid story response - missing ID');
+      }
+      
+      // Navigate to scene editor
+      router.push(`/stories/${storyData.id}/scenes`);
+    } catch (err) {
+      console.error('Failed to create story:', err);
+      error('ストーリーの作成に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGenerateScript = async () => {
     if (!formData.text_raw.trim()) {
       error('ストーリー内容を入力してください');
@@ -58,7 +101,6 @@ const NewStoryContent: React.FC = () => {
       console.log('Created story with script:', result); // Debug log
       
       // Check if result contains story data
-      // When auto_generate_script is true, the response structure might be different
       let storyData: { id?: string } | undefined;
       if (result && typeof result === 'object' && 'story' in result) {
         storyData = (result as { story: { id?: string } }).story;
@@ -70,9 +112,7 @@ const NewStoryContent: React.FC = () => {
         throw new Error('Invalid story response - missing ID');
       }
       
-      // success('Story and script generated successfully');
-      
-      // Navigate to content tab (default view)
+      // Navigate to story editor
       router.push(`/stories/${storyData.id}?tab=content`);
     } catch (err) {
       console.error('Failed to create story and generate script:', err);
@@ -197,30 +237,55 @@ const NewStoryContent: React.FC = () => {
               }
             `}</style>
 
+            {/* Button Explanation */}
+            <div className="mb-4 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
+              <p className="text-sm text-gray-300">
+                <span className="font-semibold">シーン構成を分析</span>: 各シーンのタイトルを確認・編集してから台本を作成します<br/>
+                <span className="font-semibold">台本を作成</span>: 直接台本を生成して編集画面へ進みます
+              </p>
+            </div>
+
             {/* Action Buttons - Mobile optimized */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
               <Button 
                 variant="secondary" 
                 onClick={handleCancel} 
                 disabled={isLoading}
-                className="w-full sm:w-auto order-2 sm:order-1"
+                className="w-full sm:w-auto order-3 sm:order-1"
               >
                 キャンセル
               </Button>
-              <Button 
-                onClick={handleGenerateScript} 
-                disabled={isLoading || !formData.text_raw.trim()}
-                className="w-full sm:w-auto order-1 sm:order-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Spinner size="sm" color="white" className="mr-2" />
-                    台本を作成中...
-                  </>
-                ) : (
-                  '台本を作成'
-                )}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 order-1 sm:order-2">
+                <Button 
+                  variant="secondary"
+                  onClick={handleAnalyzeScenes} 
+                  disabled={isLoading || !formData.text_raw.trim()}
+                  className="w-full sm:w-auto"
+                >
+                  {isLoading ? (
+                    <>
+                      <Spinner size="sm" color="white" className="mr-2" />
+                      分析中...
+                    </>
+                  ) : (
+                    'シーン構成を分析'
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleGenerateScript} 
+                  disabled={isLoading || !formData.text_raw.trim()}
+                  className="w-full sm:w-auto"
+                >
+                  {isLoading ? (
+                    <>
+                      <Spinner size="sm" color="white" className="mr-2" />
+                      作成中...
+                    </>
+                  ) : (
+                    '台本を作成'
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -56,7 +56,7 @@ async function getStoryWithAuth(storyId: string, uid: string) {
 /**
  * Parse request body for script generation options
  */
-async function parseScriptGenerationOptions(request: NextRequest): Promise<ScriptGenerationOptions> {
+async function parseScriptGenerationOptions(request: NextRequest): Promise<ScriptGenerationOptions & { scenes?: Array<{ number: number; title: string }> }> {
   try {
     const body = await request.json();
 
@@ -71,6 +71,7 @@ async function parseScriptGenerationOptions(request: NextRequest): Promise<Scrip
       retryCount: typeof body.retry_count === 'number' ? Math.min(body.retry_count, 3) : 2,
       enableCaptions: typeof body.enable_captions === 'boolean' ? body.enable_captions : false,
       captionStyles: Array.isArray(body.caption_styles) ? body.caption_styles : undefined,
+      scenes: Array.isArray(body.scenes) ? body.scenes : undefined,
     };
   } catch {
     // If no body or invalid JSON, return defaults

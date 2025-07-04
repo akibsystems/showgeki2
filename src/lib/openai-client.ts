@@ -37,6 +37,7 @@ export interface ScriptGenerationOptions {
   retryCount?: number;
   enableCaptions?: boolean;
   captionStyles?: string[];
+  scenes?: Array<{ number: number; title: string }>;
 }
 
 export interface GenerationResult {
@@ -120,6 +121,7 @@ export async function generateMulmoscriptWithOpenAI(
       beats: options.beats,
       enableCaptions: options.enableCaptions,
       captionStyles: options.captionStyles,
+      scenes: options.scenes,
     });
 
     const promptHash = createPromptHash(promptData.messages[1].content);

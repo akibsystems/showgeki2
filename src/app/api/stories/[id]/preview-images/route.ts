@@ -161,19 +161,21 @@ export async function POST(
     } catch (webhookError) {
       console.error('Failed to call webhook:', webhookError)
       
+      const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error'
+      
       // webhookエラーの場合、ステータスをfailedに更新
       await supabase
         .from('videos')
         .update({
           preview_status: 'failed',
-          error_msg: `Webhook error: ${webhookError.message}`
+          error_msg: `Webhook error: ${errorMessage}`
         })
         .eq('id', videoId)
         .eq('uid', user.id)
       
       return NextResponse.json({ 
         error: 'Failed to start preview generation',
-        details: webhookError.message 
+        details: errorMessage
       }, { status: 500 })
     }
     

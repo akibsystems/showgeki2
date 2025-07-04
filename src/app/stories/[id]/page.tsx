@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Mulmoscript } from '@/lib/schemas';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Layout } from '@/components/layout';
@@ -23,7 +23,7 @@ const StoryEditorContent: React.FC = () => {
   const searchParams = useSearchParams();
   const storyId = params.id as string;
   const { } = useApp();
-  const { error } = useToast();
+  const { error, success } = useToast();
 
   // Get initial tab from URL parameter (but fallback to content if script editor is disabled)
   const initialTab = searchParams.get('tab') === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true'
@@ -74,6 +74,15 @@ const StoryEditorContent: React.FC = () => {
   } = useAudioPreview({
     storyId
   });
+
+  // Check for script generation success message
+  useEffect(() => {
+    const scriptGenerationSuccess = sessionStorage.getItem('scriptGenerationSuccess');
+    if (scriptGenerationSuccess === 'true') {
+      success('台本が生成されました');
+      sessionStorage.removeItem('scriptGenerationSuccess');
+    }
+  }, [success]);
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -133,6 +142,13 @@ const StoryEditorContent: React.FC = () => {
     }
   };
 
+  const handleAnalyzeScenes = async () => {
+    if (!story) return;
+    
+    // Navigate to scene editor
+    router.push(`/stories/${storyId}/scenes`);
+  };
+
   const handleGenerateScript = async () => {
     if (!story) return;
     
@@ -149,7 +165,9 @@ const StoryEditorContent: React.FC = () => {
         beats: story.beats || 10,
         ...captionOptions
       });
-      // success('Script generated successfully');
+      
+      // Refresh the page to show the generated script
+      mutateStory();
     } catch (err) {
       console.error('Failed to generate script:', err);
       error('台本の生成に失敗しました');
@@ -457,6 +475,14 @@ const StoryEditorContent: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-2 sm:gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/stories/${storyId}/overview`)}
+                title="シーン構成を確認"
+              >
+                シーン構成
+              </Button>
               {isEditing ? (
                 <>
                   <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving} className="text-sm sm:text-base">
@@ -487,16 +513,31 @@ const StoryEditorContent: React.FC = () => {
                     削除
                   </Button>
                   {story.status === 'draft' && (
-                    <Button onClick={handleGenerateScript} disabled={isGeneratingScript} className="text-sm sm:text-base">
-                      {isGeneratingScript ? (
-                        <>
-                          <Spinner size="sm" color="white" className="mr-2" />
-                          生成中...
-                        </>
-                      ) : (
-                        `台本を生成 (${story.beats || 10}シーン)`
-                      )}
-                    </Button>
+                    <>
+                      <Button 
+                        variant="secondary" 
+                        onClick={handleAnalyzeScenes} 
+                        className="text-sm sm:text-base"
+                        title="各シーンのタイトルを確認・編集してから台本を作成します"
+                      >
+                        シーン構成を分析
+                      </Button>
+                      <Button 
+                        onClick={handleGenerateScript} 
+                        disabled={isGeneratingScript} 
+                        className="text-sm sm:text-base"
+                        title="直接台本を生成して編集画面へ進みます"
+                      >
+                        {isGeneratingScript ? (
+                          <>
+                            <Spinner size="sm" color="white" className="mr-2" />
+                            生成中...
+                          </>
+                        ) : (
+                          `台本を作成 (${story.beats || 10}シーン)`
+                        )}
+                      </Button>
+                    </>
                   )}
                   {story.status === 'script_generated' && (
                     <>
