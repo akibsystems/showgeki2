@@ -270,7 +270,7 @@ async function createStory(
 
     // Generate title if not provided
     let finalTitle = title?.trim();
-    if (!finalTitle) {
+    if (!finalTitle && text_raw) {
       try {
         finalTitle = await generateTitle(text_raw);
       } catch (error) {
@@ -290,8 +290,8 @@ async function createStory(
     const insertData: SupabaseStoryInsert = {
       workspace_id,
       uid: auth.uid,
-      title: finalTitle,
-      text_raw: text_raw.trim(),
+      title: finalTitle || '無題のストーリー',
+      text_raw: (text_raw || '').trim(),
       status: 'draft',
       beats: beats || 5
     };

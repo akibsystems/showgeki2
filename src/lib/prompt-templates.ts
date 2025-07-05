@@ -506,9 +506,27 @@ export function generatePrompt(
     scenes: options.scenes
   };
 
+  // Log context for debugging
+  console.log('[PromptTemplate] Context created:', {
+    story_title: context.story_title,
+    story_text_length: context.story_text?.length || 0,
+    story_text_preview: context.story_text?.substring(0, 50) || 'NO TEXT',
+    has_story_text: !!context.story_text,
+    template_id: template.id
+  });
+
   // Validate context
   const validation = validateContext(template, context);
   if (!validation.valid) {
+    console.error('[PromptTemplate] Context validation failed:', {
+      missing: validation.missing,
+      context: Object.keys(context).filter(k => !context[k as keyof PromptContext]),
+      story: {
+        id: story.id,
+        has_text_raw: !!story.text_raw,
+        text_raw_length: story.text_raw?.length || 0
+      }
+    });
     throw new Error(`Missing required context variables: ${validation.missing.join(', ')}`);
   }
 

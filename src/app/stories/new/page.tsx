@@ -7,12 +7,13 @@ import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
 import { useStories, useUserWorkspace, useStory } from '@/hooks';
+import { WorkflowDirector } from '@/components/workflow/WorkflowDirector';
 
 // ================================================================
 // New Story Page Component
 // ================================================================
 
-const NewStoryContent: React.FC = () => {
+const NewStoryContentV1: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { } = useApp();
@@ -390,10 +391,84 @@ const NewStoryContent: React.FC = () => {
   );
 };
 
+const NewStoryContentV2: React.FC = () => {
+  const router = useRouter();
+  const { } = useApp();
+  const { ensureWorkspace } = useUserWorkspace();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // ドラフトストーリーを作成して初期化
+  useEffect(() => {
+    const initializeWorkflow = async () => {
+      try {
+        // ワークスペースを確保
+        const workspace = await ensureWorkspace();
+        
+        // ドラフトストーリーを作成
+        const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
+        const response = await fetch('/api/stories/draft', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': uid,
+          },
+          body: JSON.stringify({
+            workspace_id: workspace.id,
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create draft story');
+        }
+        
+        const result = await response.json();
+        console.log('Draft API response:', result);
+        
+        if (!result.story || !result.story.id) {
+          console.error('Invalid response structure:', result);
+          throw new Error('Invalid draft story response');
+        }
+        
+        // ワークフローページへリダイレクト
+        router.replace(`/stories/${result.story.id}/new?step=1`);
+      } catch (err) {
+        console.error('Failed to initialize workflow:', err);
+        // エラー時は従来のページにフォールバック
+        setIsInitializing(false);
+      }
+    };
+
+    initializeWorkflow();
+  }, []); // 空の依存配列で、マウント時に一度だけ実行
+
+  if (isInitializing) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-400">準備中...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // エラー時は従来のページを表示
+  return <NewStoryContentV1 />;
+};
+
 const NewStoryPage: React.FC = () => {
+  // 環境変数でV1とV2を切り替え
+  const useWorkflowV2 = process.env.NEXT_PUBLIC_ENABLE_WORKFLOW_V2 === 'true';
+  
+  // デバッグ用
+  console.log('NEXT_PUBLIC_ENABLE_WORKFLOW_V2:', process.env.NEXT_PUBLIC_ENABLE_WORKFLOW_V2);
+  console.log('useWorkflowV2:', useWorkflowV2);
+  
   return (
     <ProtectedRoute>
-      <NewStoryContent />
+      {useWorkflowV2 ? <NewStoryContentV2 /> : <NewStoryContentV1 />}
     </ProtectedRoute>
   );
 };

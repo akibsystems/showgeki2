@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui';
 import { ScriptEditor, ScriptDirector } from '@/components/editor';
+import { WorkflowDirector } from '@/components/workflow/WorkflowDirector';
 import { VideoModal } from '@/components/video';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
@@ -26,10 +27,17 @@ const StoryEditorContent: React.FC = () => {
   const { } = useApp();
   const { error, success } = useToast();
 
-  // Get initial tab from URL parameter (but fallback to content if script editor is disabled)
-  const initialTab = searchParams.get('tab') === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true'
-    ? 'script'
-    : 'content';
+  // Get initial tab from URL parameter
+  const tabParam = searchParams.get('tab');
+  const initialTab = (() => {
+    if (tabParam === 'workflow' && process.env.NEXT_PUBLIC_ENABLE_WORKFLOW_V2 === 'true') {
+      return 'workflow';
+    }
+    if (tabParam === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true') {
+      return 'script';
+    }
+    return 'content';
+  })() as 'content' | 'script' | 'workflow';
 
   // Use SWR hooks for data fetching
   const { story, isLoading, mutate: mutateStory, updateStory, deleteStory, generateScript } = useStory(storyId);
@@ -41,7 +49,7 @@ const StoryEditorContent: React.FC = () => {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'content' | 'script'>(initialTab);
+  const [currentTab, setCurrentTab] = useState<'content' | 'script' | 'workflow'>(initialTab);
   const [navigationPath, setNavigationPath] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -79,6 +87,9 @@ const StoryEditorContent: React.FC = () => {
 
   // Check for script generation success message and navigation path
   useEffect(() => {
+    // Debug workflow feature flag
+    console.log('[StoryEditor] NEXT_PUBLIC_ENABLE_WORKFLOW_V2:', process.env.NEXT_PUBLIC_ENABLE_WORKFLOW_V2);
+    
     // Read navigation path
     const navPath = sessionStorage.getItem('navigationPath');
     setNavigationPath(navPath);
@@ -121,15 +132,20 @@ const StoryEditorContent: React.FC = () => {
   // Update tab when URL parameter changes
   React.useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam === 'script' || tabParam === 'content') {
-      setCurrentTab(tabParam);
+    if (tabParam === 'script' || tabParam === 'content' || tabParam === 'workflow') {
+      setCurrentTab(tabParam as 'content' | 'script' | 'workflow');
     }
   }, [searchParams]);
 
   // Handle tab switching with URL update
-  const handleTabChange = (tab: 'content' | 'script') => {
+  const handleTabChange = (tab: 'content' | 'script' | 'workflow') => {
     // Script Editorタブが無効の場合は'script'タブに切り替えできない
     if (tab === 'script' && process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR !== 'true') {
+      return;
+    }
+    
+    // Workflowタブが無効の場合は'workflow'タブに切り替えできない
+    if (tab === 'workflow' && process.env.NEXT_PUBLIC_ENABLE_WORKFLOW_V2 !== 'true') {
       return;
     }
 
@@ -621,6 +637,7 @@ const StoryEditorContent: React.FC = () => {
             {/* Tab Navigation */}
             <div className="border-b border-gray-200 overflow-x-auto">
               <nav className="flex space-x-4 sm:space-x-8 min-w-max">
+                
                 <button
                   onClick={() => handleTabChange('content')}
                   className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${currentTab === 'content'

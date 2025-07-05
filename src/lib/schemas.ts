@@ -30,7 +30,121 @@ export const StoryStatusSchema = z.enum([
   errorMap: () => ({ message: 'Invalid story status' })
 });
 
-// ストーリースキーマ
+// ストーリー要素（ステップ1入力）
+export const StoryElementsSchema = z.object({
+  main_story: z.string().default(''),
+  dramatic_turning_point: z.string().optional().default(''),
+  future_image: z.string().optional().default(''),
+  learnings: z.string().optional().default(''),
+  total_scenes: z.number().min(1).max(20).default(5),
+});
+
+// ワークフローメタデータ（MulmoScript拡張情報）
+export const WorkflowMetadataSchema = z.object({
+  acts: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string().optional(),
+    scenes: z.array(z.string()), // シーンIDのリスト
+  })).optional(),
+  bgm_settings: z.record(z.string(), z.object({
+    url: z.string().url().optional(),
+    volume: z.number().min(0).max(1).default(0.2),
+    fadeIn: z.number().default(0),
+    fadeOut: z.number().default(0),
+  })).optional(),
+  additional_images: z.array(z.object({
+    id: z.string(),
+    url: z.string().url(),
+    position: z.number(), // ビート位置
+    type: z.enum(['cm', 'transition', 'custom']),
+  })).optional(),
+  sceneList: z.object({
+    scenes: z.array(z.object({
+      id: z.string(),
+      speaker: z.string(),
+      text: z.string(),
+      description: z.string().optional(),
+      imagePrompt: z.string().optional(),
+      image: z.object({
+        type: z.enum(['image', 'textSlide']),
+        source: z.object({
+          kind: z.enum(['url', 'path', 'base64', 'text']),
+          url: z.string().optional(),
+          path: z.string().optional(),
+          data: z.string().optional(),
+          text: z.string().optional(),
+        }).optional(),
+        slide: z.object({
+          title: z.string(),
+          subtitle: z.string().optional(),
+          bullets: z.array(z.string()).optional(),
+        }).optional(),
+      }).optional(),
+      duration: z.number().optional(),
+      captionParams: z.object({
+        lang: z.string(),
+        styles: z.array(z.string()).optional(),
+      }).optional(),
+      actId: z.string().optional(),
+      order: z.number().optional(),
+      isTransition: z.boolean().optional(),
+    })),
+    acts: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string().optional(),
+      sceneIds: z.array(z.string()),
+    })),
+    totalScenes: z.number(),
+    currentSceneId: z.string().optional(),
+    isValid: z.boolean(),
+    validationErrors: z.array(z.string()).optional(),
+  }).optional(),
+});
+
+// ワークフロー状態
+export const WorkflowStateSchema = z.object({
+  current_step: z.number().min(1).max(5).default(1),
+  completed_steps: z.array(z.number()).default([]),
+  ai_generations: z.object({
+    screenplay: z.any().optional(),
+    scene_scripts: z.any().optional(),
+    final_video_config: z.any().optional(),
+  }).optional(),
+  metadata: WorkflowMetadataSchema.optional(),
+});
+
+// カスタムアセット参照
+export const CustomAssetsSchema = z.object({
+  character_images: z.record(z.string(), z.object({
+    asset_id: z.string().uuid(),
+    url: z.string().url(),
+    uploaded_at: z.string().datetime(),
+  })).optional(),
+  additional_images: z.array(z.object({
+    asset_id: z.string().uuid(),
+    url: z.string().url(),
+    type: z.enum(['cm', 'transition', 'custom']),
+    position: z.number().optional(),
+  })).optional(),
+  custom_audio: z.record(z.string(), z.object({
+    asset_id: z.string().uuid(),
+    url: z.string().url(),
+    type: z.enum(['voice', 'sound_effect']),
+  })).optional(),
+  custom_bgm: z.record(z.string(), z.object({
+    asset_id: z.string().uuid(),
+    url: z.string().url(),
+    metadata: z.object({
+      title: z.string().optional(),
+      artist: z.string().optional(),
+      duration: z.number().optional(),
+    }).optional(),
+  })).optional(),
+});
+
+// ストーリースキーマ（拡張版）
 export const StorySchema = z.object({
   id: z.string().uuid('Story ID must be UUID format'),
   workspace_id: z.string().uuid(),
@@ -40,6 +154,10 @@ export const StorySchema = z.object({
   script_json: z.record(z.any()).optional(),
   status: StoryStatusSchema,
   beats: z.number().min(1).max(20).default(5),
+  // ScriptDirector V2 fields
+  story_elements: StoryElementsSchema.optional(),
+  workflow_state: WorkflowStateSchema.optional(),
+  custom_assets: CustomAssetsSchema.optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -74,6 +192,70 @@ export const ReviewSchema = z.object({
   story_id: z.string().uuid(),
   review_text: z.string().min(1, 'Review text is required'),
   rating: z.number().int().min(1).max(5),
+  created_at: z.string().datetime(),
+});
+
+// ================================================================
+// ScriptDirector V2 Additional Tables
+// ================================================================
+
+// ワークフローデータタイプ
+export const WorkflowDataTypeSchema = z.enum([
+  'ai_screenplay',
+  'scene_scripts',
+  'final_video_config',
+  'bgm_instructions',
+  'post_processing_config'
+]);
+
+// ワークフローデータ（大容量データ保存用）
+export const StoryWorkflowDataSchema = z.object({
+  story_id: z.string().uuid(),
+  data_type: WorkflowDataTypeSchema,
+  data: z.record(z.any()),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+
+// アセットタイプ
+export const AssetTypeSchema = z.enum([
+  'character_image',
+  'additional_image',
+  'custom_audio',
+  'custom_bgm'
+]);
+
+// ストーリーアセット
+export const StoryAssetSchema = z.object({
+  id: z.string().uuid(),
+  story_id: z.string().uuid(),
+  asset_type: AssetTypeSchema,
+  url: z.string().url(),
+  file_size: z.number().int().positive().optional(),
+  mime_type: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
+  uploaded_by: z.string().uuid().optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+
+// ワークフローアクション
+export const WorkflowActionSchema = z.enum([
+  'complete_step',
+  'update_data',
+  'skip_step',
+  'revert_step'
+]);
+
+// ワークフロー履歴
+export const WorkflowHistorySchema = z.object({
+  id: z.string().uuid(),
+  story_id: z.string().uuid(),
+  step: z.number().min(1).max(5),
+  action: WorkflowActionSchema,
+  previous_data: z.record(z.any()).optional(),
+  new_data: z.record(z.any()).optional(),
+  user_id: z.string().uuid().optional(),
   created_at: z.string().datetime(),
 });
 
@@ -201,7 +383,7 @@ export const CreateWorkspaceRequestSchema = z.object({
 export const CreateStoryRequestSchema = z.object({
   workspace_id: z.string().uuid(),
   title: z.string().min(1).max(255).optional(),
-  text_raw: z.string().min(1),
+  text_raw: z.string().default(''),
   beats: z.number().min(1).max(20).default(5),
   auto_generate_script: z.boolean().default(false),
 });
@@ -212,6 +394,10 @@ export const UpdateStoryRequestSchema = z.object({
   text_raw: z.string().min(1).optional(),
   script_json: z.record(z.any()).optional(),
   beats: z.number().min(1).max(20).optional(),
+  // ScriptDirector V2 fields
+  story_elements: StoryElementsSchema.optional(),
+  workflow_state: WorkflowStateSchema.optional(),
+  custom_assets: CustomAssetsSchema.optional(),
 });
 
 // スクリプト生成レスポンス
@@ -311,6 +497,17 @@ export type MulmoBeat = z.infer<typeof MulmoBeatSchema>;
 export type MulmoSpeechParams = z.infer<typeof MulmoSpeechParamsSchema>;
 export type MulmoImageParams = z.infer<typeof MulmoImageParamsSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
+// ScriptDirector V2 types
+export type StoryElements = z.infer<typeof StoryElementsSchema>;
+export type WorkflowState = z.infer<typeof WorkflowStateSchema>;
+export type WorkflowMetadata = z.infer<typeof WorkflowMetadataSchema>;
+export type CustomAssets = z.infer<typeof CustomAssetsSchema>;
+export type WorkflowDataType = z.infer<typeof WorkflowDataTypeSchema>;
+export type StoryWorkflowData = z.infer<typeof StoryWorkflowDataSchema>;
+export type AssetType = z.infer<typeof AssetTypeSchema>;
+export type StoryAsset = z.infer<typeof StoryAssetSchema>;
+export type WorkflowAction = z.infer<typeof WorkflowActionSchema>;
+export type WorkflowHistory = z.infer<typeof WorkflowHistorySchema>;
 
 // API リクエスト・レスポンス型
 export type CreateWorkspaceRequest = z.infer<typeof CreateWorkspaceRequestSchema>;

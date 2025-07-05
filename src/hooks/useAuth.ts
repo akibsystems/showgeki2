@@ -97,10 +97,12 @@ export function useAuth(): UseAuthReturn {
       setError(null);
       setLoading(true);
 
+      console.log('process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL', process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL);
+
       // Use NEXT_PUBLIC_AUTH_REDIRECT_URL if set (for ngrok), otherwise use current origin
       const baseUrl = process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL || window.location.origin;
       const redirectTo = `${baseUrl}/auth/callback`;
-      
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -122,10 +124,11 @@ export function useAuth(): UseAuthReturn {
       setError(null);
       setLoading(true);
 
+      console.log('process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL', process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL);
       // Use NEXT_PUBLIC_AUTH_REDIRECT_URL if set (for ngrok), otherwise use current origin
       const baseUrl = process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL || window.location.origin;
       const redirectTo = `${baseUrl}/auth/callback`;
-      
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

@@ -102,6 +102,16 @@ export async function generateMulmoscriptWithOpenAI(
   let retryCount = 0;
   const maxRetries = options.retryCount || 2;
 
+  console.log('[OpenAI] generateMulmoscriptWithOpenAI called with story:', {
+    id: story.id,
+    title: story.title,
+    text_raw_length: story.text_raw?.length || 0,
+    text_raw_preview: story.text_raw?.substring(0, 100) || 'NO TEXT',
+    has_text_raw: !!story.text_raw,
+    story_elements: story.story_elements,
+    workflow_state: story.workflow_state
+  });
+
   // Default configuration
   const config = {
     model: 'gpt-4.1', // Latest GPT-4 model for script generation
@@ -156,6 +166,7 @@ export async function generateMulmoscriptWithOpenAI(
         } catch (parseError) {
           throw new Error(`JSON parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         }
+        console.log('scriptData', scriptData);
 
         // Validate generated script structure
         const validation = validateGeneratedScript(scriptData);

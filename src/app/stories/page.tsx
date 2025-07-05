@@ -32,8 +32,17 @@ const StoriesContent: React.FC = () => {
   // Fetch stories using SWR hook
   const { stories, isLoading, copyStory } = useStories();
 
+  // Separate workflow drafts and regular stories
+  const workflowDrafts = (stories || []).filter(story => 
+    story.status === 'draft' && story.workflow_state
+  );
+  
+  const regularStories = (stories || []).filter(story => 
+    !(story.status === 'draft' && story.workflow_state)
+  );
+  
   // Filter and search stories
-  const filteredStories = (stories || []).filter(story => {
+  const filteredStories = regularStories.filter(story => {
     const matchesSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          story.text_raw.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || story.status === statusFilter;
@@ -195,6 +204,61 @@ const StoriesContent: React.FC = () => {
           </div>
         </div>
 
+        {/* Workflow Drafts Section */}
+        {workflowDrafts.length > 0 && statusFilter === 'all' && !searchQuery && (
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-100 mb-4 flex items-center gap-2">
+              <span className="text-purple-400">●</span>
+              作成中のワークフロー
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {workflowDrafts.map((story) => (
+                <Card key={story.id} className="h-full hover:shadow-lg transition-all duration-200 group border-purple-500/30">
+                  <CardContent className="p-4 sm:p-6">
+                    <Link href={`/stories/${story.id}/new?step=${story.workflow_state?.current_step || 1}`} className="block">
+                      <div className="flex justify-between items-start mb-2 sm:mb-3">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-100 group-hover:text-purple-400 transition-colors line-clamp-2 mr-2">
+                          {story.title}
+                        </h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border text-purple-400 bg-purple-900/30 border-purple-500/50">
+                          ステップ {story.workflow_state?.current_step || 1}/5
+                        </span>
+                      </div>
+                      
+                      <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
+                        {story.workflow_state?.current_step === 1 && 'ストーリー入力中'}
+                        {story.workflow_state?.current_step === 2 && 'シーン構成を編集中'}
+                        {story.workflow_state?.current_step === 3 && 'キャラクター設定中'}
+                        {story.workflow_state?.current_step === 4 && '台詞と画像を編集中'}
+                        {story.workflow_state?.current_step === 5 && '音声・BGM設定中'}
+                      </p>
+                    </Link>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="text-xs text-gray-500">
+                        最終更新: {formatDate(story.updated_at)}
+                      </div>
+                      
+                      <Link 
+                        href={`/stories/${story.id}/new?step=${story.workflow_state?.current_step || 1}`} 
+                        className="px-3 py-1.5 rounded-md text-xs bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                      >
+                        続きから作成
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {regularStories.length > 0 && (
+              <div className="mt-8 mb-4 border-t border-gray-700 pt-8">
+                <h3 className="text-lg font-medium text-gray-100 mb-4">すべての台本</h3>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stories Grid */}
         {filteredStories.length === 0 ? (
           <div className="text-center py-12">
@@ -226,18 +290,18 @@ const StoriesContent: React.FC = () => {
             {filteredStories.map((story) => (
               <Card key={story.id} className="h-full hover:shadow-lg transition-all duration-200 group">
                 <CardContent className="p-4 sm:p-6">
-                  <Link href={`/stories/${story.id}`} className="block">
+                  <Link href={story.status === 'draft' && story.workflow_state ? `/stories/${story.id}/new?step=${story.workflow_state.current_step || 1}` : `/stories/${story.id}`} className="block">
                     <div className="flex justify-between items-start mb-2 sm:mb-3">
                       <h3 className="text-base sm:text-lg font-medium text-gray-100 group-hover:text-purple-400 transition-colors line-clamp-2 mr-2">
                         {story.title}
                       </h3>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(story.status)} flex-shrink-0`}>
-                        {getStatusText(story.status)}
+                        {story.status === 'draft' && story.workflow_state ? '作成中' : getStatusText(story.status)}
                       </span>
                     </div>
                     
                     <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">
-                      {story.text_raw}
+                      {story.text_raw || (story.status === 'draft' && story.workflow_state ? 'ワークフローで作成中...' : '')}
                     </p>
                   </Link>
                   
@@ -266,11 +330,20 @@ const StoriesContent: React.FC = () => {
                         </button>
                       )}
                       
-                      <Link href={`/stories/${story.id}`} className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </Link>
+                      {story.status === 'draft' && story.workflow_state ? (
+                        <Link 
+                          href={`/stories/${story.id}/new?step=${story.workflow_state.current_step || 1}`} 
+                          className="px-2 py-1 rounded-md text-xs bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                        >
+                          続きから
+                        </Link>
+                      ) : (
+                        <Link href={`/stories/${story.id}`} className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      )}
                       
                       {story.status === 'processing' && (
                         <Spinner size="sm" className="text-purple-400 ml-1" />

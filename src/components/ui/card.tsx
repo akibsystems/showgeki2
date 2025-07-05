@@ -45,8 +45,8 @@ export const Card: React.FC<CardProps> = ({
       )}
 
       {/* Card Body */}
-      <div className="px-4 py-4">
-        {isLoading ? (
+      {isLoading ? (
+        <div className="px-4 py-4">
           <div className="animate-pulse">
             <div className="space-y-3">
               <div className="h-4 bg-gray-700 rounded w-3/4"></div>
@@ -54,10 +54,10 @@ export const Card: React.FC<CardProps> = ({
               <div className="h-4 bg-gray-700 rounded w-5/6"></div>
             </div>
           </div>
-        ) : (
-          children
-        )}
-      </div>
+        </div>
+      ) : (
+        children
+      )}
     </div>
   );
 };
@@ -70,7 +70,7 @@ export const CardContent: React.FC<{ children: React.ReactNode; className?: stri
   children,
   className = '',
 }) => (
-  <div className={`space-y-3 ${className}`}>
+  <div className={className || 'space-y-3'}>
     {children}
   </div>
 );

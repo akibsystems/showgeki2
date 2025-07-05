@@ -53,6 +53,10 @@ export interface Database {
           script_json?: any;
           status: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
           beats: number;
+          // ScriptDirector V2 fields
+          story_elements?: any;
+          workflow_state?: any;
+          custom_assets?: any;
           created_at: string;
           updated_at: string;
         };
@@ -65,6 +69,10 @@ export interface Database {
           script_json?: any;
           status?: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
           beats?: number;
+          // ScriptDirector V2 fields
+          story_elements?: any;
+          workflow_state?: any;
+          custom_assets?: any;
           created_at?: string;
           updated_at?: string;
         };
@@ -77,6 +85,10 @@ export interface Database {
           script_json?: any;
           status?: 'draft' | 'script_generated' | 'processing' | 'completed' | 'error';
           beats?: number;
+          // ScriptDirector V2 fields
+          story_elements?: any;
+          workflow_state?: any;
+          custom_assets?: any;
           created_at?: string;
           updated_at?: string;
         };

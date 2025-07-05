@@ -160,6 +160,8 @@ async function updateStory(
     // Validate request body
     const validation = validateSchema(UpdateStoryRequestSchema, body);
     if (!validation.success) {
+      console.error('Validation errors:', validation.errors);
+      console.error('Request body:', body);
       return NextResponse.json(
         {
           error: 'Invalid request data',
@@ -202,6 +204,17 @@ async function updateStory(
     }
     if (updateData.beats !== undefined) {
       updatePayload.beats = updateData.beats;
+    }
+    
+    // ScriptDirector V2 fields
+    if (updateData.story_elements !== undefined) {
+      updatePayload.story_elements = updateData.story_elements;
+    }
+    if (updateData.workflow_state !== undefined) {
+      updatePayload.workflow_state = updateData.workflow_state;
+    }
+    if (updateData.custom_assets !== undefined) {
+      updatePayload.custom_assets = updateData.custom_assets;
     }
 
     // Set updated_at timestamp
@@ -366,6 +379,12 @@ async function deleteStory(
     );
   }
 }
+
+// ================================================================
+// PATCH /api/stories/[id]
+// ストーリーの部分更新（PUTのエイリアス）
+// ================================================================
+export const PATCH = withAuth(updateStory);
 
 // ================================================================
 // Export HTTP handlers with authentication middleware

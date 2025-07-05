@@ -100,6 +100,8 @@ ${storyText}`;
       scene.number = index + 1;
     });
 
+    console.log('シーン分析', scenes);
+
     return NextResponse.json({ scenes });
   } catch (error) {
     console.error('Error generating scene overview:', error);

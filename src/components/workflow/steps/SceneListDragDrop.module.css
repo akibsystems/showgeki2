@@ -1,0 +1,177 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  cursor: move;
+  transition: all 0.2s ease;
+  position: relative;
+  touch-action: none;
+  backdrop-filter: blur(8px);
+}
+
+.item:hover {
+  border-color: rgba(147, 51, 234, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: rgba(31, 41, 55, 0.7);
+}
+
+.item:active {
+  cursor: grabbing;
+}
+
+/* ドラッグ中の要素 */
+.item.dragging {
+  opacity: 0.6;
+  background: rgba(31, 41, 55, 0.8);
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: scale(1.02);
+}
+
+/* ドラッグ中の他の要素 */
+.item.notDragging {
+  transition: transform 0.2s ease;
+}
+
+/* ドロップ先のハイライト */
+.item.dragOver {
+  border-color: rgba(234, 179, 8, 0.8);
+  background: rgba(31, 41, 55, 0.9);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.3);
+}
+
+.item.dragOver::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.8), rgba(234, 179, 8, 0.4));
+  border-radius: 2px;
+  animation: pulse 0.5s ease infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* ドラッグハンドル */
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  color: rgba(156, 163, 175, 0.8);
+  cursor: grab;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.dragHandle:hover {
+  color: rgba(147, 51, 234, 0.8);
+}
+
+.item.dragging .dragHandle {
+  cursor: grabbing;
+  color: rgba(234, 179, 8, 0.8);
+}
+
+.dragHandle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* コンテンツエリア */
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* タッチデバイス向けの調整 */
+@media (hover: none) and (pointer: coarse) {
+  .item {
+    padding: 1rem;
+    min-height: 72px;
+  }
+  
+  .dragHandle {
+    width: 44px;
+    height: 44px;
+    margin-right: 1rem;
+  }
+  
+  .dragHandle svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .item:active {
+    background: rgba(31, 41, 55, 0.8);
+    transform: scale(0.98);
+  }
+}
+
+/* アニメーション */
+.item {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ダークモード対応 - 既にダークテーマなのでライトモード用の設定を追加 */
+@media (prefers-color-scheme: light) {
+  .item {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(229, 231, 235, 1);
+    color: #1f2937;
+  }
+  
+  .item:hover {
+    border-color: rgba(147, 51, 234, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .item.dragging {
+    background: rgba(249, 250, 251, 0.9);
+  }
+  
+  .item.dragOver {
+    border-color: rgba(234, 179, 8, 0.8);
+    background: rgba(254, 252, 232, 0.5);
+  }
+  
+  .dragHandle {
+    color: rgba(107, 114, 128, 1);
+  }
+  
+  .dragHandle:hover {
+    color: rgba(147, 51, 234, 0.8);
+  }
+}

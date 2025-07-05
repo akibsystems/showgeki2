@@ -44,7 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({
       />
 
       {/* Main container with sidebar and content */}
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex">
         {/* Sidebar - only show when authenticated */}
         {showSidebar && (
           <Sidebar
@@ -54,10 +54,8 @@ export const Layout: React.FC<LayoutProps> = ({
         )}
 
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="w-full h-full">
-            {children}
-          </div>
+        <main className="flex-1">
+          {children}
         </main>
       </div>
     </div>

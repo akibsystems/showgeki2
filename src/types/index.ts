@@ -11,7 +11,6 @@ import type {
   StoryStatus,
   VideoStatus,
   Mulmoscript,
-  Scene,
   CreateWorkspaceRequest,
   CreateStoryRequest,
   UpdateStoryRequest,
@@ -21,6 +20,11 @@ import type {
   StoriesListResponse,
   ApiErrorResponse,
   ValidationError,
+  // ScriptDirector V2 types
+  StoryElements,
+  WorkflowState,
+  WorkflowMetadata,
+  CustomAssets,
 } from '@/lib/schemas';
 
 // Re-export for convenience
@@ -33,7 +37,6 @@ export type {
   StoryStatus,
   VideoStatus,
   Mulmoscript,
-  Scene,
   CreateWorkspaceRequest,
   CreateStoryRequest,
   UpdateStoryRequest,
@@ -43,6 +46,11 @@ export type {
   StoriesListResponse,
   ApiErrorResponse,
   ValidationError,
+  // ScriptDirector V2 types
+  StoryElements,
+  WorkflowState,
+  WorkflowMetadata,
+  CustomAssets,
 };
 
 // ================================================================
@@ -332,6 +340,69 @@ export type ClickEventHandler = EventHandler<React.MouseEvent<HTMLButtonElement>
 export type StoryEventHandler = EventHandler<{ story: Story; action: string }>;
 export type VideoEventHandler = EventHandler<{ video: Video; action: string }>;
 export type ErrorEventHandler = EventHandler<AppError>;
+
+// ================================================================
+// Scene Management Types
+// ================================================================
+
+// シーン型定義（MulmoBeatと互換性を保つ）
+export interface Scene {
+  id: string;
+  speaker: string;
+  text: string;
+  title?: string;
+  description?: string;
+  imagePrompt?: string;
+  image?: {
+    type: 'image' | 'textSlide';
+    source?: {
+      kind: 'url' | 'path' | 'base64' | 'text';
+      url?: string;
+      path?: string;
+      data?: string;
+      text?: string;
+    };
+    slide?: {
+      title: string;
+      subtitle?: string;
+      bullets?: string[];
+    };
+  };
+  duration?: number;
+  captionParams?: {
+    lang: string;
+    styles?: string[];
+  };
+  // 拡張フィールド（UI用）
+  actId?: string;
+  order?: number;
+  isTransition?: boolean;
+}
+
+// シーンリスト状態
+export interface SceneListState {
+  scenes: Scene[];
+  acts: {
+    id: string;
+    title: string;
+    description?: string;
+    sceneIds: string[];
+  }[];
+  totalScenes: number;
+  currentSceneId?: string;
+  isValid: boolean;
+  validationErrors?: string[];
+}
+
+// シーン操作のアクション型
+export type SceneAction = 
+  | { type: 'ADD_SCENE'; payload: Scene }
+  | { type: 'UPDATE_SCENE'; payload: { id: string; updates: Partial<Scene> } }
+  | { type: 'DELETE_SCENE'; payload: { id: string } }
+  | { type: 'REORDER_SCENES'; payload: { fromIndex: number; toIndex: number } }
+  | { type: 'MOVE_SCENE_TO_ACT'; payload: { sceneId: string; actId: string; position?: number } }
+  | { type: 'SET_SCENES'; payload: Scene[] }
+  | { type: 'VALIDATE_SCENES' };
 
 // ================================================================
 // All types are exported above
