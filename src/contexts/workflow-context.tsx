@@ -400,9 +400,12 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({ children }) 
       if (result.scenes) {
         // Store scene data in workflow metadata
         updateWorkflowMetadata({
-          sceneOverview: result.scenes,
-          totalScenes: result.scenes.length,
-          generatedAt: new Date().toISOString()
+          sceneList: {
+            scenes: result.scenes,
+            acts: [],
+            totalScenes: result.scenes.length,
+            isValid: true
+          }
         });
         
         console.log('Scene overview generated and stored:', result.scenes);
@@ -451,11 +454,11 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({ children }) 
         }
       }
       
-      // Prepare scenes data from workflowMetadata.sceneOverview or fallback to default
+      // Prepare scenes data from workflowMetadata.sceneList or fallback to default
       let sceneData;
-      if (state.workflowMetadata?.sceneOverview && state.workflowMetadata.sceneOverview.length > 0) {
-        console.log('Using scene overview data for mulmoscript generation:', state.workflowMetadata.sceneOverview);
-        sceneData = state.workflowMetadata.sceneOverview.map((scene: any, index: number) => ({
+      if (state.workflowMetadata?.sceneList?.scenes && state.workflowMetadata.sceneList.scenes.length > 0) {
+        console.log('Using scene list data for mulmoscript generation:', state.workflowMetadata.sceneList.scenes);
+        sceneData = state.workflowMetadata.sceneList.scenes.map((scene: any, index: number) => ({
           number: index + 1,
           title: scene.title || scene.description || `シーン ${index + 1}`,
           description: scene.description || scene.title || '',

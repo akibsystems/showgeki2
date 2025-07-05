@@ -22,10 +22,10 @@ export function SceneListStep({ className }: SceneListStepProps) {
   
   // AI生成されたシーン分析結果から初期シーンを作成
   const getInitialScenes = useCallback((): Scene[] => {
-    // workflowMetadataのsceneOverviewから取得（Step1で生成された結果）
-    if (state.workflowMetadata?.sceneOverview) {
-      console.log('Loading scenes from workflowMetadata.sceneOverview:', state.workflowMetadata.sceneOverview);
-      return state.workflowMetadata.sceneOverview.map((scene: any, index: number) => ({
+    // workflowMetadataのsceneListから取得（Step1で生成された結果）
+    if (state.workflowMetadata?.sceneList?.scenes) {
+      console.log('Loading scenes from workflowMetadata.sceneList:', state.workflowMetadata.sceneList.scenes);
+      return state.workflowMetadata.sceneList.scenes.map((scene: any, index: number) => ({
         id: scene.id || `scene-${index + 1}`,
         speaker: scene.speaker || '',
         text: scene.text || scene.content || '',
