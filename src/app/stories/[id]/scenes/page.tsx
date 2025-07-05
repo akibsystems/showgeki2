@@ -33,6 +33,7 @@ const SceneEditorContent: React.FC = () => {
   // Get beats from URL parameter if available
   const beatsFromUrl = searchParams.get('beats');
   const beatsCount = beatsFromUrl ? parseInt(beatsFromUrl, 10) : (story?.beats || 10);
+  const shouldRegenerate = searchParams.get('regenerate') === 'true';
 
   // Force refresh story data when component mounts or beats changes
   useEffect(() => {
@@ -43,10 +44,14 @@ const SceneEditorContent: React.FC = () => {
 
   useEffect(() => {
     if (story && scenes.length === 0) {
-      // 既存の台本がある場合は、そこからシーン情報を抽出
-      if (story.script_json && (story.script_json as any).beats) {
-          const beats = (story.script_json as any).beats;
-          const extractedScenes = beats.map((beat: any, index: number) => {
+      // 再生成フラグがある場合、または台本がない場合は新規生成
+      if (shouldRegenerate || !story.script_json || !(story.script_json as any).beats) {
+        // ストーリーから新規生成
+        generateInitialScenes();
+      } else {
+        // 既存の台本がある場合は、そこからシーン情報を抽出
+        const beats = (story.script_json as any).beats;
+        const extractedScenes = beats.map((beat: any, index: number) => {
           // 台詞の最初の部分を簡潔なタイトルに変換
           let title = `シーン ${index + 1}`;
           if (beat.text) {
@@ -65,12 +70,9 @@ const SceneEditorContent: React.FC = () => {
           };
         });
         setScenes(extractedScenes);
-      } else {
-        // 台本がない場合は、ストーリーから生成
-        generateInitialScenes();
       }
     }
-  }, [story, beatsCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [story, beatsCount, shouldRegenerate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateInitialScenes = async () => {
     if (!story) return;
@@ -235,7 +237,7 @@ const SceneEditorContent: React.FC = () => {
           <p className="text-sm text-gray-400">
             {story.title || 'タイトル未設定'} - {scenes.length > 0 ? `${scenes.length}シーン` : `${beatsCount}シーン`}
           </p>
-          {story.script_json && (
+          {story.script_json && !shouldRegenerate && (
             <p className="text-xs text-purple-400 mt-1">
               ※ 現在の台本から読み込まれたシーン構成です
             </p>
@@ -282,7 +284,7 @@ const SceneEditorContent: React.FC = () => {
                 </Button>
               </div>
 
-              {isGeneratingScenes && !story.script_json ? (
+              {isGeneratingScenes && (!story.script_json || shouldRegenerate) ? (
                 <div className="text-center py-8">
                   <Spinner size="md" />
                   <p className="mt-4 text-gray-400">シーン構成を生成中...</p>

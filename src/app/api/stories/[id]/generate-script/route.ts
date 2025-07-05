@@ -124,9 +124,12 @@ async function generateScript(
       );
     }
 
-    // Check if script already exists
-    if (story.script_json && story.status === 'script_generated') {
-      // Script already exists, return it
+    // Parse generation options from request body
+    const generationOptions = await parseScriptGenerationOptions(request);
+
+    // Check if script already exists AND no scenes are provided for regeneration
+    if (story.script_json && story.status === 'script_generated' && !generationOptions.scenes) {
+      // Script already exists and no scenes provided, return existing script
 
       // Validate existing script
       const scriptValidation = validateSchema(MulmoscriptSchema, story.script_json);
@@ -143,9 +146,6 @@ async function generateScript(
         });
       }
     }
-
-    // Parse generation options from request body
-    const generationOptions = await parseScriptGenerationOptions(request);
 
     console.log(`[Script Generation] Starting for story ${storyId} with options:`, {
       ...generationOptions,

@@ -106,8 +106,8 @@ const NewStoryContent: React.FC = () => {
       // Set navigation path in session storage
       sessionStorage.setItem('navigationPath', 'story-scenes-script');
       
-      // Navigate to scene editor with beats parameter
-      router.push(`/stories/${storyId}/scenes?beats=${formData.beats}`);
+      // Navigate to scene editor with beats parameter and regenerate flag
+      router.push(`/stories/${storyId}/scenes?beats=${formData.beats}&regenerate=true`);
     } catch (err) {
       console.error('Failed to create/update story:', err);
       error('ストーリーの処理に失敗しました');
