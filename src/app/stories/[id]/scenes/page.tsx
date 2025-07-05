@@ -37,39 +37,64 @@ const SceneEditorContent: React.FC = () => {
 
   // Force refresh story data when component mounts or beats changes
   useEffect(() => {
+    // Force a fresh fetch, bypassing cache
     mutateStory();
     // Reset scenes when beats changes to force regeneration
     setScenes([]);
+    // Also invalidate after a delay to ensure fresh data
+    const timer = setTimeout(() => {
+      mutateStory();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [beatsCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (story && scenes.length === 0) {
-      // 再生成フラグがある場合、または台本がない場合は新規生成
+      // 再生成フラグがある場合は、保存されたシーンを無視して新規生成
       if (shouldRegenerate || !story.script_json || !(story.script_json as any).beats) {
         // ストーリーから新規生成
         generateInitialScenes();
       } else {
-        // 既存の台本がある場合は、そこからシーン情報を抽出
-        const beats = (story.script_json as any).beats;
-        const extractedScenes = beats.map((beat: any, index: number) => {
-          // 台詞の最初の部分を簡潔なタイトルに変換
-          let title = `シーン ${index + 1}`;
-          if (beat.text) {
-            // 最初の20文字を取得して、句読点で区切る
-            const shortText = beat.text.substring(0, 40);
-            const firstPart = shortText.split(/[。、！？]/)[0];
-            title = firstPart.length > 20 ? firstPart.substring(0, 20) + '...' : firstPart;
-          } else if (beat.imagePrompt) {
-            // 画像プロンプトから抽出
-            const shortPrompt = beat.imagePrompt.substring(0, 30);
-            title = shortPrompt + '...';
+        // シーン分析データがセッションストレージに保存されているか確認
+        const savedScenes = sessionStorage.getItem(`scenes_${storyId}`);
+        if (savedScenes && !shouldRegenerate) {
+          try {
+            const parsedScenes = JSON.parse(savedScenes);
+            setScenes(parsedScenes);
+            return;
+          } catch (e) {
+            console.error('Failed to parse saved scenes:', e);
           }
-          return {
-            number: index + 1,
-            title: title
-          };
-        });
-        setScenes(extractedScenes);
+        }
+        
+        // 既存の台本がある場合でも、シーン分析が必要な場合は再生成
+        // ナビゲーションパスをチェックして、戻ってきた場合は再生成
+        const navPath = sessionStorage.getItem('navigationPath');
+        if (story.script_json && (story.script_json as any).beats && navPath !== 'story-scenes-script') {
+          const beats = (story.script_json as any).beats;
+          const extractedScenes = beats.map((beat: any, index: number) => {
+            // 台詞の最初の部分を簡潔なタイトルに変換
+            let title = `シーン ${index + 1}`;
+            if (beat.text) {
+              // 最初の20文字を取得して、句読点で区切る
+              const shortText = beat.text.substring(0, 40);
+              const firstPart = shortText.split(/[。、！？]/)[0];
+              title = firstPart.length > 20 ? firstPart.substring(0, 20) + '...' : firstPart;
+            } else if (beat.imagePrompt) {
+              // 画像プロンプトから抽出
+              const shortPrompt = beat.imagePrompt.substring(0, 30);
+              title = shortPrompt + '...';
+            }
+            return {
+              number: index + 1,
+              title: title
+            };
+          });
+          setScenes(extractedScenes);
+        } else {
+          // 台本がない場合、または戻ってきた場合は、ストーリーから生成
+          generateInitialScenes();
+        }
       }
     }
   }, [story, beatsCount, shouldRegenerate]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -97,7 +122,10 @@ const SceneEditorContent: React.FC = () => {
       }
 
       const data = await response.json();
-      setScenes(data.scenes.map((s: any) => ({ number: s.number, title: s.title })));
+      const newScenes = data.scenes.map((s: any) => ({ number: s.number, title: s.title }));
+      setScenes(newScenes);
+      // シーン情報をセッションストレージに保存
+      sessionStorage.setItem(`scenes_${storyId}`, JSON.stringify(newScenes));
     } catch (err) {
       showError('シーン構成の生成に失敗しました');
     } finally {
@@ -147,6 +175,9 @@ const SceneEditorContent: React.FC = () => {
     
     // デバッグ: 送信するシーン情報を確認
     console.log('[SceneEditor] Generating script with scenes:', scenes);
+    
+    // シーン情報をクリア（台本生成後は新しいシーン分析が必要）
+    sessionStorage.removeItem(`scenes_${storyId}`);
     
     try {
       const response = await fetch(`/api/stories/${storyId}/generate-script`, {

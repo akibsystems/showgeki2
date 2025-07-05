@@ -156,7 +156,10 @@ export function useStory(id: string): UseStoryReturn {
     shouldFetch ? swrKeys.story(id) : null,
     {
       revalidateOnFocus: true,
-      refreshInterval: 5000, // Refresh every 5 seconds for processing stories
+      refreshInterval: (data) => {
+        // Only refresh for processing stories
+        return data?.status === 'processing' ? 5000 : 0;
+      },
       refreshWhenHidden: false,
     }
   );

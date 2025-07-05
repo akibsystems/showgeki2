@@ -90,27 +90,10 @@ const StoryEditorContent: React.FC = () => {
       // データを強制的に再取得（キャッシュを無視）
       console.log('[StoryEditor] Force revalidating story data...');
       
-      // 複数回mutateを呼んで確実に更新
+      // mutateを呼んでキャッシュを更新
       mutateStory();
-      
-      // 少し遅れてもう一度
-      setTimeout(() => {
-        console.log('[StoryEditor] Second revalidation...');
-        mutateStory();
-        
-        // さらに遅れて確認
-        setTimeout(() => {
-          console.log('[StoryEditor] Checking after revalidation:', {
-            hasStory: !!story,
-            hasScriptJson: !!story?.script_json,
-            scriptJsonType: typeof story?.script_json,
-            scriptJsonKeys: story?.script_json ? Object.keys(story.script_json) : null,
-            storyObject: story  // storyオブジェクト全体を確認
-          });
-        }, 1000);
-      }, 500);
     }
-  }, [mutateStory, story]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update form data when story is loaded
   React.useEffect(() => {
@@ -184,6 +167,9 @@ const StoryEditorContent: React.FC = () => {
 
   const handleAnalyzeScenes = async () => {
     if (!story) return;
+    
+    // Clear any cached scene data to force regeneration
+    sessionStorage.removeItem(`scenes_${storyId}`);
     
     // Navigate to scene editor with current beats
     router.push(`/stories/${storyId}/scenes?beats=${story.beats || 10}`);
@@ -535,7 +521,11 @@ const StoryEditorContent: React.FC = () => {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => router.push(`/stories/${storyId}/scenes?beats=${story.beats || 10}`)}
+                  onClick={() => {
+                    // Clear cached scene data when accessing from script editor
+                    sessionStorage.removeItem(`scenes_${storyId}`);
+                    router.push(`/stories/${storyId}/scenes?beats=${story.beats || 10}`);
+                  }}
                   title="シーン構成を編集"
                 >
                   シーン構成
