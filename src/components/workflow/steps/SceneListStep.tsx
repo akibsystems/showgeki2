@@ -20,9 +20,22 @@ export function SceneListStep({ className }: SceneListStepProps) {
   const { state, markAsUnsaved, updateWorkflowMetadata } = useWorkflow();
   const { isMobile, isDesktopUp } = useResponsive();
   
-  // AI生成されたbeatsから初期シーンを作成
+  // AI生成されたシーン分析結果から初期シーンを作成
   const getInitialScenes = useCallback((): Scene[] => {
-    // script_jsonのbeatsから取得
+    // workflowMetadataのsceneOverviewから取得（Step1で生成された結果）
+    if (state.workflowMetadata?.sceneOverview) {
+      console.log('Loading scenes from workflowMetadata.sceneOverview:', state.workflowMetadata.sceneOverview);
+      return state.workflowMetadata.sceneOverview.map((scene: any, index: number) => ({
+        id: scene.id || `scene-${index + 1}`,
+        speaker: scene.speaker || '',
+        text: scene.text || scene.content || '',
+        description: scene.description || scene.title || `シーン${index + 1}`,
+        imagePrompt: scene.imagePrompt,
+        order: index,
+      }));
+    }
+    
+    // script_jsonのbeatsから取得（既存のmulmoscriptがある場合）
     if (state.story?.script_json?.beats) {
       return state.story.script_json.beats.map((beat: any, index: number) => ({
         id: beat.id || `scene-${index + 1}`,

@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { VideoModal, FullscreenVideoPlayer } from '@/components/video';
 import { useApp, useToast } from '@/contexts';
-import { useVideos, useStories } from '@/hooks';
+import { useVideos, useStories, useUserWorkspace } from '@/hooks';
 import type { VideoStatus, Video } from '@/types';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -21,14 +22,17 @@ type StatusFilter = 'all' | VideoStatus;
 // ================================================================
 
 const VideosContent: React.FC = () => {
+  const router = useRouter();
   const { state } = useApp();
   const { error, success } = useToast();
+  const { ensureWorkspace } = useUserWorkspace();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [showFullscreenPlayer, setShowFullscreenPlayer] = useState(false);
+  const [isCreatingStory, setIsCreatingStory] = useState(false);
 
   // Fetch videos using SWR hook
   const { videos, isLoading } = useVideos();
@@ -36,6 +40,48 @@ const VideosContent: React.FC = () => {
   // Fetch stories to get titles
   const { stories } = useStories();
 
+  // Create draft story and redirect to workflow
+  const handleCreateStory = async () => {
+    if (isCreatingStory) return;
+    
+    setIsCreatingStory(true);
+    try {
+      // Ensure workspace exists
+      const workspaceData = await ensureWorkspace();
+      
+      // Create draft story
+      const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
+      const response = await fetch('/api/stories/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': uid,
+        },
+        body: JSON.stringify({
+          workspace_id: workspaceData.id,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create draft story');
+      }
+      
+      const result = await response.json();
+      console.log('Draft story created:', result);
+      
+      if (!result.story || !result.story.id) {
+        throw new Error('Invalid draft story response');
+      }
+      
+      // Redirect to workflow
+      router.push(`/stories/${result.story.id}/new?step=1`);
+    } catch (err) {
+      console.error('Failed to create story:', err);
+      error('脚本の作成に失敗しました');
+    } finally {
+      setIsCreatingStory(false);
+    }
+  };
 
   // Filter and search videos
   const filteredVideos = (videos || []).filter(video => {
@@ -280,9 +326,19 @@ const VideosContent: React.FC = () => {
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
-              <Link href="/stories/new">
-                <Button>最初の脚本を作成</Button>
-              </Link>
+              <Button 
+                onClick={handleCreateStory}
+                disabled={isCreatingStory}
+              >
+                {isCreatingStory ? (
+                  <>
+                    <Spinner size="sm" color="white" className="mr-2" />
+                    作成中...
+                  </>
+                ) : (
+                  '最初の脚本を作成'
+                )}
+              </Button>
             )}
           </div>
         ) : (

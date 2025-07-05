@@ -398,8 +398,14 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({ children }) 
       const result = await response.json();
       
       if (result.scenes) {
-        // TODO: Store scene data in a format compatible with WorkflowMetadata
-        // For now, skip metadata update
+        // Store scene data in workflow metadata
+        updateWorkflowMetadata({
+          sceneOverview: result.scenes,
+          totalScenes: result.scenes.length,
+          generatedAt: new Date().toISOString()
+        });
+        
+        console.log('Scene overview generated and stored:', result.scenes);
         
         // Mark step 1 as completed
         dispatch({ type: 'COMPLETE_STEP', payload: 1 });
@@ -445,11 +451,25 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({ children }) 
         }
       }
       
-      // Prepare scenes data (fallback to default if no scenes available)
-      const sceneData = Array.from({ length: 5 }, (_, index) => ({
-        number: index + 1,
-        title: `シーン ${index + 1}`
-      }));
+      // Prepare scenes data from workflowMetadata.sceneOverview or fallback to default
+      let sceneData;
+      if (state.workflowMetadata?.sceneOverview && state.workflowMetadata.sceneOverview.length > 0) {
+        console.log('Using scene overview data for mulmoscript generation:', state.workflowMetadata.sceneOverview);
+        sceneData = state.workflowMetadata.sceneOverview.map((scene: any, index: number) => ({
+          number: index + 1,
+          title: scene.title || scene.description || `シーン ${index + 1}`,
+          description: scene.description || scene.title || '',
+          imagePrompt: scene.imagePrompt || ''
+        }));
+      } else {
+        console.log('No scene overview found, using default scenes');
+        sceneData = Array.from({ length: state.storyElements?.total_scenes || 5 }, (_, index) => ({
+          number: index + 1,
+          title: `シーン ${index + 1}`,
+          description: `シーン ${index + 1}の説明`,
+          imagePrompt: ''
+        }));
+      }
       
       // Call generate-script API
       const response = await fetch(`/api/stories/${state.story.id}/generate-script`, {
@@ -459,7 +479,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({ children }) 
           'X-User-UID': appState.uid,
         },
         body: JSON.stringify({
-          beats: state.storyElements?.total_scenes || 5,
+          beats: sceneData.length,
           language: 'ja',
           scenes: sceneData,
           style_preference: 'dramatic', // Default style

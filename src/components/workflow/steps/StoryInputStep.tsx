@@ -16,7 +16,7 @@ interface StoryInputStepProps {
  * ユーザーのストーリー、転換点、未来イメージ、学びを入力
  */
 export function StoryInputStep({ className, onNext }: StoryInputStepProps) {
-  const { state, updateStoryElements, completeCurrentStep, generateScreenplayAI } = useWorkflow();
+  const { state, updateStoryElements, completeCurrentStep, generateSceneOverviewAI } = useWorkflow();
   const { isMobile } = useResponsive();
   const [isRecording, setIsRecording] = useState(false);
   const [activeField, setActiveField] = useState<keyof StoryElements | null>(null);
@@ -82,16 +82,17 @@ export function StoryInputStep({ className, onNext }: StoryInputStepProps) {
   const handleComplete = useCallback(async () => {
     if (isFormValid()) {
       if (onNext) {
-        // MobileWorkflowLayoutから渡されたonNextを使用
+        // シーン分析を実行してからMobileWorkflowLayoutから渡されたonNextを使用
+        await generateSceneOverviewAI();
         await onNext();
       } else {
         // 独自の完了処理
         completeCurrentStep();
-        // AI脚本生成を開始
-        await generateScreenplayAI();
+        // シーン分析を実行
+        await generateSceneOverviewAI();
       }
     }
-  }, [isFormValid, completeCurrentStep, generateScreenplayAI, onNext]);
+  }, [isFormValid, completeCurrentStep, generateSceneOverviewAI, onNext]);
 
   // 詳細オプションの表示状態
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);

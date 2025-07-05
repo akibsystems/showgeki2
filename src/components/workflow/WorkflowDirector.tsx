@@ -174,6 +174,7 @@ function WorkflowDirectorInner({ storyId, initialStep, enableSpecialMode }: Work
         
       case 2:
         // ステップ2: シーン一覧
+        // シーン構成をMulmoScriptに変換
         await generateMulmoscriptAI();
         completeCurrentStep();
         goToStep(3);
@@ -198,18 +199,44 @@ function WorkflowDirectorInner({ storyId, initialStep, enableSpecialMode }: Work
       case 5:
         // ステップ5: 音声・BGM設定
         completeCurrentStep();
-        // 最終動画生成を開始（デフォルト設定を使用）
+        // 最終動画生成を開始（MulmoScriptから実際のデータを使用）
+        const mulmoscript = state.story?.script_json;
+        if (!mulmoscript || !mulmoscript.beats || mulmoscript.beats.length === 0) {
+          console.error('No valid mulmoscript found for video generation');
+          return;
+        }
+        
+        // MulmoScriptから実際のscenes（beats）とcharacters（speakers）を抽出
+        const scenes = mulmoscript.beats.map((beat: any, index: number) => ({
+          sceneId: beat.id || `scene-${index + 1}`,
+          speaker: beat.speaker || '',
+          dialogue: beat.text || '',
+          title: beat.description || `シーン${index + 1}`,
+          imagePrompt: beat.imagePrompt || '',
+          customImageUrl: beat.image?.source?.url || null,
+        }));
+        
+        const speakers = mulmoscript.speechParams?.speakers || {};
+        const characters = Object.keys(speakers).map(speakerKey => ({
+          id: speakerKey,
+          name: speakers[speakerKey].displayName?.ja || speakerKey,
+          voiceId: speakers[speakerKey].voiceId || 'alloy',
+        }));
+        
         await generateFinalVideoAI({
-          scenes: [],
-          characters: [],
+          scenes,
+          characters,
           audioSettings: {
-            audioVolume: 1.0,
-            masterBGMVolume: 0.5,
+            audioVolume: mulmoscript.audioParams?.audioVolume || 1.0,
+            masterBGMVolume: mulmoscript.audioParams?.bgmVolume || 0.5,
           },
-          bgmSettings: [],
+          bgmSettings: mulmoscript.audioParams?.bgm ? [{
+            bgmId: 'custom',
+            url: mulmoscript.audioParams.bgm.url
+          }] : [],
           subtitleSettings: {
-            enableSubtitles: true,
-            subtitleLanguage: 'ja',
+            enableSubtitles: !!mulmoscript.captionParams,
+            subtitleLanguage: mulmoscript.captionParams?.lang || 'ja',
           },
         });
         break;

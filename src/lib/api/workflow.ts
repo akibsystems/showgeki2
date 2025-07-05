@@ -62,7 +62,7 @@ export async function generateScreenplay(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-uid': uid,
+      'X-User-UID': uid,
     },
   });
 
@@ -90,7 +90,7 @@ export async function generateSceneScripts(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-uid': uid,
+      'X-User-UID': uid,
     },
     body: JSON.stringify({ characters }),
   });
@@ -121,7 +121,7 @@ export async function generateFinalVideo(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-uid': uid,
+      'X-User-UID': uid,
     },
     body: JSON.stringify(videoConfig),
   });
@@ -149,7 +149,7 @@ export async function getVideoStatus(
   const response = await fetch(`/api/videos/${videoId}/status`, {
     method: 'GET',
     headers: {
-      'x-uid': uid,
+      'X-User-UID': uid,
     },
   });
 

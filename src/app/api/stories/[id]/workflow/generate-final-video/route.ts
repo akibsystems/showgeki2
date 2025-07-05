@@ -146,16 +146,18 @@ export async function POST(
     );
   }
 
-  // Authenticate request
-  const authResult = await authMiddleware(request);
-  if (!authResult.success) {
+  // UIDを取得（getOrCreateUidヘルパーを使用）
+  const { getOrCreateUid } = await import('@/lib/uid-server');
+  const uid = await getOrCreateUid(request);
+  
+  if (!uid) {
     return NextResponse.json(
-      { error: authResult.error || 'Authentication failed' },
+      { error: 'UID not found' },
       { status: 401 }
     );
   }
 
-  const uid = authResult.uid!;
+  console.log(`🎬 動画生成リクエスト: Story ${storyId}, UID ${uid}`);
 
   try {
     // Get request body
@@ -232,13 +234,93 @@ export async function POST(
       throw new Error('Failed to queue video generation');
     }
 
-    // Note: Actual video generation is handled by webhook-handler.js
-    // which is triggered by database changes
+    // Call webhook for video generation
+    const webhookPayload = {
+      type: 'video_generation',
+      payload: {
+        video_id: videoData.id,
+        story_id: storyId,
+        uid: uid,
+        title: story.title,
+        script_json: mulmoscript
+      }
+    };
+
+    // Check if webhook is disabled
+    const disableWebhook = process.env.DISABLE_WEBHOOK === 'true';
+    
+    if (!disableWebhook) {
+      try {
+        // In development, use localhost
+        const webhookUrl = process.env.NODE_ENV === 'development'
+          ? 'http://localhost:8080/webhook'
+          : process.env.WEBHOOK_URL || 'https://showgeki2-auto-process-mqku5oexhq-an.a.run.app/webhook';
+
+        console.log(`📡 Calling webhook for video generation: ${webhookUrl}`);
+
+        // 短いタイムアウトで webhook を呼び出し
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒でタイムアウト
+        
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!webhookResponse.ok) {
+          const errorText = await webhookResponse.text();
+          console.error('Webhook error:', webhookResponse.status, errorText);
+          
+          // Update video status to failed
+          await supabase
+            .from('videos')
+            .update({
+              status: 'failed',
+              error_msg: `Webhook error: ${webhookResponse.status}`
+            })
+            .eq('id', videoData.id)
+            .eq('uid', uid);
+            
+          throw new Error(`Webhook failed: ${webhookResponse.status}`);
+        }
+
+        console.log('✅ Webhook called successfully for video generation');
+      } catch (webhookError) {
+        console.error('Failed to call webhook:', webhookError);
+        
+        // タイムアウトエラーの場合は動画生成開始として扱う
+        if (webhookError instanceof Error && webhookError.name === 'AbortError') {
+          console.log('⏰ Webhook timeout - video generation started but response not waited');
+          // タイムアウトは正常とみなし、エラーにしない
+        } else {
+          // その他のエラーの場合はfailedステータスに更新
+          await supabase
+            .from('videos')
+            .update({
+              status: 'failed',
+              error_msg: `Webhook error: ${webhookError instanceof Error ? webhookError.message : 'Unknown error'}`
+            })
+            .eq('id', videoData.id)
+            .eq('uid', uid);
+            
+          throw new Error('Failed to start video generation');
+        }
+      }
+    } else {
+      console.log('⚠️ Webhook is disabled. Video generation will not start automatically.');
+    }
 
     return NextResponse.json({
       success: true,
       video: videoData,
       mulmoscript,
+      message: disableWebhook ? 'Video record created but webhook disabled' : 'Video generation started - check videos page for progress'
     });
   } catch (error: any) {
     console.error('Generate final video error:', error);

@@ -18,13 +18,21 @@ export async function POST(
     // ストーリーIDのバリデーション
     const storyId = storyIdSchema.parse(id)
     
+    console.log(`🖼️ 画像プレビュー生成リクエスト: Story ${storyId}`)
+    
     // Supabaseクライアントの初期化
     const supabase = await createClient()
     
-    // 認証チェック
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // デバッグ: ヘッダーを確認
+    const headerUid = request.headers.get('X-User-UID')
+    console.log(`🔍 X-User-UID header: ${headerUid}`)
+    
+    // UIDを取得（getOrCreateUidヘルパーを使用）
+    const { getOrCreateUid } = await import('@/lib/uid-server')
+    const uid = await getOrCreateUid(request)
+    
+    if (!uid) {
+      return NextResponse.json({ error: 'UID not found' }, { status: 401 })
     }
     
     // ストーリーの取得とアクセス権限チェック
@@ -32,7 +40,7 @@ export async function POST(
       .from('stories')
       .select('id, uid, title, script_json')
       .eq('id', storyId)
-      .eq('uid', user.id)
+      .eq('uid', uid)
       .single()
     
     if (storyError || !story) {
@@ -48,7 +56,7 @@ export async function POST(
       .from('videos')
       .select('id, preview_status')
       .eq('story_id', storyId)
-      .eq('uid', user.id)
+      .eq('uid', uid)
       .in('preview_status', ['pending', 'processing'])
       .single()
     
@@ -68,7 +76,7 @@ export async function POST(
       .from('videos')
       .select('id')
       .eq('story_id', storyId)
-      .eq('uid', user.id)
+      .eq('uid', uid)
       .single()
     
     if (existingVideoRecord) {
@@ -82,7 +90,7 @@ export async function POST(
           error_msg: null
         })
         .eq('id', videoId)
-        .eq('uid', user.id)
+        .eq('uid', uid)
       
       if (updateError) {
         console.error('Failed to update video record:', updateError)
@@ -97,7 +105,7 @@ export async function POST(
         .insert({
           id: videoId,
           story_id: storyId,
-          uid: user.id,
+          uid: uid,
           status: 'queued',
           preview_status: 'pending'
         })
@@ -117,7 +125,7 @@ export async function POST(
         payload: {
           video_id: videoId,
           story_id: storyId,
-          uid: user.id,
+          uid: uid,
           title: story.title,
           script_json: story.script_json
         }
@@ -171,7 +179,7 @@ export async function POST(
           error_msg: `Webhook error: ${errorMessage}`
         })
         .eq('id', videoId)
-        .eq('uid', user.id)
+        .eq('uid', uid)
       
       return NextResponse.json({ 
         error: 'Failed to start preview generation',
@@ -209,10 +217,12 @@ export async function GET(
     // Supabaseクライアントの初期化
     const supabase = await createClient()
     
-    // 認証チェック
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // UIDを取得（getOrCreateUidヘルパーを使用）
+    const { getOrCreateUid } = await import('@/lib/uid-server')
+    const uid = await getOrCreateUid(request)
+    
+    if (!uid) {
+      return NextResponse.json({ error: 'UID not found' }, { status: 401 })
     }
     
     // ビデオレコードの取得
@@ -220,7 +230,7 @@ export async function GET(
       .from('videos')
       .select('id, preview_status, preview_data, error_msg')
       .eq('story_id', storyId)
-      .eq('uid', user.id)
+      .eq('uid', uid)
       .single()
     
     if (videoError || !video) {

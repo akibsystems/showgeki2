@@ -7,7 +7,7 @@ import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useApp, useToast } from '@/contexts';
-import { useStories } from '@/hooks';
+import { useStories, useUserWorkspace } from '@/hooks';
 import type { StoryStatus } from '@/types';
 
 // ================================================================
@@ -24,10 +24,12 @@ const StoriesContent: React.FC = () => {
   const router = useRouter();
   const { state } = useApp();
   const { error } = useToast();
+  const { ensureWorkspace } = useUserWorkspace();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [copyingStoryId, setCopyingStoryId] = useState<string | null>(null);
+  const [isCreatingStory, setIsCreatingStory] = useState(false);
 
   // Fetch stories using SWR hook
   const { stories, isLoading, copyStory } = useStories();
@@ -104,6 +106,49 @@ const StoriesContent: React.FC = () => {
 
   const statusCounts = getStatusCounts();
 
+  // Create draft story and redirect to workflow
+  const handleCreateStory = async () => {
+    if (isCreatingStory) return;
+    
+    setIsCreatingStory(true);
+    try {
+      // Ensure workspace exists
+      const workspaceData = await ensureWorkspace();
+      
+      // Create draft story
+      const uid = await import('@/lib/uid').then(m => m.getOrCreateUid());
+      const response = await fetch('/api/stories/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': uid,
+        },
+        body: JSON.stringify({
+          workspace_id: workspaceData.id,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create draft story');
+      }
+      
+      const result = await response.json();
+      console.log('Draft story created:', result);
+      
+      if (!result.story || !result.story.id) {
+        throw new Error('Invalid draft story response');
+      }
+      
+      // Redirect to workflow
+      router.push(`/stories/${result.story.id}/new?step=1`);
+    } catch (err) {
+      console.error('Failed to create story:', err);
+      error('脚本の作成に失敗しました');
+    } finally {
+      setIsCreatingStory(false);
+    }
+  };
+
   const handleCopyStory = async (e: React.MouseEvent, storyId: string) => {
     e.preventDefault(); // Prevent navigation to story detail
     e.stopPropagation(); // Stop event bubbling
@@ -145,14 +190,23 @@ const StoriesContent: React.FC = () => {
                 AIで脚本を生成し、動画を作成できます
               </p>
             </div>
-            <Link href="/stories/new" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto text-sm sm:text-base">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                脚本を作成
-              </Button>
-            </Link>
+            <Button 
+              className="w-full sm:w-auto text-sm sm:text-base"
+              onClick={handleCreateStory}
+              disabled={isCreatingStory}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {isCreatingStory ? (
+                <>
+                  <Spinner size="sm" color="white" className="mr-2" />
+                  作成中...
+                </>
+              ) : (
+                '脚本を作成'
+              )}
+            </Button>
           </div>
         </div>
 
@@ -280,9 +334,19 @@ const StoriesContent: React.FC = () => {
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
-              <Link href="/stories/new">
-                <Button>最初の脚本を作成</Button>
-              </Link>
+              <Button 
+                onClick={handleCreateStory}
+                disabled={isCreatingStory}
+              >
+                {isCreatingStory ? (
+                  <>
+                    <Spinner size="sm" color="white" className="mr-2" />
+                    作成中...
+                  </>
+                ) : (
+                  '最初の脚本を作成'
+                )}
+              </Button>
             )}
           </div>
         ) : (
