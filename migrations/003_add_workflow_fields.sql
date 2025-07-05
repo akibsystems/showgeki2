@@ -1,7 +1,7 @@
 -- =====================================================
 -- Migration: Add ScriptDirector V2 Workflow Fields
 -- Version: 003
--- Description: ワークフロー機能のためのスキーマ拡張
+-- Description: ワークフロー機能のためのスキーマ拡張（RLSなし）
 -- =====================================================
 
 -- トランザクション開始
@@ -47,19 +47,16 @@ COMMENT ON TABLE story_workflow_data IS 'AI生成結果などの大容量デー�
 COMMENT ON COLUMN story_workflow_data.data_type IS 'データタイプ: ai_screenplay, scene_scripts, final_video_config など';
 
 -- data_typeの列挙型
-CREATE TYPE workflow_data_type AS ENUM (
-  'ai_screenplay',
-  'scene_scripts', 
-  'final_video_config',
-  'bgm_instructions',
-  'post_processing_config'
-);
-
--- 既存の型がある場合はスキップ
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'workflow_data_type') THEN
-    -- 上記のCREATE TYPEを実行
+    CREATE TYPE workflow_data_type AS ENUM (
+      'ai_screenplay',
+      'scene_scripts', 
+      'final_video_config',
+      'bgm_instructions',
+      'post_processing_config'
+    );
   END IF;
 END $$;
 
@@ -194,76 +191,7 @@ ADD CONSTRAINT check_workflow_data_size
 CHECK (pg_column_size(data) <= 10485760);
 
 -- =====================================================
--- 8. RLS（Row Level Security）ポリシー
--- =====================================================
-
--- story_workflow_dataのRLS
-ALTER TABLE story_workflow_data ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own workflow data" ON story_workflow_data
-  FOR SELECT USING (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can insert their own workflow data" ON story_workflow_data
-  FOR INSERT WITH CHECK (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update their own workflow data" ON story_workflow_data
-  FOR UPDATE USING (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
--- story_assetsのRLS
-ALTER TABLE story_assets ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own assets" ON story_assets
-  FOR SELECT USING (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can upload their own assets" ON story_assets
-  FOR INSERT WITH CHECK (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can delete their own assets" ON story_assets
-  FOR DELETE USING (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
--- workflow_historyのRLS
-ALTER TABLE workflow_history ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own workflow history" ON workflow_history
-  FOR SELECT USING (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can insert their own workflow history" ON workflow_history
-  FOR INSERT WITH CHECK (
-    story_id IN (
-      SELECT id FROM stories WHERE uid = auth.uid()
-    )
-  );
-
--- =====================================================
--- 9. トリガー関数の作成
+-- 8. トリガー関数の作成
 -- =====================================================
 
 -- updated_atの自動更新
@@ -283,7 +211,7 @@ CREATE TRIGGER update_story_assets_updated_at BEFORE UPDATE ON story_assets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
--- 10. ヘルパー関数
+-- 9. ヘルパー関数
 -- =====================================================
 
 -- ワークフローステップを進める関数
@@ -358,16 +286,6 @@ COMMIT;
 -- =====================================================
 /*
 BEGIN;
-
--- RLSポリシーの削除
-DROP POLICY IF EXISTS "Users can view their own workflow data" ON story_workflow_data;
-DROP POLICY IF EXISTS "Users can insert their own workflow data" ON story_workflow_data;
-DROP POLICY IF EXISTS "Users can update their own workflow data" ON story_workflow_data;
-DROP POLICY IF EXISTS "Users can view their own assets" ON story_assets;
-DROP POLICY IF EXISTS "Users can upload their own assets" ON story_assets;
-DROP POLICY IF EXISTS "Users can delete their own assets" ON story_assets;
-DROP POLICY IF EXISTS "Users can view their own workflow history" ON workflow_history;
-DROP POLICY IF EXISTS "Users can insert their own workflow history" ON workflow_history;
 
 -- トリガーの削除
 DROP TRIGGER IF EXISTS update_story_workflow_data_updated_at ON story_workflow_data;
