@@ -71,7 +71,7 @@ const StoriesContent: React.FC = () => {
       case 'processing':
         return '処理中';
       case 'script_generated':
-        return '台本生成済み';
+        return '脚本生成済み';
       case 'error':
         return 'エラー';
       case 'draft':
@@ -114,7 +114,7 @@ const StoriesContent: React.FC = () => {
       router.push(`/stories/${newStory.id}?tab=content`);
     } catch (err) {
       console.error('Failed to copy story:', err);
-      error('台本のコピーに失敗しました');
+      error('脚本のコピーに失敗しました');
     } finally {
       setCopyingStoryId(null);
     }
@@ -126,7 +126,7 @@ const StoriesContent: React.FC = () => {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-400">台本を読み込み中...</p>
+            <p className="mt-4 text-gray-400">脚本を読み込み中...</p>
           </div>
         </div>
       </Layout>
@@ -140,9 +140,9 @@ const StoriesContent: React.FC = () => {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">台本一覧</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">脚本一覧</h1>
               <p className="mt-1 text-xs sm:text-sm text-gray-400">
-                AIで台本を生成し、動画を作成できます
+                AIで脚本を生成し、動画を作成できます
               </p>
             </div>
             <Link href="/stories/new" className="w-full sm:w-auto">
@@ -150,7 +150,7 @@ const StoriesContent: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                台本を作成
+                脚本を作成
               </Button>
             </Link>
           </div>
@@ -164,7 +164,7 @@ const StoriesContent: React.FC = () => {
               {[
                 { key: 'all', label: 'すべて', count: statusCounts.all },
                 { key: 'draft', label: '下書き', count: statusCounts.draft },
-                { key: 'script_generated', label: '台本生成済み', count: statusCounts.script_generated },
+                { key: 'script_generated', label: '脚本生成済み', count: statusCounts.script_generated },
                 { key: 'processing', label: '処理中', count: statusCounts.processing },
                 { key: 'completed', label: '完了', count: statusCounts.completed },
                 { key: 'error', label: 'エラー', count: statusCounts.error },
@@ -195,7 +195,7 @@ const StoriesContent: React.FC = () => {
               </svg>
               <input
                 type="text"
-                placeholder="台本を検索..."
+                placeholder="脚本を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full sm:w-64 bg-gray-800/50 border border-purple-500/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-100 placeholder-gray-500"
@@ -253,7 +253,7 @@ const StoriesContent: React.FC = () => {
             
             {regularStories.length > 0 && (
               <div className="mt-8 mb-4 border-t border-gray-700 pt-8">
-                <h3 className="text-lg font-medium text-gray-100 mb-4">すべての台本</h3>
+                <h3 className="text-lg font-medium text-gray-100 mb-4">すべての脚本</h3>
               </div>
             )}
           </div>
@@ -271,17 +271,17 @@ const StoriesContent: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <h3 className="text-lg font-medium text-gray-100 mb-2">
-              {searchQuery || statusFilter !== 'all' ? '台本が見つかりません' : 'まだ台本がありません'}
+              {searchQuery || statusFilter !== 'all' ? '脚本が見つかりません' : 'まだ脚本がありません'}
             </h3>
             <p className="text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all' 
                 ? '検索条件やフィルターを変更してみてください'
-                : '最初の台本を作成しましょう'
+                : '最初の脚本を作成しましょう'
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Link href="/stories/new">
-                <Button>最初の台本を作成</Button>
+                <Button>最初の脚本を作成</Button>
               </Link>
             )}
           </div>
@@ -318,7 +318,7 @@ const StoriesContent: React.FC = () => {
                           onClick={(e) => handleCopyStory(e, story.id)}
                           disabled={copyingStoryId === story.id}
                           className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="動画生成済みの台本をコピー"
+                          title="動画生成済みの脚本をコピー"
                         >
                           {copyingStoryId === story.id ? (
                             <Spinner size="sm" />

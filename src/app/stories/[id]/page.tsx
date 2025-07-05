@@ -212,7 +212,7 @@ const StoryEditorContent: React.FC = () => {
       mutateStory();
     } catch (err) {
       console.error('Failed to generate script:', err);
-      error('台本の生成に失敗しました');
+      error('脚本の生成に失敗しました');
     } finally {
       setIsGeneratingScript(false);
     }
@@ -276,13 +276,13 @@ const StoryEditorContent: React.FC = () => {
       mutateStory();
     } catch (err) {
       console.error('Failed to save script:', err);
-      error('台本の保存に失敗しました');
+      error('脚本の保存に失敗しました');
     }
   };
 
   const handleGeneratePreview = async () => {
     if (!story?.script_json) {
-      error('台本が生成されていません。先に台本を生成してください。');
+      error('脚本が生成されていません。先に脚本を生成してください。');
       return;
     }
 
@@ -297,7 +297,7 @@ const StoryEditorContent: React.FC = () => {
 
   const handleGenerateAudioPreview = async () => {
     if (!story?.script_json) {
-      error('台本が生成されていません。先に台本を生成してください。');
+      error('脚本が生成されていません。先に脚本を生成してください。');
       return;
     }
 
@@ -356,7 +356,7 @@ const StoryEditorContent: React.FC = () => {
       case 'processing':
         return '処理中';
       case 'script_generated':
-        return '台本生成済み';
+        return '脚本生成済み';
       case 'error':
         return 'エラー';
       case 'draft':
@@ -581,7 +581,7 @@ const StoryEditorContent: React.FC = () => {
                       <Button 
                         onClick={handleAnalyzeScenes} 
                         className="text-sm sm:text-base"
-                        title="各シーンのタイトルを確認・編集してから台本を作成します"
+                        title="各シーンのタイトルを確認・編集してから脚本を作成します"
                       >
                         シーン構成を分析
                       </Button>
@@ -590,7 +590,7 @@ const StoryEditorContent: React.FC = () => {
                           onClick={handleGenerateScript} 
                           disabled={isGeneratingScript} 
                           className="text-sm sm:text-base"
-                          title="直接台本を生成して編集画面へ進みます"
+                          title="直接脚本を生成して編集画面へ進みます"
                         >
                           {isGeneratingScript ? (
                             <>
@@ -598,7 +598,7 @@ const StoryEditorContent: React.FC = () => {
                               生成中...
                             </>
                           ) : (
-                            `台本を作成 (${story.beats || 10}シーン)`
+                            `脚本を作成 (${story.beats || 10}シーン)`
                           )}
                         </Button>
                       )}
@@ -648,7 +648,7 @@ const StoryEditorContent: React.FC = () => {
                   <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  台本ディレクター
+                  脚本ディレクター
                 </button>
 
                 {process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true' && story.script_json && (
@@ -662,7 +662,7 @@ const StoryEditorContent: React.FC = () => {
                     <svg className="w-4 h-4 mr-1 sm:mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
-                    台本エディター
+                    脚本エディター
                     <span className="ml-2 inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-500/50">
                       {(story.script_json as Record<string, unknown> & { beats?: unknown[] })?.beats?.length || 0} シーン
                     </span>
@@ -747,8 +747,8 @@ const StoryEditorContent: React.FC = () => {
                       <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <h3 className="text-base sm:text-lg font-medium text-gray-100 mb-2">台本がありません</h3>
-                      <p className="text-sm text-gray-400 mb-4">先に台本を生成してください</p>
+                      <h3 className="text-base sm:text-lg font-medium text-gray-100 mb-2">脚本がありません</h3>
+                      <p className="text-sm text-gray-400 mb-4">先に脚本を生成してください</p>
                       <Button onClick={handleGenerateScript} disabled={isGeneratingScript} className="text-sm sm:text-base">
                         {isGeneratingScript ? (
                           <>
@@ -756,7 +756,7 @@ const StoryEditorContent: React.FC = () => {
                             生成中...
                           </>
                         ) : (
-                          '台本を生成'
+                          '脚本を生成'
                         )}
                       </Button>
                     </CardContent>

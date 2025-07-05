@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       current: pathname === '/dashboard',
     },
     {
-      name: '台本',
+      name: '脚本',
       href: '/stories',
       icon: StoriesIcon,
       current: pathname.startsWith('/stories'),

@@ -75,7 +75,7 @@ export async function generateScreenplay(
 }
 
 /**
- * ステップ3完了時：シーンごとの台本と画像案を生成
+ * ステップ3完了時：シーンごとの脚本と画像案を生成
  */
 export async function generateSceneScripts(
   storyId: string,

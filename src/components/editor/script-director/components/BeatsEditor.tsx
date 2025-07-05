@@ -58,7 +58,7 @@ export function BeatsEditor({
   return (
     <div className={styles.beatsEditor}>
       <div className={styles.beatsHeader}>
-        <h3 className={styles.settingsTitle}>📝 台本編集</h3>
+        <h3 className={styles.settingsTitle}>📝 脚本編集</h3>
         {!isReadOnly && (
           <button
             className={styles.addButton}
@@ -74,7 +74,7 @@ export function BeatsEditor({
         {beats.length === 0 ? (
           <div className={styles.emptyBeats}>
             <p>まだシーンが作成されていません。</p>
-            <p>「新しいシーンを追加」ボタンで台本を作成してください。</p>
+            <p>「新しいシーンを追加」ボタンで脚本を作成してください。</p>
           </div>
         ) : (
           beats.map((beat, index) => {

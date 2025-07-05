@@ -69,11 +69,11 @@ async function getStoryWithAuth(storyId: string, uid: string) {
 }
 
 /**
- * ステップ3完了時：シーンごとのSCRIPT台本と画像案生成
+ * ステップ3完了時：シーンごとのSCRIPT脚本と画像案生成
  */
 async function generateSceneScripts(story: Story, screenplay: any, characters: CharacterInfo[]) {
   const prompt = `
-あなたはシェイクスピア風の劇作家です。以下の劇構成から、各シーンの詳細な台本と画像案を作成してください。
+あなたはシェイクスピア風の劇作家です。以下の劇構成から、各シーンの詳細な脚本と画像案を作成してください。
 
 【元のストーリー】
 ${story.story_elements?.main_story || story.text_raw}

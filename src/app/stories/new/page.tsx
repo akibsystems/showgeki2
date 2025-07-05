@@ -185,7 +185,7 @@ const NewStoryContentV1: React.FC = () => {
       router.push(`/stories/${storyId}?tab=content`);
     } catch (err) {
       console.error('Failed to create/update story and generate script:', err);
-      error('ストーリーと台本の処理に失敗しました');
+      error('ストーリーと脚本の処理に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -223,12 +223,12 @@ const NewStoryContentV1: React.FC = () => {
         {/* Header - Mobile optimized */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">
-            {existingStoryId ? 'ストーリーを編集' : 'ストーリーから台本を作成'}
+            {existingStoryId ? 'ストーリーを編集' : 'ストーリーから脚本を作成'}
           </h1>
           <p className="text-sm text-gray-400">
             {existingStoryId 
-              ? 'ストーリーを編集して、シーン構成や台本を更新できます'
-              : 'ストーリーを入力して台本を作成すると、AIが自動でシェイクスピア風の動画を生成します'}
+              ? 'ストーリーを編集して、シーン構成や脚本を更新できます'
+              : 'ストーリーを入力して脚本を作成すると、AIが自動でシェイクスピア風の動画を生成します'}
           </p>
         </div>
 
@@ -331,11 +331,11 @@ const NewStoryContentV1: React.FC = () => {
             {/* Button Explanation */}
             <div className="mb-4 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
               <p className="text-sm text-gray-300">
-                <span className="font-semibold">シーン構成を分析</span>: 各シーンのタイトルを確認・編集してから台本を作成します
+                <span className="font-semibold">シーン構成を分析</span>: 各シーンのタイトルを確認・編集してから脚本を作成します
                 {process.env.NEXT_PUBLIC_ENABLE_DIRECT_SCRIPT_GENERATION === 'true' && (
                   <>
                     <br/>
-                    <span className="font-semibold">台本を作成</span>: 直接台本を生成して編集画面へ進みます
+                    <span className="font-semibold">脚本を作成</span>: 直接脚本を生成して編集画面へ進みます
                   </>
                 )}
               </p>
@@ -378,7 +378,7 @@ const NewStoryContentV1: React.FC = () => {
                         作成中...
                       </>
                     ) : (
-                      '台本を作成'
+                      '脚本を作成'
                     )}
                   </Button>
                 )}

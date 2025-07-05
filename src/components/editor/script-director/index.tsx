@@ -321,7 +321,7 @@ export function ScriptDirector({
           onClick={() => setActiveTab('beats')}
           disabled={isReadOnly}
         >
-          📝 台本
+          📝 脚本
         </button>
         <button
           className={`${styles.tabButton} ${
@@ -383,7 +383,7 @@ export function ScriptDirector({
           />
         </div>
 
-        {/* 台本編集タブ */}
+        {/* 脚本編集タブ */}
         <div
           className={`${styles.tabContent} ${
             state.activeTab === 'beats' ? styles.tabContentActive : ''

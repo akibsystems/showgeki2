@@ -361,7 +361,7 @@ async function createStory(userMetrics, storyTemplate) {
       // Webhookが成功 = 全処理完了
       const now = new Date();
       
-      // 台本生成完了
+      // 脚本生成完了
       userMetrics.steps.scriptGeneration.end = now;
       userMetrics.steps.scriptGeneration.duration = userMetrics.steps.scriptGeneration.end - userMetrics.steps.scriptGeneration.start;
       userMetrics.steps.scriptGeneration.status = 'completed';
@@ -401,7 +401,7 @@ async function createStory(userMetrics, storyTemplate) {
 
 // ストーリーのステータスを確認
 async function waitForScriptGeneration(userMetrics, storyId) {
-  console.log(`[User ${userMetrics.userId}] ⏳ 台本生成待機中...`);
+  console.log(`[User ${userMetrics.userId}] ⏳ 脚本生成待機中...`);
   userMetrics.steps.scriptGeneration.start = new Date();
 
   const startTime = Date.now();
@@ -422,20 +422,20 @@ async function waitForScriptGeneration(userMetrics, storyId) {
       userMetrics.steps.scriptGeneration.end = new Date();
       userMetrics.steps.scriptGeneration.duration = userMetrics.steps.scriptGeneration.end - userMetrics.steps.scriptGeneration.start;
       userMetrics.steps.scriptGeneration.status = 'completed';
-      console.log(`[User ${userMetrics.userId}] ✅ 台本生成完了`);
+      console.log(`[User ${userMetrics.userId}] ✅ 脚本生成完了`);
       return data;
     }
 
     if (data.status === 'failed') {
       userMetrics.steps.scriptGeneration.status = 'failed';
-      throw new Error('台本生成に失敗しました');
+      throw new Error('脚本生成に失敗しました');
     }
 
     await new Promise(resolve => setTimeout(resolve, TEST_CONFIG.POLLING_INTERVAL));
   }
 
   userMetrics.steps.scriptGeneration.status = 'timeout';
-  throw new Error('台本生成がタイムアウトしました');
+  throw new Error('脚本生成がタイムアウトしました');
 }
 
 // 動画生成完了を待機
@@ -576,7 +576,7 @@ async function generateReport(exportExcel = false) {
     { header: 'ステータス', key: 'status', width: 12 },
     { header: '総処理時間(秒)', key: 'duration', width: 15 },
     { header: 'ストーリー作成(秒)', key: 'storyDuration', width: 18 },
-    { header: '台本生成(秒)', key: 'scriptDuration', width: 15 },
+    { header: '脚本生成(秒)', key: 'scriptDuration', width: 15 },
     { header: '動画生成(秒)', key: 'videoDuration', width: 15 },
     { header: 'エラー', key: 'error', width: 40 }
   ];

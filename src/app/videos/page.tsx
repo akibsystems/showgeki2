@@ -276,12 +276,12 @@ const VideosContent: React.FC = () => {
             <p className="text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all'
                 ? '検索条件やフィルターを変更してみてください'
-                : '台本を作成して最初の動画を生成しましょう'
+                : '脚本を作成して最初の動画を生成しましょう'
               }
             </p>
             {(!searchQuery && statusFilter === 'all') && (
               <Link href="/stories/new">
-                <Button>最初の台本を作成</Button>
+                <Button>最初の脚本を作成</Button>
               </Link>
             )}
           </div>

@@ -148,7 +148,7 @@ function AdminContent() {
             size="sm"
             onClick={() => setStatusFilter('script_generated')}
           >
-            台本生成済み
+            脚本生成済み
           </Button>
           <Button
             variant={statusFilter === 'error' ? 'primary' : 'secondary'}
