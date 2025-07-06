@@ -82,27 +82,26 @@
   - storyboards.acts_data 更新（確定した幕場構成）
   - storyboards.characters_data 更新（キャラクター詳細情報生成）
 
-- [ ] `/src/lib/workflow/generators/step3-generator.ts`
+- [x] `/src/lib/workflow/generators/step3-generator.ts`
   - Step3Output → Step4Input生成
   - storyboards.characters_data 更新（確定キャラクター情報）
   - storyboards.style_data 更新（画風設定）
   - storyboards.scenes_data 更新（シーンごとの台本生成）
 
-- [ ] `/src/lib/workflow/generators/step4-generator.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`のStep4処理
   - Step4Output → Step5Input生成
   - storyboards.scenes_data 更新（確定台本・画像プロンプト）
-  - storyboards.audio_data 更新（音声割り当て提案）
+  - 音声生成用のキャラクター情報準備
 
-- [ ] `/src/lib/workflow/generators/step5-generator.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`のStep5処理
   - Step5Output → Step6Input生成
   - storyboards.audio_data 更新（確定音声設定）
-  - storyboards.style_data 更新（BGM設定提案）
-  - storyboards.caption_data 更新（字幕設定提案）
+  - BGM選択肢の提供
 
-- [ ] `/src/lib/workflow/generators/step6-generator.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`のStep6処理
   - Step6Output → Step7Input生成
-  - storyboards.audio_data, style_data, caption_data 最終更新
-  - storyboards.mulmoscript 生成（最終的なMulmoScript）
+  - storyboards.audio_data, caption_data 最終更新
+  - プレビュー用MulmoScript生成（簡易版）
 
 - [ ] `/src/lib/workflow/generators/storyboard-manager.ts`
   - カテゴリ別データの統合管理
@@ -173,20 +172,23 @@
   - 画風選択UI
   - 独自の「戻る」「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step4ScriptPreview.tsx`
+- [x] `/src/components/workflow/steps/Step4ScriptPreview.tsx`
   - Storyboard表示
   - シーンカード
   - インライン編集
+  - 独自の「戻る」「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step5VoiceGen.tsx`
+- [x] `/src/components/workflow/steps/Step5VoiceGen.tsx`
   - 音声設定UI
   - 試聴プレーヤー
-  - 読み間違い修正
+  - 読み間違い修正（UI実装済み、機能は未実装）
+  - 独自の「戻る」「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step6BgmSubtitle.tsx`
+- [x] `/src/components/workflow/steps/Step6BgmSubtitle.tsx`
   - BGM選択UI
   - 字幕設定
   - プレビュー
+  - 独自の「戻る」「次へ」ボタン
 
 - [ ] `/src/components/workflow/steps/Step7Confirm.tsx`
   - 最終確認画面
@@ -313,10 +315,10 @@
 2. LLM生成ロジック（一部実装済み）
 3. 状態管理 ✓
 
-### Phase 3: ステップ4-6実装（1週間）
-1. ステップ4-6のUI実装
-2. 画像/音声アップロード
-3. プレビュー機能
+### Phase 3: ステップ4-6実装（完了）
+1. ステップ4-6のUI実装 ✓
+2. 画像/音声アップロード（未実装 - Phase 4へ移動）
+3. プレビュー機能（一部実装済み）
 
 ### Phase 4: 完成と最適化（1週間）
 1. ステップ7実装
@@ -336,5 +338,5 @@
 - エラーハンドリングを適切に実装
 - モバイルファーストで実装
 - アクセシビリティを考慮
-- フッターナビゲーションの重複を避ける（Step1-3は独自ボタン）
+- フッターナビゲーションの重複を避ける（Step1-6は独自ボタン）
 - Next.js 15のPromise params対応を忘れずに

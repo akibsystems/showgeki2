@@ -8,6 +8,7 @@ import type {
   Workflow, Storyboard, StepResponse,
   SummaryData, ActsData, CharactersData
 } from '@/types/workflow';
+import { generateStep4Input } from '@/lib/workflow/generators/step3-generator';
 
 // SERVICE_ROLEキーを使用してSupabaseクライアントを作成
 const supabase = createClient(
@@ -218,7 +219,8 @@ export async function POST(
     const { nextStepInput, storyboardUpdates } = await generateAndUpdateStoryboard(
       stepNumber, 
       stepOutput, 
-      workflow.storyboard
+      workflow.storyboard,
+      workflow_id
     );
 
     // 次ステップの入力データをキャッシュとして保存
@@ -311,6 +313,44 @@ async function generateStepInput(
         })) || [],
       } as Step3Input;
 
+    case 4:
+      // Step4Input: acts_dataとscenes_dataから生成
+      return {
+        title: storyboard.title || '',
+        acts: storyboard.acts_data?.acts || [],
+        scenes: storyboard.scenes_data?.scenes || []
+      } as Step4Input;
+
+    case 5:
+      // Step5Input: characters_dataとscenes_dataから生成
+      return {
+        characters: storyboard.characters_data?.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          suggestedVoice: char.voiceType || 'alloy'
+        })) || [],
+        scenes: storyboard.scenes_data?.scenes.map(scene => ({
+          id: scene.id,
+          title: scene.title,
+          dialogue: scene.dialogue.map(line => ({
+            speaker: line.speaker,
+            text: line.text,
+            audioUrl: undefined
+          }))
+        })) || []
+      } as Step5Input;
+
+    case 6:
+      // Step6Input: audio_dataとcaption_dataから生成
+      return {
+        suggestedBgm: storyboard.audio_data?.bgmSettings?.defaultBgm || 'default-bgm-1',
+        bgmOptions: ['default-bgm-1', 'default-bgm-2', 'default-bgm-3', 'epic', 'emotional', 'peaceful'],
+        captionSettings: {
+          enabled: storyboard.caption_data?.enabled ?? true,
+          language: storyboard.caption_data?.language || 'ja'
+        }
+      } as Step6Input;
+
     // 他のステップも同様に実装
     default:
       return {} as StepInput;
@@ -323,7 +363,8 @@ async function generateStepInput(
 async function generateAndUpdateStoryboard(
   stepNumber: StepNumber,
   stepOutput: StepOutput,
-  currentStoryboard: Storyboard
+  currentStoryboard: Storyboard,
+  workflowId: string
 ): Promise<{ nextStepInput: StepInput | null; storyboardUpdates: Partial<Storyboard> }> {
   const storyboardUpdates: Partial<Storyboard> = {};
   let nextStepInput: StepInput | null = null;
@@ -421,6 +462,145 @@ async function generateAndUpdateStoryboard(
           visualDescription: char.visualDescription,
         })) || [],
       } as Step3Input;
+      break;
+
+    case 3:
+      // Step3完了時: step3-generatorを使用してStep4Inputを生成
+      const step3Output = stepOutput as Step3Output;
+      
+      try {
+        // step3-generatorを呼び出してStep4Inputを生成
+        nextStepInput = await generateStep4Input(
+          workflowId,
+          currentStoryboard.id,
+          step3Output
+        );
+        
+        // storyboardUpdatesは generateStep4Input 内で更新されるため、ここでは空
+        // 将来的にはgeneratorから更新内容を返すように変更することも検討
+      } catch (error) {
+        console.error('Step4入力生成エラー:', error);
+        // エラー時は空のStep4Inputを返す
+        nextStepInput = {
+          title: currentStoryboard.title || '',
+          acts: currentStoryboard.acts_data?.acts || [],
+          scenes: []
+        } as Step4Input;
+      }
+      break;
+
+    case 4:
+      // Step4完了時: 編集されたscenes_dataを更新
+      const step4Output = stepOutput as Step4Output;
+      
+      // 既存のscenes_dataをマージして更新
+      const currentScenes = currentStoryboard.scenes_data?.scenes || [];
+      const updatedScenes = currentScenes.map(scene => {
+        const userEdit = step4Output.userInput.scenes.find(s => s.id === scene.id);
+        if (userEdit) {
+          return {
+            ...scene,
+            imagePrompt: userEdit.imagePrompt,
+            dialogue: userEdit.dialogue,
+            customImage: userEdit.customImage
+          };
+        }
+        return scene;
+      });
+      
+      storyboardUpdates.scenes_data = {
+        scenes: updatedScenes
+      };
+      
+      // Step5Input を生成（音声生成用）
+      nextStepInput = {
+        characters: currentStoryboard.characters_data?.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          suggestedVoice: char.voiceType || 'alloy' // デフォルト音声
+        })) || [],
+        scenes: updatedScenes.map(scene => ({
+          id: scene.id,
+          title: scene.title,
+          dialogue: scene.dialogue.map(line => ({
+            speaker: line.speaker,
+            text: line.text,
+            audioUrl: undefined // 音声はまだ生成されていない
+          }))
+        }))
+      } as Step5Input;
+      break;
+
+    case 5:
+      // Step5完了時: audio_dataを更新
+      const step5Output = stepOutput as Step5Output;
+      
+      storyboardUpdates.audio_data = {
+        voiceSettings: step5Output.userInput.voiceSettings,
+        bgmSettings: {
+          defaultBgm: 'default-bgm-1', // デフォルトBGM
+          sceneBgm: {}
+        }
+      };
+      
+      // Step6Input を生成（BGM & 字幕設定用）
+      nextStepInput = {
+        suggestedBgm: 'default-bgm-1',
+        bgmOptions: ['default-bgm-1', 'default-bgm-2', 'default-bgm-3', 'epic', 'emotional', 'peaceful'],
+        captionSettings: {
+          enabled: true,
+          language: 'ja'
+        }
+      } as Step6Input;
+      break;
+
+    case 6:
+      // Step6完了時: audio_dataとcaption_dataを更新
+      const step6Output = stepOutput as Step6Output;
+      
+      // audio_dataのBGM設定を更新
+      storyboardUpdates.audio_data = {
+        ...currentStoryboard.audio_data,
+        bgmSettings: {
+          defaultBgm: step6Output.userInput.bgm.selected,
+          sceneBgm: {} // シーンごとのBGM設定は将来実装
+        }
+      };
+      
+      // caption_dataを更新
+      storyboardUpdates.caption_data = {
+        enabled: step6Output.userInput.caption.enabled,
+        language: step6Output.userInput.caption.language,
+        style: step6Output.userInput.caption.style
+      };
+      
+      // Step7Input を生成（最終確認用）
+      // MulmoScriptを生成する必要がある
+      nextStepInput = {
+        title: currentStoryboard.title || '',
+        description: currentStoryboard.summary_data?.description || '',
+        thumbnails: currentStoryboard.scenes_data?.scenes.slice(0, 3).map(scene => ({
+          sceneId: scene.id,
+          imageUrl: '' // 画像はまだ生成されていない
+        })) || [],
+        estimatedDuration: currentStoryboard.summary_data?.estimatedDuration || 60,
+        preview: {
+          $mulmocast: { version: '0.1.0' },
+          title: currentStoryboard.title || '',
+          lang: step6Output.userInput.caption.language,
+          beats: [],
+          speechParams: { provider: 'openai', speakers: {} },
+          imageParams: {},
+          audioParams: {
+            bgm: { kind: 'url', url: step6Output.userInput.bgm.selected },
+            bgmVolume: step6Output.userInput.bgm.volume
+          },
+          captionParams: step6Output.userInput.caption.enabled ? {
+            lang: step6Output.userInput.caption.language,
+            styles: []
+          } : undefined
+        }
+      } as Step7Input;
       break;
 
     // 他のステップも同様に実装

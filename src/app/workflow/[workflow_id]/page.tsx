@@ -12,9 +12,9 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Step1StoryInput from '@/components/workflow/steps/Step1StoryInput';
 import Step2ScenePreview from '@/components/workflow/steps/Step2ScenePreview';
 import Step3CharacterStyle from '@/components/workflow/steps/Step3CharacterStyle';
-// import Step4ScriptPreview from '@/components/workflow/steps/Step4ScriptPreview';
-// import Step5VoiceGen from '@/components/workflow/steps/Step5VoiceGen';
-// import Step6BgmSubtitle from '@/components/workflow/steps/Step6BgmSubtitle';
+import Step4ScriptPreview from '@/components/workflow/steps/Step4ScriptPreview';
+import Step5VoiceGen from '@/components/workflow/steps/Step5VoiceGen';
+import Step6BgmSubtitle from '@/components/workflow/steps/Step6BgmSubtitle';
 // import Step7Confirm from '@/components/workflow/steps/Step7Confirm';
 
 interface PageProps {
@@ -156,24 +156,42 @@ function WorkflowPageContent({ params }: PageProps) {
         );
       case 4:
         return (
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">ステップ4: 台本＆静止画プレビュー</h2>
-            <p className="text-gray-400">このコンポーネントはPhase 3で実装予定です</p>
-          </div>
+          <Step4ScriptPreview
+            workflowId={workflow_id}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
+            onNext={handleNext}
+            onBack={handleBack}
+            onUpdate={setCanProceed}
+          />
         );
       case 5:
         return (
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">ステップ5: 音声生成</h2>
-            <p className="text-gray-400">このコンポーネントはPhase 3で実装予定です</p>
-          </div>
+          <Step5VoiceGen
+            workflowId={workflow_id}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
+            onNext={handleNext}
+            onBack={handleBack}
+            onUpdate={setCanProceed}
+          />
         );
       case 6:
         return (
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">ステップ6: BGM & 字幕設定</h2>
-            <p className="text-gray-400">このコンポーネントはPhase 3で実装予定です</p>
-          </div>
+          <Step6BgmSubtitle
+            workflowId={workflow_id}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
+            onNext={handleNext}
+            onBack={handleBack}
+            onUpdate={setCanProceed}
+          />
         );
       case 7:
         return (
@@ -208,7 +226,7 @@ function WorkflowPageContent({ params }: PageProps) {
       currentStep={currentStep}
       workflowState={workflowState}
       onNext={handleNext}
-      hideFooter={currentStep === 1 || currentStep === 2 || currentStep === 3}
+      hideFooter={currentStep === 1 || currentStep === 2 || currentStep === 3 || currentStep === 4 || currentStep === 5 || currentStep === 6}
     >
       {renderStepComponent()}
     </WorkflowLayout>
