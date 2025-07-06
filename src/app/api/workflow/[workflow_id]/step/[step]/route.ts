@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { authMiddleware } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
 import type { 
-  Step1Json, Step2Json, Step3Json, Step4Json, Step5Json, Step6Json, 
-  Workflow 
+  Step1Input, Step1Output, Step2Input, Step2Output, 
+  Step3Input, Step3Output, Step4Input, Step4Output,
+  Step5Input, Step5Output, Step6Input, Step6Output,
+  Step7Input, Step7Output,
+  Workflow, Storyboard, StepResponse,
+  SummaryData, ActsData, CharactersData
 } from '@/types/workflow';
 
-type StepNumber = 1 | 2 | 3 | 4 | 5 | 6;
-type StepJson = Step1Json | Step2Json | Step3Json | Step4Json | Step5Json | Step6Json;
+// SERVICE_ROLEキーを使用してSupabaseクライアントを作成
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
+  {
+    auth: {
+      persistSession: false
+    }
+  }
+);
+
+type StepNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type StepInput = Step1Input | Step2Input | Step3Input | Step4Input | Step5Input | Step6Input | Step7Input;
+type StepOutput = Step1Output | Step2Output | Step3Output | Step4Output | Step5Output | Step6Output | Step7Output;
 
 interface RouteParams {
   params: Promise<{
@@ -18,77 +33,84 @@ interface RouteParams {
 
 /**
  * GET /api/workflow/[workflow_id]/step/[step]
- * ステップデータを取得
+ * ステップ表示用データを取得
  */
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const authResult = await authMiddleware(request);
-  if (!authResult.success) {
-    return NextResponse.json(
-      { error: authResult.error },
-      { status: 401 }
-    );
-  }
-
   try {
+    // UIDをヘッダーから取得
+    const uid = request.headers.get('X-User-UID');
+    if (!uid) {
+      return NextResponse.json(
+        { error: 'Unauthorized: UID required' },
+        { status: 401 }
+      );
+    }
+
     const { workflow_id, step } = await params;
-    const uid = authResult.uid!;
     const stepNumber = parseInt(step, 10) as StepNumber;
     
     console.log(`[GET] /api/workflow/${workflow_id}/step/${step}`);
     console.log(`[GET] uid: ${uid}, stepNumber: ${stepNumber}`);
 
     // バリデーション
-    if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 6) {
+    if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 7) {
       return NextResponse.json(
         { error: 'Invalid step number' },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
-
-    // ワークフローを取得
-    const { data: workflow, error: fetchError } = await supabase
+    // ワークフローとストーリーボードを結合して取得
+    const { data: workflowData, error: fetchError } = await supabase
       .from('workflows')
-      .select('*')
+      .select(`
+        *,
+        storyboard:storyboards(*)
+      `)
       .eq('id', workflow_id)
       .eq('uid', uid)
       .single();
 
-    if (fetchError || !workflow) {
+    if (fetchError || !workflowData) {
       return NextResponse.json(
         { error: 'Workflow not found' },
         { status: 404 }
       );
     }
 
-    // ステップデータを取得
-    const stepColumnName = `step${stepNumber}_json` as keyof Workflow;
-    const stepData = workflow[stepColumnName] as StepJson | null;
+    const workflow = workflowData as Workflow & { storyboard: Storyboard };
+
+    // ステップ入力データ（キャッシュ）を取得
+    const stepInColumnName = `step${stepNumber}_in` as keyof Workflow;
+    let stepInput = workflow[stepInColumnName] as StepInput | undefined;
+
+    // キャッシュがない場合は、storyboardsから再生成
+    if (!stepInput && stepNumber > 1) {
+      stepInput = await generateStepInput(stepNumber, workflow.storyboard);
+      
+      // キャッシュを保存
+      await supabase
+        .from('workflows')
+        .update({ [stepInColumnName]: stepInput })
+        .eq('id', workflow_id);
+    }
+
+    // ステップ出力データを取得
+    const stepOutColumnName = `step${stepNumber}_out` as keyof Workflow;
+    const stepOutput = workflow[stepOutColumnName] as StepOutput | undefined;
 
     // 編集可能かどうかを判定
     const canEdit = workflow.status === 'active' && workflow.current_step >= stepNumber;
+    const canProceed = workflow.current_step >= stepNumber && !!stepOutput;
 
-    // ワークフロー全体のデータを返す
-    const response = {
-      data: stepData,
+    const response: StepResponse = {
+      stepInput: stepInput || {},
+      stepOutput,
       canEdit,
-      workflow: {
-        id: workflow.id,
-        title: workflow.title,
-        current_step: workflow.current_step,
-        status: workflow.status,
-        // 全てのステップデータを含める
-        step1_json: workflow.step1_json,
-        step2_json: workflow.step2_json,
-        step3_json: workflow.step3_json,
-        step4_json: workflow.step4_json,
-        step5_json: workflow.step5_json,
-        step6_json: workflow.step6_json,
-      }
+      canProceed,
     };
     
     console.log(`[GET] Response:`, JSON.stringify(response, null, 2));
@@ -105,39 +127,36 @@ export async function GET(
 
 /**
  * POST /api/workflow/[workflow_id]/step/[step]
- * ステップデータを保存
+ * ユーザー入力を保存し、次ステップのデータを生成
  */
 export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const authResult = await authMiddleware(request);
-  if (!authResult.success) {
-    return NextResponse.json(
-      { error: authResult.error },
-      { status: 401 }
-    );
-  }
-
   try {
+    // UIDをヘッダーから取得
+    const uid = request.headers.get('X-User-UID');
+    if (!uid) {
+      return NextResponse.json(
+        { error: 'Unauthorized: UID required' },
+        { status: 401 }
+      );
+    }
+
     const { workflow_id, step } = await params;
-    const uid = authResult.uid!;
     const stepNumber = parseInt(step, 10) as StepNumber;
     
     console.log(`[POST] /api/workflow/${workflow_id}/step/${step}`);
     console.log(`[POST] uid: ${uid}, stepNumber: ${stepNumber}`);
 
     // バリデーション
-    if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 6) {
+    if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 7) {
       return NextResponse.json(
         { error: 'Invalid step number' },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
-
-    // リクエストボディを取得
     const body = await request.json();
     const { data } = body;
     
@@ -150,20 +169,25 @@ export async function POST(
       );
     }
 
-    // ワークフローの現在の状態を確認
-    const { data: workflow, error: fetchError } = await supabase
+    // ワークフローとストーリーボードを取得
+    const { data: workflowData, error: fetchError } = await supabase
       .from('workflows')
-      .select('*')
+      .select(`
+        *,
+        storyboard:storyboards(*)
+      `)
       .eq('id', workflow_id)
       .eq('uid', uid)
       .single();
 
-    if (fetchError || !workflow) {
+    if (fetchError || !workflowData) {
       return NextResponse.json(
         { error: 'Workflow not found' },
         { status: 404 }
       );
     }
+
+    const workflow = workflowData as Workflow & { storyboard: Storyboard };
 
     // ワークフローがアクティブでない場合は編集不可
     if (workflow.status !== 'active') {
@@ -173,61 +197,72 @@ export async function POST(
       );
     }
 
-    // ステップ1-3を編集した場合、後続のステップをリセット
-    const updateData: any = {
-      [`step${stepNumber}_json`]: data,
+    // StepNOutputを構築
+    const stepOutput: StepOutput = { userInput: data } as any;
+
+    // ワークフローのステップ出力データを更新
+    const workflowUpdateData: any = {
+      [`step${stepNumber}_out`]: stepOutput,
       current_step: Math.max(workflow.current_step, stepNumber),
     };
 
     // ステップ1-3の編集時は後続ステップをリセット
     if (stepNumber <= 3) {
-      for (let i = stepNumber + 1; i <= 6; i++) {
-        updateData[`step${i}_json`] = null;
+      for (let i = stepNumber + 1; i <= 7; i++) {
+        workflowUpdateData[`step${i}_in`] = null;
+        workflowUpdateData[`step${i}_out`] = null;
       }
-      // script_jsonもリセット
-      updateData.script_json = null;
     }
 
-    // タイトルの更新（ステップ2の場合）
-    if (stepNumber === 2 && data.userInput?.title) {
-      updateData.title = data.userInput.title;
+    // LLMで次ステップ用のデータを生成し、storyboardsを更新
+    const { nextStepInput, storyboardUpdates } = await generateAndUpdateStoryboard(
+      stepNumber, 
+      stepOutput, 
+      workflow.storyboard
+    );
+
+    // 次ステップの入力データをキャッシュとして保存
+    if (stepNumber < 7) {
+      workflowUpdateData[`step${stepNumber + 1}_in`] = nextStepInput;
     }
 
-    // ステップ1またはステップ2の場合、generatedContentを追加
-    if (stepNumber === 1 || stepNumber === 2) {
-      const generatedContent = await generateContentForNextStep(stepNumber, data);
-      updateData[`step${stepNumber}_json`] = {
-        ...data,
-        generatedContent
-      };
-    }
+    console.log(`[POST] Workflow update data:`, JSON.stringify(workflowUpdateData, null, 2));
+    console.log(`[POST] Storyboard update data:`, JSON.stringify(storyboardUpdates, null, 2));
 
-    console.log(`[POST] Update data:`, JSON.stringify(updateData, null, 2));
-
-    // ワークフローを更新
-    const { error: updateError } = await supabase
+    // トランザクション的に更新（エラー時は両方ロールバック）
+    // 1. ワークフローを更新
+    const { error: workflowUpdateError } = await supabase
       .from('workflows')
-      .update(updateData)
+      .update(workflowUpdateData)
       .eq('id', workflow_id)
       .eq('uid', uid);
 
-    if (updateError) {
-      console.error('Failed to update workflow:', updateError);
+    if (workflowUpdateError) {
+      console.error('Failed to update workflow:', workflowUpdateError);
       return NextResponse.json(
         { error: 'Failed to save data' },
         { status: 500 }
       );
     }
 
-    // LLMで次ステップ用のコンテンツを生成（モック実装）
-    // TODO: 実際のLLM呼び出しを実装
-    const generatedContent = await generateContentForNextStep(stepNumber, data);
-    
-    console.log(`[POST] Generated content:`, JSON.stringify(generatedContent, null, 2));
+    // 2. ストーリーボードを更新
+    const { error: storyboardUpdateError } = await supabase
+      .from('storyboards')
+      .update(storyboardUpdates)
+      .eq('id', workflow.storyboard_id)
+      .eq('uid', uid);
+
+    if (storyboardUpdateError) {
+      console.error('Failed to update storyboard:', storyboardUpdateError);
+      return NextResponse.json(
+        { error: 'Failed to update storyboard' },
+        { status: 500 }
+      );
+    }
 
     const response = {
       success: true,
-      generatedContent,
+      nextStepInput: stepNumber < 7 ? nextStepInput : null,
     };
     
     console.log(`[POST] Response:`, JSON.stringify(response, null, 2));
@@ -243,115 +278,204 @@ export async function POST(
 }
 
 /**
- * 次ステップ用のコンテンツを生成（モック実装）
- * TODO: 実際のLLM呼び出しに置き換える
+ * storyboardsから表示用データを生成
  */
-async function generateContentForNextStep(
+async function generateStepInput(
   stepNumber: StepNumber,
-  data: StepJson
-): Promise<any> {
-  // モック実装
+  storyboard: Storyboard
+): Promise<StepInput> {
+  switch (stepNumber) {
+    case 2:
+      // Step2Input: summary_dataとacts_dataから生成
+      return {
+        suggestedTitle: storyboard.summary_data?.title || '',
+        acts: storyboard.acts_data?.acts || [],
+        charactersList: storyboard.characters_data?.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          role: char.role,
+          personality: char.personality,
+        })) || [],
+      } as Step2Input;
+
+    case 3:
+      // Step3Input: summary_dataとcharacters_dataから生成
+      return {
+        title: storyboard.title || storyboard.summary_data?.title || '',
+        detailedCharacters: storyboard.characters_data?.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          role: char.role,
+          personality: char.personality,
+          visualDescription: char.visualDescription,
+        })) || [],
+      } as Step3Input;
+
+    // 他のステップも同様に実装
+    default:
+      return {} as StepInput;
+  }
+}
+
+/**
+ * LLM生成とstoryboard更新
+ */
+async function generateAndUpdateStoryboard(
+  stepNumber: StepNumber,
+  stepOutput: StepOutput,
+  currentStoryboard: Storyboard
+): Promise<{ nextStepInput: StepInput | null; storyboardUpdates: Partial<Storyboard> }> {
+  const storyboardUpdates: Partial<Storyboard> = {};
+  let nextStepInput: StepInput | null = null;
+
   switch (stepNumber) {
     case 1:
-      const step1Data = data as Step1Json;
-      const totalScenes = step1Data.userInput.totalScenes || 5;
+      // Step1完了時: summary_data, acts_data, characters_dataを生成
+      const step1Output = stepOutput as Step1Output;
+      const { totalScenes } = step1Output.userInput;
       
       // シーン数に基づいて幕場構成を動的に生成
-      const acts = [];
-      const actTitles = ['運命の出会い', '試練と成長', '挫折と再起', '決戦への道', '新たな始まり'];
-      const sceneTitles = [
-        ['序章 - 平凡な日常', '転機の訪れ', '新たな世界へ'],
-        ['最初の壁', '仲間との出会い', '力の目覚め'],
-        ['大きな失敗', '内なる声', '再起への決意'],
-        ['最後の準備', '運命の対決', '激闘の果てに'],
-        ['勝利と別れ', '未来への扉', 'エピローグ']
-      ];
-      const sceneSummaries = [
-        ['主人公の日常生活と内に秘めた夢への憧れ', '運命的な出会いが主人公の人生を大きく変える', '新しい世界への第一歩を踏み出す'],
-        ['新しい世界での困難と戸惑い', '共に困難を乗り越える仲間との絆', '隠された力が目覚め始める'],
-        ['自信を失い、夢を諦めかける主人公', '自分自身と向き合い、真の目的を見つける', '新たな決意と共に立ち上がる'],
-        ['仲間と共に最終決戦への準備を整える', '全てを賭けた最後の挑戦', '激しい戦いの中で真の強さを発揮'],
-        ['目標を達成し、それぞれの道へ', '成長した主人公が新たな冒険へ旅立つ', '物語の終わりと新たな始まり']
-      ];
+      const acts = generateActsStructure(totalScenes);
       
-      // 5幕構成で、各幕のシーン数を計算
-      let totalScenesAssigned = 0;
-      const scenesPerAct = Math.ceil(totalScenes / 5);
-      
-      for (let actIndex = 0; actIndex < 5; actIndex++) {
-        const actScenes = [];
-        const actualScenesInAct = Math.min(scenesPerAct, totalScenes - totalScenesAssigned);
-        
-        for (let sceneIndex = 0; sceneIndex < actualScenesInAct; sceneIndex++) {
-          actScenes.push({
-            sceneNumber: sceneIndex + 1,  // 各幕で1から始める
-            sceneTitle: sceneTitles[actIndex][sceneIndex] || `第${sceneIndex + 1}場`,
-            summary: sceneSummaries[actIndex][sceneIndex] || `第${actIndex + 1}幕第${sceneIndex + 1}場の内容`
-          });
-          totalScenesAssigned++;
-        }
-        
-        if (actScenes.length > 0) {
-          acts.push({
-            actNumber: actIndex + 1,
-            actTitle: actTitles[actIndex],
-            scenes: actScenes
-          });
-        }
-      }
-      
-      return {
-        suggestedTitle: '未来への挑戦 〜夢を追う若者の物語〜',
-        acts,
-        charactersList: [
-          { name: '太郎', role: '主人公', personality: '情熱的で前向き、時に無鉄砲だが仲間思い' },
-          { name: '花子', role: '親友', personality: '優しく思慮深い、主人公を支える存在' },
-          { name: '師匠', role: 'メンター', personality: '厳格だが温かい心を持つ指導者' },
-          { name: 'ライバル', role: '好敵手', personality: '誇り高く実力者、最後は良き理解者に' },
+      // summary_dataを更新
+      storyboardUpdates.summary_data = {
+        title: '未来への挑戦 〜夢を追う若者の物語〜',
+        description: step1Output.userInput.storyText,
+        genre: 'ドラマ',
+        tags: ['青春', '成長', '友情', '挑戦'],
+        estimatedDuration: totalScenes * 15, // 1シーン約15秒と仮定
+      };
+
+      // acts_dataを更新
+      storyboardUpdates.acts_data = { acts };
+
+      // characters_dataを更新
+      storyboardUpdates.characters_data = {
+        characters: [
+          { 
+            id: 'taro', 
+            name: '太郎', 
+            role: '主人公', 
+            personality: '情熱的で前向き、時に無鉄砲だが仲間思い',
+            visualDescription: '黒髪の短髪、明るく元気な表情、スポーティな服装'
+          },
+          { 
+            id: 'hanako', 
+            name: '花子', 
+            role: '親友', 
+            personality: '優しく思慮深い、主人公を支える存在',
+            visualDescription: '茶髪のロングヘア、優しい眼差し、清楚な雰囲気'
+          },
+          { 
+            id: 'shisho', 
+            name: '師匠', 
+            role: 'メンター', 
+            personality: '厳格だが温かい心を持つ指導者',
+            visualDescription: '白髪混じりの髪、威厳のある風貌、和装'
+          },
+          { 
+            id: 'rival', 
+            name: 'ライバル', 
+            role: '好敵手', 
+            personality: '誇り高く実力者、最後は良き理解者に',
+            visualDescription: '銀髪、鋭い眼光、クールで洗練された外見'
+          },
         ],
       };
+
+      // Step2Input を生成
+      nextStepInput = {
+        suggestedTitle: storyboardUpdates.summary_data.title,
+        acts: acts,
+        charactersList: storyboardUpdates.characters_data.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          role: char.role,
+          personality: char.personality,
+        })),
+      } as Step2Input;
+      break;
 
     case 2:
-      const step2Data = data as Step2Json;
-      return {
-        detailedCharacters: [
-          {
-            id: 'taro',
-            name: '太郎',
-            personality: '情熱的で前向き、時に無鉄砲だが仲間思い',
-            visualDescription: '黒髪の短髪、明るく元気な表情、スポーティな服装',
-            role: '主人公',
-          },
-          {
-            id: 'hanako',
-            name: '花子',
-            personality: '優しく思慮深い、芯が強く、主人公を支える存在',
-            visualDescription: '茶髪のロングヘア、優しい眼差し、清楚な雰囲気',
-            role: '親友',
-          },
-          {
-            id: 'shisho',
-            name: '師匠',
-            personality: '厳格だが温かい心を持つ指導者、深い知恵と経験',
-            visualDescription: '白髪混じりの髪、威厳のある風貌、和装または格式ある服装',
-            role: 'メンター',
-          },
-          {
-            id: 'rival',
-            name: 'ライバル',
-            personality: '誇り高く実力者、最初は敵対的だが最後は良き理解者に',
-            visualDescription: '銀髪または金髪、鋭い眼光、クールで洗練された外見',
-            role: '好敵手',
-          },
-        ],
-        suggestedImageStyle: {
-          preset: 'anime',
-          description: 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティックな構図',
-        },
+      // Step2完了時: タイトルとacts_dataを確定
+      const step2Output = stepOutput as Step2Output;
+      
+      storyboardUpdates.title = step2Output.userInput.title;
+      storyboardUpdates.summary_data = {
+        ...currentStoryboard.summary_data,
+        title: step2Output.userInput.title,
+      } as SummaryData;
+      
+      storyboardUpdates.acts_data = {
+        acts: step2Output.userInput.acts,
       };
 
-    // 他のステップも同様にモック実装
-    default:
-      return {};
+      // Step3Input を生成
+      nextStepInput = {
+        title: step2Output.userInput.title,
+        detailedCharacters: currentStoryboard.characters_data?.characters.map(char => ({
+          id: char.id,
+          name: char.name,
+          role: char.role,
+          personality: char.personality,
+          visualDescription: char.visualDescription,
+        })) || [],
+      } as Step3Input;
+      break;
+
+    // 他のステップも同様に実装
   }
+
+  return { nextStepInput, storyboardUpdates };
+}
+
+/**
+ * シーン数に基づいて幕場構成を生成
+ */
+function generateActsStructure(totalScenes: number) {
+  const acts = [];
+  const actTitles = ['運命の出会い', '試練と成長', '挫折と再起', '決戦への道', '新たな始まり'];
+  const sceneTitles = [
+    ['序章 - 平凡な日常', '転機の訪れ', '新たな世界へ'],
+    ['最初の壁', '仲間との出会い', '力の目覚め'],
+    ['大きな失敗', '内なる声', '再起への決意'],
+    ['最後の準備', '運命の対決', '激闘の果てに'],
+    ['勝利と別れ', '未来への扉', 'エピローグ']
+  ];
+  const sceneSummaries = [
+    ['主人公の日常生活と内に秘めた夢への憧れ', '運命的な出会いが主人公の人生を大きく変える', '新しい世界への第一歩を踏み出す'],
+    ['新しい世界での困難と戸惑い', '共に困難を乗り越える仲間との絆', '隠された力が目覚め始める'],
+    ['自信を失い、夢を諦めかける主人公', '自分自身と向き合い、真の目的を見つける', '新たな決意と共に立ち上がる'],
+    ['仲間と共に最終決戦への準備を整える', '全てを賭けた最後の挑戦', '激しい戦いの中で真の強さを発揮'],
+    ['目標を達成し、それぞれの道へ', '成長した主人公が新たな冒険へ旅立つ', '物語の終わりと新たな始まり']
+  ];
+  
+  // 5幕構成で、各幕のシーン数を計算
+  let totalScenesAssigned = 0;
+  const scenesPerAct = Math.ceil(totalScenes / 5);
+  
+  for (let actIndex = 0; actIndex < 5; actIndex++) {
+    const actScenes = [];
+    const actualScenesInAct = Math.min(scenesPerAct, totalScenes - totalScenesAssigned);
+    
+    for (let sceneIndex = 0; sceneIndex < actualScenesInAct; sceneIndex++) {
+      actScenes.push({
+        sceneNumber: sceneIndex + 1,
+        sceneTitle: sceneTitles[actIndex][sceneIndex] || `第${sceneIndex + 1}場`,
+        summary: sceneSummaries[actIndex][sceneIndex] || `第${actIndex + 1}幕第${sceneIndex + 1}場の内容`
+      });
+      totalScenesAssigned++;
+    }
+    
+    if (actScenes.length > 0) {
+      acts.push({
+        actNumber: actIndex + 1,
+        actTitle: actTitles[actIndex],
+        description: '',
+        scenes: actScenes
+      });
+    }
+  }
+  
+  return acts;
 }

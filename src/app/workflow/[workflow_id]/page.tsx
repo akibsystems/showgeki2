@@ -3,9 +3,9 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/contexts';
+import { useAuth } from '@/hooks/useAuth';
 import WorkflowLayout from '@/components/workflow/WorkflowLayout';
-import type { WorkflowState, Workflow } from '@/types/workflow';
-import { getOrCreateUid } from '@/lib/uid';
+import type { WorkflowState, StepResponse } from '@/types/workflow';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // 各ステップのコンポーネント
@@ -28,11 +28,12 @@ function WorkflowPageContent({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { error } = useToast();
+  const { user } = useAuth();
 
-  const [workflow, setWorkflow] = useState<Workflow | null>(null);
+  const [stepData, setStepData] = useState<StepResponse | null>(null);
+  const [workflowInfo, setWorkflowInfo] = useState<{ current_step: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canProceed, setCanProceed] = useState(false);
-  const [saveFunction, setSaveFunction] = useState<(() => Promise<void>) | null>(null);
 
   // URLパラメータからステップ番号を取得
   const currentStep = parseInt(searchParams.get('step') || '1', 10);
@@ -47,16 +48,37 @@ function WorkflowPageContent({ params }: PageProps) {
   // ワークフロー情報を取得
   useEffect(() => {
     const fetchWorkflow = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(`/api/workflow/${workflow_id}/step/${currentStep}`);
+        const response = await fetch(`/api/workflow/${workflow_id}/step/${currentStep}`, {
+          headers: {
+            'X-User-UID': user.id,
+          },
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch workflow');
         }
 
-        const data = await response.json();
-        console.log('[WorkflowPage] Fetched workflow data:', data);
-        setWorkflow(data.workflow);
+        const data: StepResponse = await response.json();
+        console.log('[WorkflowPage] Fetched step data:', data);
+        setStepData(data);
+        
+        // ワークフロー情報を取得（現在のステップなど）
+        const workflowResponse = await fetch(`/api/workflow/${workflow_id}`, {
+          headers: {
+            'X-User-UID': user.id,
+          },
+        });
+        
+        if (workflowResponse.ok) {
+          const workflowData = await workflowResponse.json();
+          setWorkflowInfo({ current_step: workflowData.workflow.current_step });
+        }
       } catch (err) {
         console.error('Failed to fetch workflow:', err);
         error('ワークフローの読み込みに失敗しました');
@@ -67,7 +89,7 @@ function WorkflowPageContent({ params }: PageProps) {
     };
 
     fetchWorkflow();
-  }, [workflow_id, currentStep, error, router]);
+  }, [workflow_id, currentStep, error, router, user]);
 
   // ワークフロー状態を計算
   const workflowState: WorkflowState = {
@@ -75,20 +97,14 @@ function WorkflowPageContent({ params }: PageProps) {
     currentStep,
     canProceed,
     canGoBack: currentStep > 1,
-    completedSteps: workflow
-      ? Array.from({ length: workflow.current_step }, (_, i) => i + 1)
+    completedSteps: workflowInfo
+      ? Array.from({ length: workflowInfo.current_step }, (_, i) => i + 1)
       : [],
   };
 
   // ナビゲーション関数
-  const handleNext = async () => {
-    // 保存関数が設定されている場合は実行
-    if (saveFunction) {
-      await saveFunction();
-    } else {
-      // 保存不要なステップの場合は直接移動
-      router.push(`/workflow/${workflow_id}?step=${currentStep + 1}`);
-    }
+  const handleNext = () => {
+    router.push(`/workflow/${workflow_id}?step=${currentStep + 1}`);
   };
 
   const handleBack = () => {
@@ -97,15 +113,18 @@ function WorkflowPageContent({ params }: PageProps) {
 
   // ステップコンポーネントをレンダリング
   const renderStepComponent = () => {
-    if (!workflow) return null;
+    if (!stepData) return null;
 
     switch (currentStep) {
       case 1:
         return (
           <Step1StoryInput
             workflowId={workflow_id}
-            initialData={workflow.step1_json || undefined}
-            onNext={() => router.push(`/workflow/${workflow_id}?step=${currentStep + 1}`)}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
+            onNext={handleNext}
             onUpdate={setCanProceed}
           />
         );
@@ -113,8 +132,10 @@ function WorkflowPageContent({ params }: PageProps) {
         return (
           <Step2ScenePreview
             workflowId={workflow_id}
-            initialData={workflow.step2_json || undefined}
-            previousStepData={workflow.step1_json || undefined}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
             onNext={handleNext}
             onBack={handleBack}
             onUpdate={setCanProceed}
@@ -124,8 +145,10 @@ function WorkflowPageContent({ params }: PageProps) {
         return (
           <Step3CharacterStyle
             workflowId={workflow_id}
-            initialData={workflow.step3_json || undefined}
-            previousStepData={workflow.step2_json || undefined}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
             onNext={handleNext}
             onBack={handleBack}
             onUpdate={setCanProceed}
@@ -175,7 +198,7 @@ function WorkflowPageContent({ params }: PageProps) {
     );
   }
 
-  if (!workflow) {
+  if (!stepData || !user) {
     return null;
   }
 
@@ -185,7 +208,7 @@ function WorkflowPageContent({ params }: PageProps) {
       currentStep={currentStep}
       workflowState={workflowState}
       onNext={handleNext}
-      hideFooter={currentStep === 1}
+      hideFooter={currentStep === 1 || currentStep === 2 || currentStep === 3}
     >
       {renderStepComponent()}
     </WorkflowLayout>

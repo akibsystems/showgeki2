@@ -3,153 +3,127 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
-import type { Step2Json, Step3Json } from '@/types/workflow';
+import { useAuth } from '@/hooks/useAuth';
+import type { Step3Input, Step3Output } from '@/types/workflow';
+import { IMAGE_STYLE_PRESETS } from '@/types/workflow';
 
 interface Step3CharacterStyleProps {
   workflowId: string;
-  initialData?: Step3Json;
-  previousStepData?: Step2Json;
+  initialData?: {
+    stepInput: Step3Input;
+    stepOutput?: Step3Output;
+  };
   onNext: () => void;
   onBack: () => void;
   onUpdate: (canProceed: boolean) => void;
 }
 
-// 画風プリセット
-const IMAGE_STYLE_PRESETS = [
-  { value: 'anime', label: 'アニメ風', description: 'ソフトパステルカラー、繊細な線画' },
-  { value: 'realistic', label: 'リアル風', description: '写実的、映画的な表現' },
-  { value: 'fantasy', label: 'ファンタジー風', description: '幻想的、魔法的な雰囲気' },
-  { value: 'watercolor', label: '水彩画風', description: '柔らかい色彩、絵画的' },
-  { value: 'comic', label: 'コミック風', description: '明確な線、鮮やかな色彩' },
-];
-
 export default function Step3CharacterStyle({
   workflowId,
   initialData,
-  previousStepData,
   onNext,
   onBack,
   onUpdate,
 }: Step3CharacterStyleProps) {
-  const { success, error } = useToast();
+  const { error } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  
-  // デバッグ: データの内容を確認
+
+  // デバッグ: initialDataの内容を確認
   console.log('[Step3CharacterStyle] initialData:', initialData);
-  console.log('[Step3CharacterStyle] previousStepData:', previousStepData);
-  
-  // キャラクター設定
-  const [characters, setCharacters] = useState<Step3Json['userInput']['characters']>(
-    initialData?.userInput?.characters || []
-  );
-  
-  // 画風設定
-  const [imageStyle, setImageStyle] = useState(
-    initialData?.userInput?.imageStyle || {
-      preset: 'anime',
-      customPrompt: '',
-    }
+
+  // フォームの状態管理
+  const [characters, setCharacters] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    faceReference?: string;
+  }>>(
+    initialData?.stepOutput?.userInput?.characters || 
+    initialData?.stepInput?.detailedCharacters?.map(char => ({
+      id: char.id,
+      name: char.name,
+      description: `${char.personality}\n${char.visualDescription}`,
+    })) || 
+    []
   );
 
-  // initialDataまたはpreviousStepDataが変更されたときにフォームデータを更新
+  const [imageStyle, setImageStyle] = useState({
+    preset: initialData?.stepOutput?.userInput?.imageStyle?.preset || 'anime',
+    customPrompt: initialData?.stepOutput?.userInput?.imageStyle?.customPrompt || '',
+  });
+
+  // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.userInput) {
-      console.log('[Step3CharacterStyle] Updating form with initialData.userInput');
-      setCharacters(initialData.userInput.characters || []);
-      setImageStyle(initialData.userInput.imageStyle || {
-        preset: 'anime',
-        customPrompt: '',
+    if (initialData?.stepOutput?.userInput) {
+      console.log('[Step3CharacterStyle] Updating form with stepOutput.userInput');
+      setCharacters(initialData.stepOutput.userInput.characters || []);
+      setImageStyle({
+        preset: initialData.stepOutput.userInput.imageStyle?.preset || 'anime',
+        customPrompt: initialData.stepOutput.userInput.imageStyle?.customPrompt || '',
       });
-    } else if (previousStepData?.generatedContent && characters.length === 0) {
-      // 初回のみ、previousStepDataから初期データを設定
-      console.log('[Step3CharacterStyle] Setting initial data from previousStepData.generatedContent');
-      
-      // generatedContentのキャラクターをStep3の形式に変換
-      const initialCharacters = previousStepData.generatedContent.detailedCharacters?.map(char => ({
-        id: char.id,
-        name: char.name,
-        description: `${char.personality}\n${char.visualDescription}`,
-      })) || [];
-      
-      setCharacters(initialCharacters);
-      
-      // 画風の提案を設定
-      if (previousStepData.generatedContent.suggestedImageStyle) {
-        setImageStyle({
-          preset: previousStepData.generatedContent.suggestedImageStyle.preset || 'anime',
-          customPrompt: previousStepData.generatedContent.suggestedImageStyle.description || '',
-        });
-      }
+    } else if (initialData?.stepInput?.detailedCharacters) {
+      console.log('[Step3CharacterStyle] Updating form with stepInput.detailedCharacters');
+      setCharacters(
+        initialData.stepInput.detailedCharacters.map(char => ({
+          id: char.id,
+          name: char.name,
+          description: `${char.personality}\n${char.visualDescription}`,
+        }))
+      );
     }
-  }, [initialData, previousStepData, characters.length]);
+  }, [initialData]);
 
-
-  // 有効性チェック
+  // 常に有効（必須フィールドなし）
   useEffect(() => {
-    const isValid = characters.length > 0 && characters.every(c => c.name && c.description);
-    onUpdate(isValid);
-  }, [characters, onUpdate]);
+    onUpdate(true);
+  }, [onUpdate]);
 
-  // キャラクター追加
-  const addCharacter = () => {
-    const newCharacter: Step3Json['userInput']['characters'][0] = {
-      id: `char_${Date.now()}`,
-      name: '',
-      description: '',
-    };
-    setCharacters([...characters, newCharacter]);
+  // キャラクターの説明を変更
+  const handleCharacterDescriptionChange = (characterId: string, description: string) => {
+    setCharacters(prev => 
+      prev.map(char => 
+        char.id === characterId 
+          ? { ...char, description }
+          : char
+      )
+    );
   };
 
-  // キャラクター削除
-  const removeCharacter = (index: number) => {
-    setCharacters(characters.filter((_, i) => i !== index));
+  // 画像アップロード処理（将来実装）
+  const handleImageUpload = async (characterId: string, file: File) => {
+    // TODO: 画像アップロード実装
+    console.log('Image upload not implemented yet:', characterId, file);
+    error('画像アップロード機能は準備中です');
   };
 
-  // キャラクター更新
-  const updateCharacter = (index: number, field: keyof Step3Json['userInput']['characters'][0], value: any) => {
-    const newCharacters = [...characters];
-    newCharacters[index] = { ...newCharacters[index], [field]: value };
-    setCharacters(newCharacters);
-  };
-
-
-  // 親コンポーネントから「次へ」ボタンがクリックされたときの処理
-  useEffect(() => {
-    // TODO: 保存処理の実装
-  }, []);
-
-  // データ保存と次へ
+  // 保存処理
   const handleSave = async () => {
-    if (characters.length === 0) {
-      error('最低1人のキャラクターを追加してください');
+    if (!user) {
+      error('認証が必要です');
       return;
     }
 
     setIsLoading(true);
     try {
-      const step3Data: Step3Json = {
-        userInput: {
-          characters,
-          imageStyle,
-        },
-        generatedContent: {
-          acts: [],
-        },
-      };
-
       const response = await fetch(`/api/workflow/${workflowId}/step/3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-UID': user.id,
         },
-        body: JSON.stringify({ data: step3Data }),
+        body: JSON.stringify({
+          data: {
+            characters,
+            imageStyle,
+          },
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save data');
       }
 
-      success('キャラクター設定を保存しました');
       onNext();
     } catch (err) {
       console.error('Failed to save step 3:', err);
@@ -160,95 +134,114 @@ export default function Step3CharacterStyle({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
       {/* ヘッダー */}
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold mb-4">キャラクター & 画風設定</h2>
         <p className="text-gray-400">
-          登場人物の詳細と、動画の画風を設定してください
+          登場人物の詳細と画風を設定します
         </p>
       </div>
 
-      {/* キャラクター設定 */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">登場人物</h3>
-            <button
-              onClick={addCharacter}
-              disabled={isLoading}
-              className="px-4 py-2 bg-gray-700 text-gray-100 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
-            >
-              + キャラクター追加
-            </button>
-          </div>
+      {/* 作品タイトル */}
+      {initialData?.stepInput?.title && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-2">作品タイトル</h3>
+            <p className="text-xl text-gray-300">{initialData.stepInput.title}</p>
+          </CardContent>
+        </Card>
+      )}
 
-          <div className="space-y-4">
-            {characters.map((character, index) => (
-              <div key={character.id} className="bg-gray-700 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <h4 className="text-sm font-medium text-gray-300">
-                    キャラクター {index + 1}
-                  </h4>
+      {/* キャラクター設定 */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">登場人物設定</h3>
+        
+        {characters.map((character) => (
+          <Card key={character.id} className="bg-gray-800 border-gray-700">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <h4 className="text-lg font-medium">{character.name}</h4>
                   <button
-                    onClick={() => removeCharacter(index)}
-                    className="text-red-400 hover:text-red-300 text-sm"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          handleImageUpload(character.id, file);
+                        }
+                      };
+                      input.click();
+                    }}
+                    className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
                     disabled={isLoading}
                   >
-                    削除
+                    顔画像をアップロード
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={character.name}
-                    onChange={(e) => updateCharacter(index, 'name', e.target.value)}
-                    placeholder="名前 *"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    キャラクター説明
+                  </label>
+                  <textarea
+                    value={character.description}
+                    onChange={(e) => handleCharacterDescriptionChange(character.id, e.target.value)}
+                    placeholder="性格や外見の特徴を入力..."
+                    rows={4}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                     disabled={isLoading}
                   />
                 </div>
 
-                <textarea
-                  value={character.description}
-                  onChange={(e) => updateCharacter(index, 'description', e.target.value)}
-                  placeholder="性格と外見の説明 *&#10;（例: 情熱的で前向き、時に無鉄砲だが仲間思い&#10;黒髪の短髪、明るく元気な表情、スポーティな服装）"
-                  rows={4}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  disabled={isLoading}
-                />
+                {character.faceReference && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-400 mb-2">顔参照画像</p>
+                    <img 
+                      src={character.faceReference} 
+                      alt={`${character.name}の顔参照`}
+                      className="w-32 h-32 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* 画風設定 */}
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-6">
-          <h3 className="text-lg font-medium mb-4">画風設定</h3>
+          <h3 className="text-lg font-semibold mb-4">画風設定</h3>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">画風プリセット</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {IMAGE_STYLE_PRESETS.map(preset => (
-                  <button
-                    key={preset.value}
-                    onClick={() => setImageStyle({ ...imageStyle, preset: preset.value })}
-                    className={`p-3 rounded-lg border transition-all ${
-                      imageStyle.preset === preset.value
-                        ? 'bg-purple-600 border-purple-500'
-                        : 'bg-gray-700 border-gray-600 hover:border-gray-500'
-                    }`}
-                    disabled={isLoading}
-                  >
-                    <div className="text-sm font-medium">{preset.label}</div>
-                    <div className="text-xs text-gray-400 mt-1">{preset.description}</div>
-                  </button>
+              <label className="block text-sm font-medium mb-2">
+                プリセットスタイル
+              </label>
+              <select
+                value={imageStyle.preset}
+                onChange={(e) => setImageStyle(prev => ({ ...prev, preset: e.target.value }))}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                disabled={isLoading}
+              >
+                {Object.entries(IMAGE_STYLE_PRESETS).map(([key, value]) => (
+                  <option key={key} value={key}>
+                    {key === 'anime' && 'アニメ風'}
+                    {key === 'watercolor' && '水彩画風'}
+                    {key === 'oil' && '油絵風'}
+                    {key === 'comic' && 'コミック風'}
+                    {key === 'realistic' && 'リアリスティック'}
+                  </option>
                 ))}
-              </div>
+              </select>
+              <p className="text-xs text-gray-400 mt-2">
+                {IMAGE_STYLE_PRESETS[imageStyle.preset as keyof typeof IMAGE_STYLE_PRESETS]}
+              </p>
             </div>
 
             <div>
@@ -257,9 +250,9 @@ export default function Step3CharacterStyle({
               </label>
               <textarea
                 value={imageStyle.customPrompt}
-                onChange={(e) => setImageStyle({ ...imageStyle, customPrompt: e.target.value })}
-                placeholder="追加の画風指定があれば入力..."
-                rows={2}
+                onChange={(e) => setImageStyle(prev => ({ ...prev, customPrompt: e.target.value }))}
+                placeholder="追加のスタイル指定があれば入力..."
+                rows={3}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 disabled={isLoading}
               />
@@ -268,7 +261,23 @@ export default function Step3CharacterStyle({
         </CardContent>
       </Card>
 
-
+      {/* アクションボタン */}
+      <div className="flex justify-between">
+        <button
+          onClick={onBack}
+          disabled={isLoading}
+          className="px-6 py-3 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-white transition-all"
+        >
+          ← 戻る
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="px-6 py-3 rounded-lg font-medium bg-purple-600 hover:bg-purple-700 text-white transition-all"
+        >
+          {isLoading ? '保存中...' : '次へ →'}
+        </button>
+      </div>
     </div>
   );
 }

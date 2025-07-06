@@ -1,262 +1,129 @@
-/**
- * ワークフローシステムの型定義
- */
+// ワークフロー関連の型定義
 
-// ============= 基本型 =============
-
-/** ワークフローの状態 */
-export type WorkflowStatus = 'active' | 'completed' | 'archived';
-
-/** ワークフローの状態管理 */
-export interface WorkflowState {
-  id: string;
-  currentStep: number;
-  canProceed: boolean;
-  canGoBack: boolean;
-  completedSteps: number[];
-}
-
-/** ワークフローテーブルの型 */
-export interface Workflow {
+// プロジェクト関連
+export interface Project {
   id: string;
   uid: string;
-  workspace_id: string | null;
-  title: string | null;
-  current_step: number;
-  status: WorkflowStatus;
-  step1_json: Step1Json | null;
-  step2_json: Step2Json | null;
-  step3_json: Step3Json | null;
-  step4_json: Step4Json | null;
-  step5_json: Step5Json | null;
-  step6_json: Step6Json | null;
-  script_json: MulmoScript | null;
+  name: string;
+  description?: string;
+  status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
 }
 
-// ============= ステップ1: ストーリー入力 =============
-
-export interface Step1Json {
-  // ユーザーが入力した内容
-  userInput: {
-    storyText: string;           // 主なストーリー
-    characters: string;          // 主な登場人物説明
-    dramaticTurningPoint: string; // ドラマチック転換点
-    futureVision: string;        // 未来イメージ
-    learnings: string;           // 学び
-    totalScenes: number;         // 全体シーン数 (1-20)
-    settings: {
-      style: string;             // スタイル設定（シェイクスピア風など）
-      language: string;          // 言語設定 (ja/en)
-    };
-  };
+// ストーリーボード関連
+export interface Storyboard {
+  id: string;
+  project_id: string;
+  uid: string;
+  title?: string;
+  status: 'draft' | 'completed' | 'archived';
   
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    suggestedTitle: string;      // 提案されたタイトル
-    acts: Array<{                // 幕と場の構成案
-      actNumber: number;         // 幕番号
-      actTitle: string;          // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;     // 場番号
-        sceneTitle: string;      // 場タイトル
-        summary: string;         // シーン概要
-      }>;
-    }>;
-    charactersList: Array<{      // 登場人物リスト案
-      name: string;
-      role: string;
-      personality: string;
-    }>;
-  };
+  // カテゴリ別生成データ
+  summary_data?: SummaryData;
+  acts_data?: ActsData;
+  characters_data?: CharactersData;
+  scenes_data?: ScenesData;
+  audio_data?: AudioData;
+  style_data?: StyleData;
+  caption_data?: CaptionData;
+  
+  // 最終的なMulmoScript
+  mulmoscript?: MulmoScript;
+  
+  created_at: string;
+  updated_at: string;
 }
 
-// ============= ステップ2: 初期幕場レビュー =============
-
-export interface Step2Json {
-  // ユーザーが編集・確認した内容
-  userInput: {
-    title: string;               // 作品タイトル
-    acts: Array<{
-      actNumber: number;         // 幕番号
-      actTitle: string;          // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;     // 場番号
-        sceneTitle: string;      // 場タイトル
-        summary: string;         // シーン概要
-      }>;
-    }>;
-  };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    detailedCharacters: Array<{  // 詳細化されたキャラクター情報
-      id: string;
-      name: string;
-      personality: string;
-      visualDescription: string;
-      role: string;
-    }>;
-    suggestedImageStyle: {       // 推奨される画風
-      preset: string;
-      description: string;
-    };
-  };
+// カテゴリ別データ型定義
+export interface SummaryData {
+  title: string;
+  description: string;
+  genre: string;
+  tags: string[];
+  estimatedDuration: number;
 }
 
-// ============= ステップ3: キャラクタ&画風設定 =============
-
-export interface Step3Json {
-  // ユーザーが編集・確認した内容
-  userInput: {
-    characters: Array<{
-      id: string;                // キャラクターID
-      name: string;              // キャラクター名
-      description: string;       // 説明
-      faceReference?: {          // 顔参照画像
-        url: string;
-        storagePath?: string;
-      };
-    }>;
-    imageStyle: {
-      preset: string;            // 画風プリセット
-      customPrompt?: string;     // カスタムプロンプト
-    };
-  };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    acts: Array<{                // 幕と場の構成（詳細な台本付き）
-      actNumber: number;         // 幕番号
-      actTitle: string;          // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;     // 場番号
-        sceneTitle: string;      // 場タイトル
-        summary: string;         // シーン概要
-        dialogues: Array<{       // このシーンのセリフ
-          speaker: string;       // キャラクターID
-          text: string;          // セリフ
-        }>;
-        imagePrompt: string;     // 画像生成用プロンプト
-        duration?: number;       // 推定秒数（オプション）
-      }>;
-    }>;
-  };
-}
-
-// ============= ステップ4: 台本＆静止画プレビュー =============
-
-export interface Step4Json {
-  // ユーザーが編集・確認した内容
-  userInput: {
-    acts: Array<{                 // 幕と場の構成（編集済み台本）
-      actNumber: number;          // 幕番号
-      actTitle: string;           // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;      // 場番号
-        sceneTitle: string;       // 場タイトル
-        summary: string;          // シーン概要
-        dialogues: Array<{        // このシーンのセリフ
-          speaker: string;        // キャラクターID
-          text: string;           // セリフ
-        }>;
-        imagePrompt: string;      // 画像プロンプト
-        imageUrl?: string;        // 生成された画像URL
-        customImage?: {           // カスタム画像（CM等）
-          url: string;
-          storagePath?: string;
-        };
-      }>;
-    }>;
-  };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    voiceAssignments: Record<string, { // 話者への音声割り当て案
-      voiceId: string;            // OpenAI音声ID
-      voiceDescription: string;   // 音声の説明
-    }>;
-    pronunciation: Array<{        // 読み方の注意点
-      actNumber: number;
+export interface ActsData {
+  acts: Array<{
+    actNumber: number;
+    actTitle: string;
+    description?: string;  // オプショナルに変更
+    scenes: Array<{
       sceneNumber: number;
-      originalText: string;
-      suggestedReading: string;
+      sceneTitle: string;
+      summary: string;
     }>;
-  };
+  }>;
 }
 
-// ============= ステップ5: 音声生成 =============
+export interface CharactersData {
+  characters: Array<{
+    id: string;
+    name: string;
+    role: string;
+    personality: string;
+    visualDescription: string;
+    faceReference?: string; // 顔参照画像URL
+    voiceType?: string;
+  }>;
+}
 
-export interface Step5Json {
-  // ユーザーが編集・確認した内容
-  userInput: {
-    speakers: Record<string, {
-      voiceId: string;           // OpenAI音声ID
-      displayName: {
-        ja: string;
-        en: string;
-      };
+export interface ScenesData {
+  scenes: Array<{
+    id: string;
+    actNumber: number;
+    sceneNumber: number;
+    title: string;
+    imagePrompt: string;
+    imageUrl?: string;
+    dialogue: Array<{
+      speaker: string;
+      text: string;
+      emotion?: string;
     }>;
-    audioFiles: Array<{
-      actNumber: number;
-      sceneNumber: number;
-      audioUrl: string;          // 生成された音声URL
-      correctedText?: string;    // 読み間違い修正済みテキスト
-    }>;
+  }>;
+}
+
+export interface AudioData {
+  voiceSettings: {
+    [characterId: string]: {
+      voiceType: string;
+      pitch?: number;
+      speed?: number;
+    };
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    bgmSuggestions: Array<{      // BGM候補
-      url: string;
-      description: string;
-      mood: string;
-    }>;
-    captionSettings: {           // 字幕設定案
-      enabled: boolean;
-      lang: string;
-      stylePreset: string;
+  bgmSettings: {
+    defaultBgm: string;
+    sceneBgm?: {
+      [sceneId: string]: string;
     };
   };
 }
 
-// ============= ステップ6: BGM & 字幕設定 =============
+export interface StyleData {
+  imageStyle: string; // アニメ風、水彩画風など
+  customPrompt?: string;
+  colorPalette?: string[];
+}
 
-export interface Step6Json {
-  // ユーザーが編集・確認した内容
-  userInput: {
-    bgm: {
-      url: string;               // BGM URL
-      volume: number;            // 音量 (0-1)
-      customBgm?: {              // カスタムBGM
-        url: string;
-        storagePath?: string;
-      };
-    };
-    caption: {
-      enabled: boolean;          // 字幕有効/無効
-      lang: string;              // 字幕言語
-      styles: string[];          // CSSスタイル
-    };
-  };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    finalTitle: string;          // 最終タイトル案
-    description: string;         // 作品説明文
-    tags: string[];              // タグ候補
-    estimatedDuration: number;   // 推定動画時間（秒）
+export interface CaptionData {
+  enabled: boolean;
+  language: string;
+  style: {
+    fontSize: number;
+    fontColor: string;
+    backgroundColor: string;
+    position: 'top' | 'bottom';
   };
 }
 
-// ============= MulmoScript =============
-
+// MulmoScript型
 export interface MulmoScript {
   $mulmocast: { version: string };
   title: string;
   lang: string;
-  beats: Array<{                 // MulmoScriptではbeatsという名前を使用
+  beats: Array<{
     text: string;
     speaker: string;
     imagePrompt?: string;
@@ -286,7 +153,266 @@ export interface MulmoScript {
   };
 }
 
-// ============= ヘルパー型 =============
+// ワークフロー関連
+export interface Workflow {
+  id: string;
+  storyboard_id: string;
+  uid: string;
+  current_step: number;
+  status: 'active' | 'completed' | 'archived';
+  
+  // 表示用データ（キャッシュ）
+  step1_in?: Step1Input;
+  step2_in?: Step2Input;
+  step3_in?: Step3Input;
+  step4_in?: Step4Input;
+  step5_in?: Step5Input;
+  step6_in?: Step6Input;
+  step7_in?: Step7Input;
+  
+  // ユーザー入力データ
+  step1_out?: Step1Output;
+  step2_out?: Step2Output;
+  step3_out?: Step3Output;
+  step4_out?: Step4Output;
+  step5_out?: Step5Output;
+  step6_out?: Step6Output;
+  step7_out?: Step7Output;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+// ワークフロー状態管理
+export interface WorkflowState {
+  id: string;
+  currentStep: number;
+  canProceed: boolean;
+  canGoBack: boolean;
+  completedSteps: number[];
+}
+
+// 各ステップのInput/Output型定義
+
+// Step 1: ストーリー入力
+export interface Step1Input {
+  // 初期表示時は空（最初のステップのため）
+}
+
+export interface Step1Output {
+  userInput: {
+    storyText: string;
+    characters: string;
+    dramaticTurningPoint: string;
+    futureVision: string;
+    learnings: string;
+    totalScenes: number;
+    settings: {
+      style: string;
+      language: string;
+    };
+  };
+}
+
+// Step 2: 初期幕場レビュー
+export interface Step2Input {
+  // storyboardsから生成される表示用データ
+  suggestedTitle: string;
+  acts: Array<{
+    actNumber: number;
+    actTitle: string;
+    scenes: Array<{
+      sceneNumber: number;
+      sceneTitle: string;
+      summary: string;
+    }>;
+  }>;
+  charactersList: Array<{
+    id: string;
+    name: string;
+    role: string;
+    personality: string;
+  }>;
+}
+
+export interface Step2Output {
+  userInput: {
+    title: string;
+    acts: Array<{
+      actNumber: number;
+      actTitle: string;
+      scenes: Array<{
+        sceneNumber: number;
+        sceneTitle: string;
+        summary: string;
+      }>;
+    }>;
+  };
+}
+
+// Step 3: キャラクタ&画風設定
+export interface Step3Input {
+  // 前ステップから引き継がれるデータ
+  title: string;
+  detailedCharacters: Array<{
+    id: string;
+    name: string;
+    role: string;
+    personality: string;
+    visualDescription: string;
+  }>;
+}
+
+export interface Step3Output {
+  userInput: {
+    characters: Array<{
+      id: string;
+      name: string;
+      description: string;
+      faceReference?: string; // アップロードされた画像URL
+    }>;
+    imageStyle: {
+      preset: string;
+      customPrompt?: string;
+    };
+  };
+}
+
+// Step 4: 台本＆静止画プレビュー
+export interface Step4Input {
+  title: string;
+  acts: Array<{
+    actNumber: number;
+    actTitle: string;
+  }>;
+  scenes: Array<{
+    id: string;
+    actNumber: number;
+    sceneNumber: number;
+    title: string;
+    imagePrompt: string;
+    dialogue: Array<{
+      speaker: string;
+      text: string;
+    }>;
+  }>;
+}
+
+export interface Step4Output {
+  userInput: {
+    scenes: Array<{
+      id: string;
+      imagePrompt: string;
+      dialogue: Array<{
+        speaker: string;
+        text: string;
+      }>;
+      customImage?: string; // CMなどのアップロード画像
+    }>;
+  };
+}
+
+// Step 5: 音声生成
+export interface Step5Input {
+  characters: Array<{
+    id: string;
+    name: string;
+    suggestedVoice: string;
+  }>;
+  scenes: Array<{
+    id: string;
+    title: string;
+    dialogue: Array<{
+      speaker: string;
+      text: string;
+      audioUrl?: string;
+    }>;
+  }>;
+}
+
+export interface Step5Output {
+  userInput: {
+    voiceSettings: {
+      [characterId: string]: {
+        voiceType: string;
+        corrections?: {
+          [sceneId: string]: {
+            [dialogueIndex: number]: string; // 読み修正
+          };
+        };
+      };
+    };
+  };
+}
+
+// Step 6: BGM & 字幕設定
+export interface Step6Input {
+  suggestedBgm: string;
+  bgmOptions: string[];
+  captionSettings: {
+    enabled: boolean;
+    language: string;
+  };
+}
+
+export interface Step6Output {
+  userInput: {
+    bgm: {
+      selected: string;
+      customBgm?: string; // アップロードされたBGM URL
+      volume: number;
+    };
+    caption: {
+      enabled: boolean;
+      language: string;
+      style: {
+        fontSize: number;
+        fontColor: string;
+        backgroundColor: string;
+        position: 'top' | 'bottom';
+      };
+    };
+  };
+}
+
+// Step 7: 最終確認
+export interface Step7Input {
+  title: string;
+  description: string;
+  thumbnails: Array<{
+    sceneId: string;
+    imageUrl: string;
+  }>;
+  estimatedDuration: number;
+  preview: MulmoScript;
+}
+
+export interface Step7Output {
+  userInput: {
+    title: string;
+    description: string;
+    tags: string[];
+    confirmed: boolean;
+  };
+}
+
+// API レスポンス型
+export interface StepResponse {
+  stepInput: Step1Input | Step2Input | Step3Input | Step4Input | Step5Input | Step6Input | Step7Input;
+  stepOutput?: Step1Output | Step2Output | Step3Output | Step4Output | Step5Output | Step6Output | Step7Output;
+  canEdit: boolean;
+  canProceed: boolean;
+}
+
+// エラー型
+export interface WorkflowError {
+  code: string;
+  message: string;
+  step?: number;
+  field?: string;
+}
+
+// ============= ヘルパー型と定数 =============
 
 /** 画風プリセット */
 export const IMAGE_STYLE_PRESETS = {

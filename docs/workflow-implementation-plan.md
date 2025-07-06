@@ -3,7 +3,7 @@
 ## 1. データベース関連
 
 ### migration files
-- [ ] `/migrations/002_add_workflows_table.sql`
+- [x] `/migrations/003_workflow_architecture_changes.sql`
   - 既存workflowsテーブルのDROP
   - projectsテーブル作成
   - storyboardsテーブル作成（project_id参照）
@@ -14,7 +14,7 @@
 ## 2. 型定義
 
 ### types
-- [ ] `/src/types/workflow.ts`
+- [x] `/src/types/workflow.ts`
   - Project型定義
   - Storyboard型定義（カテゴリ別データ構造含む）
   - SummaryData, ActsData, CharactersData, ScenesData, AudioData, StyleData, CaptionData型定義
@@ -26,32 +26,32 @@
 ## 3. APIエンドポイント
 
 ### project API
-- [ ] `/src/app/api/project/create/route.ts`
+- [x] `/src/app/api/project/create/route.ts`
   - POST: 新規プロジェクト作成
   - uid検証
 
-- [ ] `/src/app/api/project/[project_id]/route.ts`
+- [x] `/src/app/api/project/[project_id]/route.ts`
   - GET: プロジェクト情報取得
   - PUT: プロジェクト情報更新
   - DELETE: プロジェクト削除
 
 ### storyboard API
-- [ ] `/src/app/api/storyboard/create/route.ts`
+- [x] `/src/app/api/storyboard/create/route.ts`
   - POST: 新規storyboard作成（project_id指定）
   - workflow作成も同時実行
   - uid検証
 
-- [ ] `/src/app/api/storyboard/[storyboard_id]/route.ts`
+- [x] `/src/app/api/storyboard/[storyboard_id]/route.ts`
   - GET: storyboard情報取得
   - PUT: storyboard情報更新
   - DELETE: storyboard削除
 
 ### workflow API
-- [ ] `/src/app/api/workflow/[workflow_id]/route.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/route.ts`
   - GET: ワークフロー情報取得
   - DELETE: ワークフロー削除（将来実装）
 
-- [ ] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`
   - GET: ステップ表示用データ取得（StepXInput + StepXOutput）
   - POST: ユーザー入力保存 + LLM生成 + storyboard更新
   - バリデーション処理
@@ -137,10 +137,11 @@
 ## 6. UIコンポーネント
 
 ### 共通コンポーネント
-- [ ] `/src/components/workflow/WorkflowLayout.tsx`
+- [x] `/src/components/workflow/WorkflowLayout.tsx`
   - ワークフロー全体のレイアウト
   - ステップインジケーター
   - ナビゲーション
+  - フッター制御（Step1-3では非表示）
 
 - [ ] `/src/components/workflow/StepIndicator.tsx`
   - 進行状況表示
@@ -153,20 +154,24 @@
   - ローディング表示
 
 ### ステップ別コンポーネント
-- [ ] `/src/components/workflow/steps/Step1StoryInput.tsx`
+- [x] `/src/components/workflow/steps/Step1StoryInput.tsx`
   - ストーリー入力フォーム
   - 文字数カウンター
   - バリデーション表示
+  - 独自の「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step2ScenePreview.tsx`
+- [x] `/src/components/workflow/steps/Step2ScenePreview.tsx`
   - 幕場構成エディタ
   - ドラッグ&ドロップ対応
   - タイトル編集
+  - 登場人物表示を削除（Step3に移動）
+  - 独自の「戻る」「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step3CharacterStyle.tsx`
+- [x] `/src/components/workflow/steps/Step3CharacterStyle.tsx`
   - キャラクター設定
-  - 画像アップロード
+  - 画像アップロード（未実装）
   - 画風選択UI
+  - 独自の「戻る」「次へ」ボタン
 
 - [ ] `/src/components/workflow/steps/Step4ScriptPreview.tsx`
   - Storyboard表示
@@ -213,10 +218,11 @@
 ## 7. ページコンポーネント
 
 ### workflow pages
-- [ ] `/src/app/workflow/[workflow_id]/page.tsx`
+- [x] `/src/app/workflow/[workflow_id]/page.tsx`
   - メインワークフローページ
   - ステップ管理
   - データ取得/保存
+  - Next.js 15対応（Promise params）
 
 - [ ] `/src/app/workflow/[workflow_id]/loading.tsx`
   - ローディング表示
@@ -296,16 +302,16 @@
 
 ## 実装順序の推奨
 
-### Phase 1: 基盤構築（1-2週間）
-1. データベース構造
-2. 型定義
-3. 基本API実装
-4. 共通コンポーネント
+### Phase 1: 基盤構築（完了）
+1. データベース構造 ✓
+2. 型定義 ✓
+3. 基本API実装 ✓
+4. 共通コンポーネント ✓
 
-### Phase 2: ステップ1-3実装（1週間）
-1. ステップ1-3のUI実装
-2. LLM生成ロジック
-3. 状態管理
+### Phase 2: ステップ1-3実装（完了）
+1. ステップ1-3のUI実装 ✓
+2. LLM生成ロジック（一部実装済み）
+3. 状態管理 ✓
 
 ### Phase 3: ステップ4-6実装（1週間）
 1. ステップ4-6のUI実装
@@ -330,3 +336,5 @@
 - エラーハンドリングを適切に実装
 - モバイルファーストで実装
 - アクセシビリティを考慮
+- フッターナビゲーションの重複を避ける（Step1-3は独自ボタン）
+- Next.js 15のPromise params対応を忘れずに

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Storyboard, Workflow } from '@/types/workflow';
 
 // SERVICE_ROLEキーを使用してSupabaseクライアントを作成
 const supabase = createClient(
@@ -12,10 +13,6 @@ const supabase = createClient(
   }
 );
 
-/**
- * POST /api/workflow/create
- * 新規ワークフローを作成（仮のプロジェクトとストーリーボードも同時作成）
- */
 export async function POST(request: NextRequest) {
   try {
     // UIDをヘッダーから取得
@@ -27,52 +24,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // トランザクション的な処理のため、順次作成
-    
-    // 1. デフォルトプロジェクトを取得または作成
-    let projectId: string;
-    
-    // 既存のデフォルトプロジェクトを探す
-    const { data: existingProjects, error: projectFetchError } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('uid', uid)
-      .eq('name', 'デフォルトプロジェクト')
-      .single();
+    // リクエストボディを取得
+    const body = await request.json();
+    const { project_id, title } = body;
 
-    if (existingProjects) {
-      projectId = existingProjects.id;
-    } else {
-      // デフォルトプロジェクトを作成
-      const { data: newProject, error: projectCreateError } = await supabase
-        .from('projects')
-        .insert({
-          uid,
-          name: 'デフォルトプロジェクト',
-          description: '自動作成されたデフォルトプロジェクト',
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (projectCreateError || !newProject) {
-        console.error('プロジェクト作成エラー:', projectCreateError);
-        return NextResponse.json(
-          { error: 'プロジェクトの作成に失敗しました' },
-          { status: 500 }
-        );
-      }
-      
-      projectId = newProject.id;
+    // バリデーション
+    if (!project_id) {
+      return NextResponse.json(
+        { error: 'プロジェクトIDは必須です' },
+        { status: 400 }
+      );
     }
 
-    // 2. ストーリーボードを作成
+    // プロジェクトの存在確認とオーナーシップチェック
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', project_id)
+      .eq('uid', uid)
+      .single();
+
+    if (projectError || !project) {
+      return NextResponse.json(
+        { error: 'プロジェクトが見つかりません' },
+        { status: 404 }
+      );
+    }
+
+    // トランザクション的な処理のため、ストーリーボードとワークフローを順次作成
+    
+    // 1. ストーリーボードを作成
     const { data: storyboard, error: storyboardError } = await supabase
       .from('storyboards')
       .insert({
-        project_id: projectId,
+        project_id,
         uid,
-        title: null, // 初期状態ではタイトルは未設定
+        title: title?.trim() || null,
         status: 'draft'
       })
       .select()
@@ -86,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. ワークフローを作成
+    // 2. ワークフローを作成
     const { data: workflow, error: workflowError } = await supabase
       .from('workflows')
       .insert({
@@ -112,21 +99,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // リダイレクトURL
-    const redirectUrl = `/workflow/${workflow.id}?step=1`;
-
     return NextResponse.json(
       { 
-        success: true,
-        workflow_id: workflow.id,
         storyboard_id: storyboard.id,
-        project_id: projectId,
-        redirect_url: redirectUrl 
+        workflow_id: workflow.id,
+        redirect_url: `/workflow/${workflow.id}`,
+        message: 'ストーリーボードとワークフローが作成されました' 
       },
       { status: 201 }
     );
+
   } catch (error) {
-    console.error('ワークフロー作成API エラー:', error);
+    console.error('ストーリーボード作成API エラー:', error);
     return NextResponse.json(
       { error: 'サーバーエラーが発生しました' },
       { status: 500 }

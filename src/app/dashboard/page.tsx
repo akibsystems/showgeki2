@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
 import { useApp, useToast } from '@/contexts';
 import { useUserWorkspace } from '@/hooks';
+import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -16,6 +17,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 const DashboardContent: React.FC = () => {
   const { state } = useApp();
   const { error } = useToast();
+  const { user } = useAuth();
 
   // Fetch data using SWR hooks
   const { workspace, isLoading: workspaceLoading, ensureWorkspace } = useUserWorkspace();
@@ -81,11 +83,16 @@ const DashboardContent: React.FC = () => {
           size="md" 
           className="w-full"
           onClick={async () => {
+            if (!user) {
+              error('ログインが必要です');
+              return;
+            }
             try {
               const response = await fetch('/api/workflow/create', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  'X-User-UID': user.id,
                 },
               });
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
-import type { Step1Json, Step2Json } from '@/types/workflow';
+import { useAuth } from '@/hooks/useAuth';
+import type { Step2Input, Step2Output } from '@/types/workflow';
 import {
   DndContext,
   closestCenter,
@@ -99,10 +100,10 @@ function SortableScene({
   onTitleChange,
   onSummaryChange,
   onDeleteScene,
-  isLoading
+  isLoading 
 }: { 
-  scene: any;
-  actIndex: number;
+  scene: any; 
+  actIndex: number; 
   sceneIndex: number;
   onTitleChange: (value: string) => void;
   onSummaryChange: (value: string) => void;
@@ -125,26 +126,29 @@ function SortableScene({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className="bg-gray-700 rounded-lg p-4 space-y-3">
-      <div className="flex items-center gap-4">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes}
+      className="bg-gray-700 p-4 rounded-md space-y-2"
+    >
+      <div className="flex items-start gap-2">
         <div 
           {...listeners} 
-          className="cursor-move p-1 hover:bg-gray-600 rounded flex-shrink-0"
+          className="cursor-move p-1 hover:bg-gray-600 rounded flex-shrink-0 mt-1"
           title="ドラッグして並び替え"
         >
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </div>
-        <span className="text-sm text-gray-400 flex-shrink-0">
-          第{scene.sceneNumber}場
-        </span>
+        <span className="text-xs font-medium text-gray-400 flex-shrink-0 mt-2">第{scene.sceneNumber}場</span>
         <input
           type="text"
           value={scene.sceneTitle}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="場のタイトル"
-          className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="flex-1 px-3 py-1 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           disabled={isLoading}
         />
         <button
@@ -172,8 +176,10 @@ function SortableScene({
 
 interface Step2ScenePreviewProps {
   workflowId: string;
-  initialData?: Step2Json;
-  previousStepData?: Step1Json;
+  initialData?: {
+    stepInput: Step2Input;
+    stepOutput?: Step2Output;
+  };
   onNext: () => void;
   onBack: () => void;
   onUpdate: (canProceed: boolean) => void;
@@ -182,22 +188,27 @@ interface Step2ScenePreviewProps {
 export default function Step2ScenePreview({
   workflowId,
   initialData,
-  previousStepData,
   onNext,
   onBack,
   onUpdate,
 }: Step2ScenePreviewProps) {
   const { success, error } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // デバッグ: データの内容を確認
   console.log('[Step2ScenePreview] initialData:', initialData);
-  console.log('[Step2ScenePreview] previousStepData:', previousStepData);
   
   // フォームの状態管理
-  const [title, setTitle] = useState(initialData?.userInput?.title || '');
+  const [title, setTitle] = useState(
+    initialData?.stepOutput?.userInput?.title || 
+    initialData?.stepInput?.suggestedTitle || 
+    ''
+  );
   const [acts, setActs] = useState(
-    initialData?.userInput?.acts || previousStepData?.generatedContent?.acts || []
+    initialData?.stepOutput?.userInput?.acts || 
+    initialData?.stepInput?.acts || 
+    []
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDragType, setActiveDragType] = useState<'act' | 'scene' | null>(null);
@@ -214,18 +225,18 @@ export default function Step2ScenePreview({
     })
   );
 
-  // initialDataまたはpreviousStepDataが変更されたときにフォームデータを更新
+  // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.userInput) {
-      console.log('[Step2ScenePreview] Updating form with initialData.userInput');
-      setTitle(initialData.userInput.title || '');
-      setActs(initialData.userInput.acts || []);
-    } else if (previousStepData?.generatedContent?.acts) {
-      console.log('[Step2ScenePreview] Updating form with previousStepData.generatedContent');
-      setTitle(previousStepData.generatedContent.suggestedTitle || '');
-      setActs(previousStepData.generatedContent.acts || []);
+    if (initialData?.stepOutput?.userInput) {
+      console.log('[Step2ScenePreview] Updating form with stepOutput.userInput');
+      setTitle(initialData.stepOutput.userInput.title || '');
+      setActs(initialData.stepOutput.userInput.acts || []);
+    } else if (initialData?.stepInput) {
+      console.log('[Step2ScenePreview] Updating form with stepInput');
+      setTitle(initialData.stepInput.suggestedTitle || '');
+      setActs(initialData.stepInput.acts || []);
     }
-  }, [initialData, previousStepData]);
+  }, [initialData]);
 
   // タイトルの有効性をチェック
   useEffect(() => {
@@ -300,43 +311,41 @@ export default function Step2ScenePreview({
   const handleDeleteScene = (actIndex: number, sceneIndex: number) => {
     const newActs = [...acts];
     const act = newActs[actIndex];
-    act.scenes.splice(sceneIndex, 1);
+    act.scenes = act.scenes.filter((_, index) => index !== sceneIndex);
     // 場番号を再割り当て
     act.scenes.forEach((scene, index) => {
       scene.sceneNumber = index + 1;
     });
     setActs(newActs);
   };
-  
+
   // ドラッグ開始
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveId(active.id as string);
     
-    // ドラッグタイプを判定
     if (active.id.toString().startsWith('act-')) {
       setActiveDragType('act');
     } else if (active.id.toString().startsWith('scene-')) {
       setActiveDragType('scene');
     }
   };
-  
+
   // ドラッグ終了
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over || active.id === over.id) {
+    if (!over) {
       setActiveId(null);
       setActiveDragType(null);
       return;
     }
-    
+
     if (activeDragType === 'act') {
-      // 幕の並び替え
       const activeIndex = acts.findIndex(act => `act-${act.actNumber}` === active.id);
       const overIndex = acts.findIndex(act => `act-${act.actNumber}` === over.id);
       
-      if (activeIndex !== -1 && overIndex !== -1) {
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         const newActs = arrayMove(acts, activeIndex, overIndex);
         // 幕番号を再割り当て
         newActs.forEach((act, index) => {
@@ -345,20 +354,44 @@ export default function Step2ScenePreview({
         setActs(newActs);
       }
     } else if (activeDragType === 'scene') {
-      // 場の並び替え（同じ幕内）
-      const [activeActIndex, activeSceneIndex] = active.id.toString().replace('scene-', '').split('-').map(Number);
-      const [overActIndex, overSceneIndex] = over.id.toString().replace('scene-', '').split('-').map(Number);
+      // シーンのドラッグ処理
+      const activeIdParts = active.id.toString().split('-');
+      const overIdParts = over.id.toString().split('-');
       
-      if (activeActIndex === overActIndex) {
-        const newActs = [...acts];
-        const act = newActs[activeActIndex];
-        const reorderedScenes = arrayMove(act.scenes, activeSceneIndex, overSceneIndex);
-        // 場番号を再割り当て
-        reorderedScenes.forEach((scene, index) => {
-          scene.sceneNumber = index + 1;
-        });
-        act.scenes = reorderedScenes;
-        setActs(newActs);
+      if (activeIdParts[0] === 'scene' && overIdParts[0] === 'scene') {
+        const activeActIndex = parseInt(activeIdParts[1], 10);
+        const activeSceneIndex = parseInt(activeIdParts[2], 10);
+        const overActIndex = parseInt(overIdParts[1], 10);
+        const overSceneIndex = parseInt(overIdParts[2], 10);
+        
+        if (activeActIndex === overActIndex) {
+          // 同じ幕内での移動
+          const newActs = [...acts];
+          const act = newActs[activeActIndex];
+          act.scenes = arrayMove(act.scenes, activeSceneIndex, overSceneIndex);
+          // 場番号を再割り当て
+          act.scenes.forEach((scene, index) => {
+            scene.sceneNumber = index + 1;
+          });
+          setActs(newActs);
+        } else {
+          // 異なる幕間での移動
+          const newActs = [...acts];
+          const sourceAct = newActs[activeActIndex];
+          const targetAct = newActs[overActIndex];
+          const [movedScene] = sourceAct.scenes.splice(activeSceneIndex, 1);
+          targetAct.scenes.splice(overSceneIndex, 0, movedScene);
+          
+          // 場番号を再割り当て
+          sourceAct.scenes.forEach((scene, index) => {
+            scene.sceneNumber = index + 1;
+          });
+          targetAct.scenes.forEach((scene, index) => {
+            scene.sceneNumber = index + 1;
+          });
+          
+          setActs(newActs);
+        }
       }
     }
     
@@ -366,61 +399,41 @@ export default function Step2ScenePreview({
     setActiveDragType(null);
   };
 
-  // 親コンポーネントから「次へ」ボタンがクリックされたときの処理
-  useEffect(() => {
-    // TODO: 保存処理の実装
-  }, []);
-
-  // データ保存と次へ
+  // 保存処理
   const handleSave = async () => {
-    if (!title.trim()) {
+    if (!title.trim() || !user) {
       error('タイトルを入力してください');
       return;
     }
 
-    // 場のない幕をフィルタリング
-    const filteredActs = acts.filter(act => act.scenes.length > 0);
-    
-    // すべての幕が場を持たない場合の警告
-    if (filteredActs.length === 0) {
-      error('最低1つの場面を作成してください');
-      return;
-    }
-    
-    // 幕番号を再割り当て
-    filteredActs.forEach((act, index) => {
-      act.actNumber = index + 1;
-    });
-
     setIsLoading(true);
     try {
-      const step2Data: Step2Json = {
-        userInput: {
-          title,
-          acts: filteredActs, // フィルタリングされた幕を保存
-        },
-        generatedContent: {
-          detailedCharacters: [],
-          suggestedImageStyle: {
-            preset: 'anime',
-            description: '',
-          },
-        },
-      };
+      // 空の幕を除外
+      const filteredActs = acts.filter(act => act.scenes.length > 0);
+      
+      if (filteredActs.length === 0) {
+        error('少なくとも1つの場が必要です');
+        return;
+      }
 
       const response = await fetch(`/api/workflow/${workflowId}/step/2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-UID': user.id,
         },
-        body: JSON.stringify({ data: step2Data }),
+        body: JSON.stringify({
+          data: {
+            title: title.trim(),
+            acts: filteredActs,
+          },
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save data');
       }
 
-      success('幕場構成を保存しました');
       onNext();
     } catch (err) {
       console.error('Failed to save step 2:', err);
@@ -430,17 +443,19 @@ export default function Step2ScenePreview({
     }
   };
 
+
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
       {/* ヘッダー */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-4">幕場構成の確認</h2>
+        <h2 className="text-3xl font-bold mb-4">幕場構成を確認</h2>
         <p className="text-gray-400">
-          生成された5幕構成を確認し、必要に応じて編集してください
+          生成された構成を確認し、必要に応じて編集してください
         </p>
       </div>
 
-      {/* タイトル入力 */}
+      {/* タイトル編集 */}
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-6">
           <label className="block text-sm font-medium mb-2">
@@ -450,135 +465,125 @@ export default function Step2ScenePreview({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="例: 未来への挑戦 〜夢を追う若者の物語〜"
-            className="w-full text-lg px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="作品のタイトルを入力"
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             disabled={isLoading}
           />
         </CardContent>
       </Card>
 
-      {/* 幕場構成 */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-6">
+
+      {/* 幕場構成エディタ */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">幕場構成</h3>
+          <button
+            onClick={handleAddAct}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"
+            disabled={isLoading}
+          >
+            幕を追加
+          </button>
+        </div>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
           <SortableContext
             items={acts.map(act => `act-${act.actNumber}`)}
             strategy={verticalListSortingStrategy}
           >
-            {acts.map((act, actIndex) => (
-              <SortableAct
-                key={`act-${act.actNumber}`}
-                act={act}
-                actIndex={actIndex}
-                onDeleteAct={handleDeleteAct}
-                isLoading={isLoading}
-              >
-                {/* 幕タイトル */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    幕のタイトル
-                  </label>
+            <div className="space-y-6">
+              {acts.map((act, actIndex) => (
+                <SortableAct
+                  key={`act-${act.actNumber}`}
+                  act={act}
+                  actIndex={actIndex}
+                  onDeleteAct={handleDeleteAct}
+                  isLoading={isLoading}
+                >
                   <input
                     type="text"
                     value={act.actTitle}
                     onChange={(e) => handleActTitleChange(actIndex, e.target.value)}
                     placeholder="幕のタイトル"
-                    className="w-full font-medium px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full mb-4 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     disabled={isLoading}
                   />
-                </div>
-
-                {/* 場の一覧 */}
-                <div className="space-y-4">
-                  {act.scenes.length > 0 ? (
-                    <>
-                      <SortableContext
-                        items={act.scenes.map((_, sceneIndex) => `scene-${actIndex}-${sceneIndex}`)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {act.scenes.map((scene, sceneIndex) => (
-                          <SortableScene
-                            key={`scene-${actIndex}-${sceneIndex}`}
-                            scene={scene}
-                            actIndex={actIndex}
-                            sceneIndex={sceneIndex}
-                            onTitleChange={(value) => handleSceneTitleChange(actIndex, sceneIndex, value)}
-                            onSummaryChange={(value) => handleSceneSummaryChange(actIndex, sceneIndex, value)}
-                            onDeleteScene={() => handleDeleteScene(actIndex, sceneIndex)}
-                            isLoading={isLoading}
-                          />
-                        ))}
-                      </SortableContext>
-                    </>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 bg-gray-700/50 rounded-lg border-2 border-dashed border-gray-600">
-                      <p className="text-sm mb-2">この幕には場がありません</p>
-                      <p className="text-xs">（保存時に空の幕は自動的に削除されます）</p>
-                    </div>
-                  )}
                   
-                  {/* 場を追加ボタン */}
+                  <SortableContext
+                    items={act.scenes.map((_, sceneIndex) => `scene-${actIndex}-${sceneIndex}`)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {act.scenes.map((scene, sceneIndex) => (
+                        <SortableScene
+                          key={`scene-${actIndex}-${sceneIndex}`}
+                          scene={scene}
+                          actIndex={actIndex}
+                          sceneIndex={sceneIndex}
+                          onTitleChange={(value) => handleSceneTitleChange(actIndex, sceneIndex, value)}
+                          onSummaryChange={(value) => handleSceneSummaryChange(actIndex, sceneIndex, value)}
+                          onDeleteScene={() => handleDeleteScene(actIndex, sceneIndex)}
+                          isLoading={isLoading}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                  
                   <button
                     onClick={() => handleAddScene(actIndex)}
-                    className="w-full py-2 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-gray-500 hover:text-gray-300 transition-colors"
+                    className="mt-4 w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition-colors"
                     disabled={isLoading}
                   >
-                    + 場を追加
+                    場を追加
                   </button>
-                </div>
-              </SortableAct>
-            ))}
+                </SortableAct>
+              ))}
+            </div>
           </SortableContext>
           
-          {/* 幕を追加ボタン */}
-          <button
-            onClick={handleAddAct}
-            className="w-full py-3 bg-gray-700 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:bg-gray-600 hover:border-gray-500 hover:text-gray-300 transition-colors"
-            disabled={isLoading}
-          >
-            + 幕を追加
-          </button>
-        </div>
-        
-        {/* ドラッグ中のオーバーレイ */}
-        <DragOverlay>
-          {activeId && activeDragType === 'act' && (
-            <div className="opacity-80">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-6">
-                  <div className="text-sm font-medium text-gray-400">
-                    幕を移動中...
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          {activeId && activeDragType === 'scene' && (
-            <div className="bg-gray-700 rounded-lg p-4 opacity-80">
-              <div className="text-sm text-gray-400">
+          <DragOverlay>
+            {activeId && activeDragType === 'act' && (
+              <div className="bg-gray-800 border border-purple-500 rounded-lg p-4 opacity-80">
+                幕を移動中...
+              </div>
+            )}
+            {activeId && activeDragType === 'scene' && (
+              <div className="bg-gray-700 border border-purple-500 rounded-md p-2 opacity-80">
                 場を移動中...
               </div>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
 
-      {/* ヒント */}
-      <Card className="bg-blue-900/20 border-blue-500/30">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-medium text-blue-400 mb-2">💡 ヒント</h3>
-          <ul className="text-xs text-gray-300 space-y-1 list-disc list-inside">
-            <li>各幕は起承転結の流れに沿って構成されています</li>
-            <li>タイトルや概要は後で変更することも可能です</li>
-            <li>シェイクスピア風の壮大なストーリー展開を意識しています</li>
-          </ul>
-        </CardContent>
-      </Card>
-
+      {/* アクションボタン */}
+      <div className="flex justify-between mt-8">
+        <button
+          onClick={onBack}
+          disabled={isLoading}
+          className="px-6 py-3 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-white transition-all"
+        >
+          ← 戻る
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={!title.trim() || isLoading}
+          className={`
+            px-6 py-3 rounded-lg font-medium transition-all
+            ${title.trim() && !isLoading
+              ? 'bg-purple-600 hover:bg-purple-700 text-white'
+              : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            }
+          `}
+        >
+          {isLoading ? '保存中...' : '次へ →'}
+        </button>
+      </div>
     </div>
   );
 }

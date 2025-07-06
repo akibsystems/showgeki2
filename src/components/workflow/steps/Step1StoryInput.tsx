@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
-import type { Step1Json } from '@/types/workflow';
+import { useAuth } from '@/hooks/useAuth';
+import type { Step1Input, Step1Output } from '@/types/workflow';
 
 interface Step1StoryInputProps {
   workflowId: string;
-  initialData?: Step1Json;
+  initialData?: {
+    stepInput: Step1Input;
+    stepOutput?: Step1Output;
+  };
   onNext: () => void;
   onUpdate: (canProceed: boolean) => void;
 }
@@ -19,6 +23,7 @@ export default function Step1StoryInput({
   onUpdate,
 }: Step1StoryInputProps) {
   const { error } = useToast();
+  const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   
   // デバッグ: initialDataの内容を確認
@@ -26,13 +31,13 @@ export default function Step1StoryInput({
   
   // フォームの状態管理
   const [formData, setFormData] = useState({
-    storyText: initialData?.userInput?.storyText || '',
-    characters: initialData?.userInput?.characters || '',
-    dramaticTurningPoint: initialData?.userInput?.dramaticTurningPoint || '',
-    futureVision: initialData?.userInput?.futureVision || '',
-    learnings: initialData?.userInput?.learnings || '',
-    totalScenes: initialData?.userInput?.totalScenes || 5,
-    settings: initialData?.userInput?.settings || {
+    storyText: initialData?.stepOutput?.userInput?.storyText || '',
+    characters: initialData?.stepOutput?.userInput?.characters || '',
+    dramaticTurningPoint: initialData?.stepOutput?.userInput?.dramaticTurningPoint || '',
+    futureVision: initialData?.stepOutput?.userInput?.futureVision || '',
+    learnings: initialData?.stepOutput?.userInput?.learnings || '',
+    totalScenes: initialData?.stepOutput?.userInput?.totalScenes || 5,
+    settings: initialData?.stepOutput?.userInput?.settings || {
       style: 'shakespeare',
       language: 'ja',
     },
@@ -40,16 +45,16 @@ export default function Step1StoryInput({
 
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.userInput) {
-      console.log('[Step1StoryInput] Updating form with initialData.userInput:', initialData.userInput);
+    if (initialData?.stepOutput?.userInput) {
+      console.log('[Step1StoryInput] Updating form with initialData.stepOutput.userInput:', initialData.stepOutput.userInput);
       setFormData({
-        storyText: initialData.userInput.storyText || '',
-        characters: initialData.userInput.characters || '',
-        dramaticTurningPoint: initialData.userInput.dramaticTurningPoint || '',
-        futureVision: initialData.userInput.futureVision || '',
-        learnings: initialData.userInput.learnings || '',
-        totalScenes: initialData.userInput.totalScenes || 5,
-        settings: initialData.userInput.settings || {
+        storyText: initialData.stepOutput.userInput.storyText || '',
+        characters: initialData.stepOutput.userInput.characters || '',
+        dramaticTurningPoint: initialData.stepOutput.userInput.dramaticTurningPoint || '',
+        futureVision: initialData.stepOutput.userInput.futureVision || '',
+        learnings: initialData.stepOutput.userInput.learnings || '',
+        totalScenes: initialData.stepOutput.userInput.totalScenes || 5,
+        settings: initialData.stepOutput.userInput.settings || {
           style: 'shakespeare',
           language: 'ja',
         },
@@ -57,51 +62,43 @@ export default function Step1StoryInput({
     }
   }, [initialData]);
 
-  // 初期状態とフォーム変更時に検証を実行
-  useEffect(() => {
-    const valid = 
-      formData.storyText.trim().length > 0 &&
-      formData.characters.trim().length > 0;
-    onUpdate(valid);
-  }, [formData.storyText, formData.characters, onUpdate]);
-
-  // 入力検証（ドラマチックな転換点はオプション）
+  // フォームが有効かどうかをチェック
   const isValid = 
     formData.storyText.trim().length > 0 &&
     formData.characters.trim().length > 0;
 
+  // 初期状態で親コンポーネントに有効性を通知
+  useEffect(() => {
+    onUpdate(isValid);
+  }, [isValid, onUpdate]);
+
   // 保存処理
-  const saveData = async () => {
-    if (!isValid) {
+  const handleSave = async () => {
+    if (!isValid || !user) {
       error('必須項目を入力してください');
       return;
     }
 
     setIsSaving(true);
     try {
-      const step1Data: Step1Json = {
-        userInput: {
-          storyText: formData.storyText,
-          characters: formData.characters,
-          dramaticTurningPoint: formData.dramaticTurningPoint,
-          futureVision: formData.futureVision,
-          learnings: formData.learnings,
-          totalScenes: formData.totalScenes,
-          settings: formData.settings,
-        },
-        generatedContent: {
-          suggestedTitle: '',
-          acts: [],
-          charactersList: [],
-        },
-      };
-
+      // API呼び出し
       const response = await fetch(`/api/workflow/${workflowId}/step/1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-UID': user.id,
         },
-        body: JSON.stringify({ data: step1Data }),
+        body: JSON.stringify({ 
+          data: {
+            storyText: formData.storyText,
+            characters: formData.characters,
+            dramaticTurningPoint: formData.dramaticTurningPoint,
+            futureVision: formData.futureVision,
+            learnings: formData.learnings,
+            totalScenes: formData.totalScenes,
+            settings: formData.settings,
+          } 
+        }),
       });
 
       if (!response.ok) {
@@ -130,14 +127,14 @@ export default function Step1StoryInput({
   }, []);
 
   // 入力変更ハンドラー
-  const handleChange = (field: keyof typeof formData, value: string) => {
+  const handleChange = (field: keyof typeof formData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // 有効性をチェックして親コンポーネントに通知
     const newData = { ...formData, [field]: value };
     const valid = 
-      newData.storyText.trim().length > 0 &&
-      newData.characters.trim().length > 0;
+      (typeof newData.storyText === 'string' && newData.storyText.trim().length > 0) &&
+      (typeof newData.characters === 'string' && newData.characters.trim().length > 0);
     onUpdate(valid);
   };
 
@@ -249,12 +246,32 @@ export default function Step1StoryInput({
             />
           </div>
 
-          {/* シーン数の選択 */}
+          {/* 学び（オプション） */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              シーン数 <span className="text-red-500">*</span>
+              学び（任意）
             </label>
-            <div className="space-y-2">
+            <input
+              type="text"
+              value={formData.learnings}
+              onChange={(e) => handleChange('learnings', e.target.value)}
+              placeholder="物語を通して伝えたいメッセージは？"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={isSaving}
+            />
+          </div>
+
+          {/* シーン数設定 */}
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium">
+                全体のシーン数
+              </label>
+              <span className="text-xl font-bold text-purple-400">
+                {formData.totalScenes}
+              </span>
+            </div>
+            <div className="relative">
               <input
                 type="range"
                 min="1"
@@ -262,58 +279,87 @@ export default function Step1StoryInput({
                 value={formData.totalScenes}
                 onChange={(e) => {
                   const value = parseInt(e.target.value, 10);
-                  setFormData(prev => ({ ...prev, totalScenes: value }));
+                  handleChange('totalScenes', value);
                 }}
                 className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                 disabled={isSaving}
               />
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>1</span>
-                <span className="text-sm font-medium text-purple-400">
-                  {formData.totalScenes}シーン
-                </span>
+                <span>5</span>
+                <span>10</span>
+                <span>15</span>
                 <span>20</span>
               </div>
-              <p className="text-xs text-gray-500">
-                物語全体のシーン数を選択してください（デフォルト: 5シーン）
-              </p>
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              シーン数が多いほど、より詳細な物語が生成されます
+            </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* ヒント */}
-      <Card className="bg-blue-900/20 border-blue-500/30">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-medium text-blue-400 mb-2">💡 ヒント</h3>
-          <ul className="text-xs text-gray-300 space-y-1 list-disc list-inside">
-            <li>具体的な出来事や感情を含めると、より良い脚本が生成されます</li>
-            <li>登場人物の性格や関係性を詳しく説明してください</li>
-            <li>シェイクスピア風の壮大なドラマに変換されます</li>
-          </ul>
+          {/* 詳細設定（折りたたみ） */}
+          <details className="mt-6">
+            <summary className="cursor-pointer text-sm font-medium text-gray-300 hover:text-white">
+              詳細設定 ▼
+            </summary>
+            <div className="mt-4 space-y-4">
+              {/* スタイル設定 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  スタイル
+                </label>
+                <select
+                  value={formData.settings.style}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    settings: { ...prev.settings, style: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSaving}
+                >
+                  <option value="shakespeare">シェイクスピア風</option>
+                  <option value="modern">現代風</option>
+                  <option value="fairytale">童話風</option>
+                </select>
+              </div>
+
+              {/* 言語設定 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  言語
+                </label>
+                <select
+                  value={formData.settings.language}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    settings: { ...prev.settings, language: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSaving}
+                >
+                  <option value="ja">日本語</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+            </div>
+          </details>
         </CardContent>
       </Card>
 
       {/* アクションボタン */}
-      <div className="flex justify-between mt-8">
-        <div>{/* ステップ1なので「前へ」ボタンはなし */}</div>
+      <div className="flex justify-end">
         <button
-          onClick={saveData}
+          onClick={handleSave}
           disabled={!isValid || isSaving}
-          className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-            isValid && !isSaving
-              ? 'bg-purple-600 text-white hover:bg-purple-700'
-              : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-          }`}
+          className={`
+            px-6 py-3 rounded-lg font-medium transition-all
+            ${isValid && !isSaving
+              ? 'bg-purple-600 hover:bg-purple-700 text-white'
+              : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            }
+          `}
         >
-          {isSaving ? (
-            <>
-              <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-              保存中...
-            </>
-          ) : (
-            '次へ →'
-          )}
+          {isSaving ? '保存中...' : '次へ →'}
         </button>
       </div>
     </div>
