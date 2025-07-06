@@ -27,45 +27,76 @@ interface WorkflowState {
 ```
 
 ### 2.2 状態管理
-- 各ステップのデータは `workflows` テーブルの `stepX_json` カラムに保存
+- StepNOutput（userInputを含む）は `workflows` テーブルの `stepX_out` カラムに保存
+- StepNInput（表示用データ）は `workflows` テーブルの `stepX_in` カラムにキャッシュとして保存
+- LLM生成データは `storyboards` テーブルの `stepX_generated` カラムに保存
+- 関係性: `project`（1）→ `storyboard`（多）= `workflow`（1）
 - セッションストレージを使用して一時的な編集状態を保持
 - ステップ間の遷移時にAPIを通じてデータを永続化
 
 ## 3. API仕様
 
-### 3.1 ワークフロー作成
+### 3.1 プロジェクト作成
 ```
-POST /api/workflow/create
+POST /api/project/create
 Headers: 
   - X-User-UID: string
+Body:
+  - name: string
+  - description?: string
 Response:
+  - project_id: string
+```
+
+### 3.2 ストーリーボード作成
+```
+POST /api/storyboard/create
+Headers: 
+  - X-User-UID: string
+Body:
+  - project_id: string
+  - title?: string
+Response:
+  - storyboard_id: string
   - workflow_id: string
   - redirect_url: string
 ```
 
-### 3.2 ステップデータ保存
+### 3.3 ステップデータ保存
 ```
 POST /api/workflow/[workflow_id]/step/[step_number]
 Headers:
   - X-User-UID: string
 Body:
-  - data: StepXJson
+  - data: StepXOutput.userInput
 Response:
   - success: boolean
-  - generatedContent: object (次ステップ用の生成コンテンツ)
+  - nextStepInput: StepX+1Input (次ステップ用の表示データ)
 ```
+処理:
+1. workflows.stepX_out に StepXOutput全体（userInputを含む）を保存
+2. LLMで次ステップ用データを生成
+3. storyboards.stepX_generated に生成データを保存
+4. 次ステップの StepX+1Input を生成
+5. workflows.stepX+1_in にキャッシュとして保存
 
-### 3.3 ステップデータ取得
+### 3.4 ステップデータ取得
 ```
 GET /api/workflow/[workflow_id]/step/[step_number]
 Headers:
   - X-User-UID: string
 Response:
-  - data: StepXJson
+  - stepInput: StepXInput (画面表示用データ)
+  - stepOutput: StepXOutput | null (既存の入力データ)
   - canEdit: boolean
+  - canProceed: boolean
 ```
+処理:
+1. workflows.stepX_in からキャッシュされた表示用データを取得
+2. キャッシュが存在しない場合は storyboards から再生成してキャッシュ
+3. workflows.stepX_out から既存のユーザー入力データを取得
 
-### 3.4 MulmoScript生成
+### 3.5 MulmoScript生成
 ```
 POST /api/workflow/[workflow_id]/generate-script
 Headers:
@@ -224,7 +255,8 @@ Response:
 ## 7. セキュリティ
 
 ### 7.1 認証・認可
-- 各APIエンドポイントでUID検証
+- **データベースアクセス**: SERVICE_ROLE キーを使用（RLS不使用）
+- **API認証**: 各APIエンドポイントでUID検証
 - ワークフローの所有者確認
 - Rate limiting実装
 
@@ -232,6 +264,7 @@ Response:
 - アップロード画像のウイルススキャン
 - XSS対策（入力のサニタイズ）
 - SQLインジェクション対策（パラメータ化クエリ）
+- **セキュリティモデル**: データベースレベルではなく、アプリケーションレベルで認可制御
 
 ## 8. モバイル対応
 

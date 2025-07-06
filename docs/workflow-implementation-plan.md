@@ -4,34 +4,56 @@
 
 ### migration files
 - [ ] `/migrations/002_add_workflows_table.sql`
-  - workflowsテーブル作成
+  - 既存workflowsテーブルのDROP
+  - projectsテーブル作成
+  - storyboardsテーブル作成（project_id参照）
+  - 新workflowsテーブル作成（storyboard_id参照, step1_in〜step7_in, step1_out〜step7_out）
   - インデックス追加
-  - RLS設定
+  - **注意**: RLSは使用せず、全てSERVICE_ROLEでアクセス
 
 ## 2. 型定義
 
 ### types
 - [ ] `/src/types/workflow.ts`
+  - Project型定義
+  - Storyboard型定義（カテゴリ別データ構造含む）
+  - SummaryData, ActsData, CharactersData, ScenesData, AudioData, StyleData, CaptionData型定義
   - WorkflowState型定義
-  - Step1Json〜Step7Json型定義
+  - Step1Input/Step1Output〜Step7Input/Step7Output型定義
   - MulmoScript型定義
   - ワークフロー関連の共通型
 
 ## 3. APIエンドポイント
 
-### workflow API
-- [ ] `/src/app/api/workflow/create/route.ts`
-  - POST: 新規ワークフロー作成
+### project API
+- [ ] `/src/app/api/project/create/route.ts`
+  - POST: 新規プロジェクト作成
   - uid検証
-  - workflow_id生成とリダイレクトURL返却
 
+- [ ] `/src/app/api/project/[project_id]/route.ts`
+  - GET: プロジェクト情報取得
+  - PUT: プロジェクト情報更新
+  - DELETE: プロジェクト削除
+
+### storyboard API
+- [ ] `/src/app/api/storyboard/create/route.ts`
+  - POST: 新規storyboard作成（project_id指定）
+  - workflow作成も同時実行
+  - uid検証
+
+- [ ] `/src/app/api/storyboard/[storyboard_id]/route.ts`
+  - GET: storyboard情報取得
+  - PUT: storyboard情報更新
+  - DELETE: storyboard削除
+
+### workflow API
 - [ ] `/src/app/api/workflow/[workflow_id]/route.ts`
   - GET: ワークフロー情報取得
   - DELETE: ワークフロー削除（将来実装）
 
 - [ ] `/src/app/api/workflow/[workflow_id]/step/[step]/route.ts`
-  - GET: ステップデータ取得
-  - POST: ステップデータ保存とLLM生成
+  - GET: ステップ表示用データ取得（StepXInput + StepXOutput）
+  - POST: ユーザー入力保存 + LLM生成 + storyboard更新
   - バリデーション処理
 
 - [ ] `/src/app/api/workflow/[workflow_id]/generate-script/route.ts`
@@ -50,35 +72,48 @@
 
 ### generators
 - [ ] `/src/lib/workflow/generators/step1-generator.ts`
-  - タイトル案生成
-  - 幕場構成生成
-  - 登場人物リスト生成
+  - Step1Output → Step2Input生成
+  - storyboards.summary_data 更新（ユーザーストーリー保存、タイトル案生成）
+  - storyboards.acts_data 更新（幕場構成生成）
 
 - [ ] `/src/lib/workflow/generators/step2-generator.ts`
-  - キャラクター詳細情報生成
-  - 画風提案生成
+  - Step2Output → Step3Input生成
+  - storyboards.summary_data 更新（確定タイトル・作品情報）
+  - storyboards.acts_data 更新（確定した幕場構成）
+  - storyboards.characters_data 更新（キャラクター詳細情報生成）
 
 - [ ] `/src/lib/workflow/generators/step3-generator.ts`
-  - シーンごとの台本生成
-  - 画像プロンプト生成
+  - Step3Output → Step4Input生成
+  - storyboards.characters_data 更新（確定キャラクター情報）
+  - storyboards.style_data 更新（画風設定）
+  - storyboards.scenes_data 更新（シーンごとの台本生成）
 
 - [ ] `/src/lib/workflow/generators/step4-generator.ts`
-  - 音声割り当て提案
-  - 読み方注意点生成
+  - Step4Output → Step5Input生成
+  - storyboards.scenes_data 更新（確定台本・画像プロンプト）
+  - storyboards.audio_data 更新（音声割り当て提案）
 
 - [ ] `/src/lib/workflow/generators/step5-generator.ts`
-  - BGM提案生成
-  - 字幕設定提案
+  - Step5Output → Step6Input生成
+  - storyboards.audio_data 更新（確定音声設定）
+  - storyboards.style_data 更新（BGM設定提案）
+  - storyboards.caption_data 更新（字幕設定提案）
 
-- [ ] `/src/lib/workflow/generators/script-generator.ts`
-  - 最終的なMulmoScript生成
-  - 各ステップのデータ統合
+- [ ] `/src/lib/workflow/generators/step6-generator.ts`
+  - Step6Output → Step7Input生成
+  - storyboards.audio_data, style_data, caption_data 最終更新
+  - storyboards.mulmoscript 生成（最終的なMulmoScript）
+
+- [ ] `/src/lib/workflow/generators/storyboard-manager.ts`
+  - カテゴリ別データの統合管理
+  - 各カテゴリデータの整合性チェック
+  - MulmoScript生成・変換ロジック
 
 ## 5. ユーティリティ
 
 ### utils
 - [ ] `/src/lib/workflow/validation.ts`
-  - 各ステップの入力検証
+  - 各ステップのInput/Output検証
   - 文字数制限チェック
   - 必須項目チェック
 
@@ -91,6 +126,13 @@
   - 画像/音声アップロード処理
   - Supabase Storage操作
   - ファイルサイズ/形式チェック
+
+- [ ] `/src/lib/workflow/storyboard-manager.ts`
+  - storyboards テーブル操作
+  - カテゴリ別データの保存/取得
+  - Step Input データの構築
+  - カテゴリ間データの整合性チェック
+  - MulmoScript生成支援機能
 
 ## 6. UIコンポーネント
 
@@ -191,7 +233,7 @@
   - エラーハンドリング
 
 - [ ] `/src/hooks/workflow/useStep.ts`
-  - 各ステップのデータ管理
+  - 各ステップのInput/Outputデータ管理
   - 保存/取得
   - バリデーション
 
@@ -199,6 +241,11 @@
   - 自動保存機能
   - デバウンス処理
   - 保存状態管理
+
+- [ ] `/src/hooks/workflow/useStoryboard.ts`
+  - storyboard データの管理
+  - 生成データの取得/更新
+  - Step Input データの構築
 
 ## 9. スタイル
 

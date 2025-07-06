@@ -169,30 +169,375 @@
 
 ## データベース設計
 
-### workflowsテーブル
+### projectsテーブル
 ```sql
-CREATE TABLE workflows (
+CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   uid TEXT NOT NULL,
-  workspace_id UUID REFERENCES workspaces(id),
-  title TEXT,
-  current_step INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'active', -- active, completed, archived
-  step1_json JSONB,
-  step2_json JSONB,
-  step3_json JSONB,
-  step4_json JSONB,
-  step5_json JSONB,
-  step6_json JSONB,
-  script_json JSONB, -- 最終的なMulmoScript
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'active', -- active, archived
+  
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- インデックス
+CREATE INDEX idx_projects_uid ON projects(uid);
+CREATE INDEX idx_projects_status ON projects(status);
+
+-- RLSは使用しない（SERVICE_ROLEでアクセス）
+```
+
+### storyboardsテーブル
+```sql
+CREATE TABLE storyboards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  uid TEXT NOT NULL,
+  status TEXT DEFAULT 'draft', -- draft, completed, archived
+  
+  -- カテゴリ別生成データ
+  summary_data JSONB,        -- 作品概要・全体情報データ
+  acts_data JSONB,           -- 幕場構成データ
+  characters_data JSONB,     -- キャラクター設定データ
+  scenes_data JSONB,         -- シーン一覧データ
+  audio_data JSONB,          -- BGM・音声設定データ
+  style_data JSONB,          -- 画風・スタイル設定データ
+  caption_data JSONB,        -- 字幕設定データ
+  
+  -- 最終的なMulmoScript
+  mulmoscript JSONB,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- インデックス
+CREATE INDEX idx_storyboards_project_id ON storyboards(project_id);
+CREATE INDEX idx_storyboards_uid ON storyboards(uid);
+CREATE INDEX idx_storyboards_status ON storyboards(status);
+
+-- RLSは使用しない（SERVICE_ROLEでアクセス）
+```
+
+### workflowsテーブル
+```sql
+CREATE TABLE workflows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  storyboard_id UUID NOT NULL REFERENCES storyboards(id) ON DELETE CASCADE,
+  uid TEXT NOT NULL,
+  current_step INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'active', -- active, completed, archived
+  
+  -- 表示用データ（キャッシュ）
+  step1_in JSONB,
+  step2_in JSONB,
+  step3_in JSONB,
+  step4_in JSONB,
+  step5_in JSONB,
+  step6_in JSONB,
+  step7_in JSONB,
+  
+  -- ユーザー入力データ
+  step1_out JSONB,
+  step2_out JSONB,
+  step3_out JSONB,
+  step4_out JSONB,
+  step5_out JSONB,
+  step6_out JSONB,
+  step7_out JSONB,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- インデックス
+CREATE INDEX idx_workflows_storyboard_id ON workflows(storyboard_id);
 CREATE INDEX idx_workflows_uid ON workflows(uid);
-CREATE INDEX idx_workflows_workspace_id ON workflows(workspace_id);
 CREATE INDEX idx_workflows_status ON workflows(status);
+
+-- RLSは使用しない（SERVICE_ROLEでアクセス）
+```
+
+## storyboardsのカテゴリ別データ構造
+
+### summary_data: 作品概要・全体情報データ
+```typescript
+interface SummaryData {
+  // ユーザーの元ストーリー
+  originalStory: {
+    mainStory: string;            // 主なストーリー
+    characters: string;           // 主な登場人物説明
+    dramaticTurningPoint: string; // ドラマチック転換点
+    futureVision: string;         // 未来イメージ
+    learnings: string;            // 学び
+  };
+  
+  // 作品情報
+  workInfo: {
+    suggestedTitles: string[];    // 提案されたタイトル候補
+    selectedTitle: string;        // 選択されたタイトル
+    subtitle?: string;            // サブタイトル
+    description: string;          // 作品説明
+    synopsis: string;             // あらすじ
+    theme: string;                // テーマ
+    message: string;              // 伝えたいメッセージ
+    tags: string[];               // タグ一覧
+    genre: string;                // ジャンル
+    targetAudience: string;       // ターゲット視聴者
+  };
+  
+  // 技術設定
+  technicalSettings: {
+    language: string;             // 言語設定 (ja/en)
+    style: string;                // 作品スタイル（シェイクスピア風など）
+    totalScenes: number;          // 全体シーン数 (1-20)
+    estimatedDuration: number;    // 推定動画時間（秒）
+    complexity: string;           // 作品の複雑さレベル
+  };
+  
+  // 全体構成
+  overallStructure: {
+    introduction: string;         // 導入部の説明
+    development: string;          // 展開部の説明
+    climax: string;               // クライマックスの説明
+    resolution: string;           // 結末部の説明
+    keyTurningPoints: string[];   // 重要な転換点
+  };
+  
+  // メタデータ
+  metadata: {
+    createdAt: string;            // 作成日時
+    lastModified: string;         // 最終更新日時
+    version: number;              // バージョン番号
+    inspirations?: string[];      // インスピレーション元
+    references?: string[];        // 参考資料
+  };
+}
+```
+
+### acts_data: 幕場構成データ
+```typescript
+interface ActsData {
+  totalActs: number;              // 総幕数
+  totalScenes: number;            // 総シーン数
+  acts: Array<{
+    actNumber: number;            // 幕番号
+    actTitle: string;             // 幕タイトル
+    actDescription: string;       // 幕の説明
+    scenes: Array<{
+      sceneId: string;            // シーンID（UUID）
+      sceneNumber: number;        // シーン番号
+      sceneTitle: string;         // シーンタイトル
+      summary: string;            // シーン概要
+      estimatedDuration?: number; // 推定時間（秒）
+      mood: string;               // シーンの雰囲気
+      location?: string;          // 場所設定
+      timeOfDay?: string;         // 時間帯
+    }>;
+  }>;
+  overallStructure: string;       // 全体構成の説明
+  climax: {
+    actNumber: number;            // クライマックスの幕
+    sceneNumber: number;          // クライマックスのシーン
+    sceneId: string;              // クライマックスのシーンID
+    description: string;          // クライマックスの説明
+  };
+}
+```
+
+### characters_data: キャラクター設定データ
+```typescript
+interface CharactersData {
+  mainCharacters: Array<{
+    id: string;                   // キャラクターID
+    name: string;                 // キャラクター名
+    role: string;                 // 役割（主人公、友人、敵役など）
+    personality: string;          // 性格
+    visualDescription: string;    // 外見描写
+    background: string;           // 背景・設定
+    motivation: string;           // 動機
+    characterArc: string;         // キャラクターの成長
+    relationships: Array<{        // 他キャラとの関係
+      characterId: string;
+      relationship: string;
+    }>;
+    voiceCharacteristics: string; // 音声特徴
+    faceReference?: {             // 顔参照画像
+      url: string;
+      storagePath?: string;
+      description: string;
+    };
+  }>;
+  supportingCharacters: Array<{   // サブキャラクター
+    id: string;
+    name: string;
+    role: string;
+    description: string;
+  }>;
+  characterRelationships: string; // 全体的な人間関係の説明
+}
+```
+
+### scenes_data: シーン一覧データ
+```typescript
+interface ScenesData {
+  scenes: Array<{
+    sceneId: string;              // シーンID（acts_dataで定義されたものを参照）
+    actNumber: number;            // 所属する幕
+    sceneNumber: number;          // シーン番号
+    title: string;                // シーンタイトル
+    summary: string;              // シーン概要
+    dialogues: Array<{            // セリフ一覧
+      id: string;                 // セリフID
+      speaker: string;            // 話者（キャラクターID）
+      text: string;               // セリフテキスト
+      emotion: string;            // 感情表現
+      volume: number;             // 音量 (0-1)
+      speed: number;              // 話速 (0.5-2.0)
+      pauseBefore?: number;       // 前の間（秒）
+      pauseAfter?: number;        // 後の間（秒）
+    }>;
+    imagePrompt: string;          // 画像生成用プロンプト
+    imageUrl?: string;            // 生成された画像URL
+    customImage?: {               // カスタム画像
+      url: string;
+      storagePath?: string;
+      description: string;
+    };
+    mood: string;                 // シーンの雰囲気
+    visualElements: string[];     // 視覚的要素
+    cameraAngle?: string;         // カメラアングル
+    lighting?: string;            // 照明設定
+    estimatedDuration: number;    // 推定時間（秒）
+  }>;
+  totalDialogues: number;         // 総セリフ数
+  averageSceneDuration: number;   // 平均シーン時間
+  
+  // sceneId マッピング（acts_dataとの整合性確保）
+  sceneIdMapping: Record<string, {
+    actNumber: number;
+    sceneNumber: number;
+    sceneTitle: string;
+  }>;
+}
+```
+
+### audio_data: BGM・音声設定データ
+```typescript
+interface AudioData {
+  speakers: Record<string, {      // キャラクターごとの音声設定
+    characterId: string;
+    voiceId: string;              // OpenAI音声ID
+    displayName: {
+      ja: string;
+      en: string;
+    };
+    voiceDescription: string;     // 音声の説明
+    sampleUrl?: string;           // サンプル音声URL
+  }>;
+  bgm: {
+    preset?: {                    // プリセットBGM
+      id: string;
+      name: string;
+      url: string;
+      description: string;
+      mood: string;
+    };
+    custom?: {                    // カスタムBGM
+      url: string;
+      storagePath?: string;
+      name: string;
+      description: string;
+    };
+    volume: number;               // BGM音量 (0-1)
+    fadeIn: number;               // フェードイン時間（秒）
+    fadeOut: number;              // フェードアウト時間（秒）
+  };
+  soundEffects: Array<{          // 効果音設定
+    sceneId: string;
+    effectType: string;           // 効果音タイプ
+    url: string;
+    volume: number;
+    timing: number;               // 再生タイミング（秒）
+  }>;
+  overallAudioStyle: string;      // 全体的な音響スタイル
+  pronunciation: Array<{          // 読み方注意点
+    sceneId: string;
+    dialogueId: string;
+    originalText: string;
+    correctedText: string;
+    phonetic?: string;            // 発音記号
+  }>;
+}
+```
+
+### style_data: 画風・スタイル設定データ
+```typescript
+interface StyleData {
+  imageStyle: {
+    preset: string;               // 画風プリセット
+    description: string;          // 画風の説明
+    customPrompt?: string;        // カスタムプロンプト
+    baseStyle: string;            // ベーススタイル（アニメ風、水彩画風など）
+    colorPalette: string[];       // カラーパレット
+    lighting: string;             // 照明スタイル
+    composition: string;          // 構図スタイル
+  };
+  visualTheme: {
+    mood: string;                 // 全体的な雰囲気
+    timePeriod: string;          // 時代設定
+    location: string;             // 主な舞台設定
+    culturalElements: string[];   // 文化的要素
+  };
+  transitions: {
+    sceneTransition: string;      // シーン転換エフェクト
+    duration: number;             // 転換時間（秒）
+    style: string;                // 転換スタイル
+  };
+}
+```
+
+### caption_data: 字幕設定データ
+```typescript
+interface CaptionData {
+  enabled: boolean;               // 字幕有効/無効
+  language: string;               // 字幕言語 (ja/en)
+  textSettings: {
+    fontSize: number;             // フォントサイズ (px)
+    fontFamily: string;           // フォントファミリー
+    fontWeight: string;           // フォント太さ
+    color: string;                // 文字色 (hex)
+    strokeColor?: string;         // 縁取り色 (hex)
+    strokeWidth?: number;         // 縁取り幅 (px)
+    backgroundColor?: string;     // 背景色 (hex)
+    backgroundOpacity?: number;   // 背景透明度 (0-1)
+  };
+  positioning: {
+    position: string;             // 表示位置 (bottom/top/center)
+    marginBottom: number;         // 下マージン (px)
+    marginTop: number;            // 上マージン (px)
+    horizontalAlign: string;      // 水平配置 (left/center/right)
+    maxWidth: number;             // 最大幅 (%)
+  };
+  timing: {
+    displayDuration: number;      // 表示時間 (秒)
+    fadeInDuration: number;       // フェードイン時間 (秒)
+    fadeOutDuration: number;      // フェードアウト時間 (秒)
+    syncWithAudio: boolean;       // 音声と同期
+  };
+  animation: {
+    type: string;                 // アニメーション種類
+    duration: number;             // アニメーション時間 (秒)
+    easing: string;               // イージング関数
+  };
+  sceneOverrides: Array<{         // シーン別設定
+    sceneId: string;
+    overrideSettings: Partial<CaptionData>;
+  }>;
+  customCSS?: string;             // カスタムCSS
+}
 ```
 
 ### URL設計
@@ -203,11 +548,17 @@ CREATE INDEX idx_workflows_status ON workflows(status);
 ## 各ステップの入出力JSONスキーマ
 
 ### ステップ1: ストーリー入力 (01_STORY_INPUT)
-**入力**: なし（初期ステップ）
-**出力**:
+
+#### Step1Input
 ```typescript
-interface Step1Json {
-  // ユーザーが入力した内容
+interface Step1Input {
+  // 初期表示時は空（最初のステップのため）
+}
+```
+
+#### Step1Output
+```typescript
+interface Step1Output {
   userInput: {
     storyText: string;           // 主なストーリー
     characters: string;          // 主な登場人物説明
@@ -220,34 +571,36 @@ interface Step1Json {
       language: string;          // 言語設定 (ja/en)
     };
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    suggestedTitle: string;      // 提案されたタイトル
-    acts: Array<{                // 幕と場の構成案
-      actNumber: number;         // 幕番号
-      actTitle: string;          // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;     // 場番号
-        sceneTitle: string;      // 場タイトル
-        summary: string;         // シーン概要
-      }>;
-    }>;
-    charactersList: Array<{      // 登場人物リスト案
-      name: string;
-      role: string;
-      personality: string;
-    }>;
-  };
 }
 ```
 
 ### ステップ2: 初期幕場レビュー (02_SCENE_PREVIEW)
-**入力**: Step1Json
-**出力**:
+
+#### Step2Input
 ```typescript
-interface Step2Json {
-  // ユーザーが編集・確認した内容
+interface Step2Input {
+  // storyboardsから生成される表示用データ
+  suggestedTitle: string;      // 提案されたタイトル
+  acts: Array<{                // 幕と場の構成案
+    actNumber: number;         // 幕番号
+    actTitle: string;          // 幕タイトル
+    scenes: Array<{
+      sceneNumber: number;     // 場番号
+      sceneTitle: string;      // 場タイトル
+      summary: string;         // シーン概要
+    }>;
+  }>;
+  charactersList: Array<{      // 登場人物リスト案
+    name: string;
+    role: string;
+    personality: string;
+  }>;
+}
+```
+
+#### Step2Output
+```typescript
+interface Step2Output {
   userInput: {
     title: string;               // 作品タイトル
     acts: Array<{
@@ -260,30 +613,32 @@ interface Step2Json {
       }>;
     }>;
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    detailedCharacters: Array<{  // 詳細化されたキャラクター情報
-      id: string;
-      name: string;
-      personality: string;
-      visualDescription: string;
-      role: string;
-    }>;
-    suggestedImageStyle: {       // 推奨される画風
-      preset: string;
-      description: string;
-    };
-  };
 }
 ```
 
 ### ステップ3: キャラクタ&画風設定 (03_CHARACTER_STYLE)
-**入力**: Step2Json
-**出力**:
+
+#### Step3Input
 ```typescript
-interface Step3Json {
-  // ユーザーが編集・確認した内容
+interface Step3Input {
+  // storyboardsから生成される表示用データ
+  detailedCharacters: Array<{  // 詳細化されたキャラクター情報
+    id: string;
+    name: string;
+    personality: string;
+    visualDescription: string;
+    role: string;
+  }>;
+  suggestedImageStyle: {       // 推奨される画風
+    preset: string;
+    description: string;
+  };
+}
+```
+
+#### Step3Output
+```typescript
+interface Step3Output {
   userInput: {
     characters: Array<{
       id: string;                // キャラクターID
@@ -299,34 +654,36 @@ interface Step3Json {
       customPrompt?: string;     // カスタムプロンプト
     };
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    acts: Array<{                // 幕と場の構成（詳細な台本付き）
-      actNumber: number;         // 幕番号
-      actTitle: string;          // 幕タイトル
-      scenes: Array<{
-        sceneNumber: number;     // 場番号
-        sceneTitle: string;      // 場タイトル
-        summary: string;         // シーン概要
-        dialogues: Array<{       // このシーンのセリフ
-          speaker: string;       // キャラクターID
-          text: string;          // セリフ
-        }>;
-        imagePrompt: string;     // 画像生成用プロンプト
-        duration?: number;       // 推定秒数（オプション）
-      }>;
-    }>;
-  };
 }
 ```
 
 ### ステップ4: 台本＆静止画プレビュー (04_SCRIPT_PREVIEW)
-**入力**: Step3Json
-**出力**:
+
+#### Step4Input
 ```typescript
-interface Step4Json {
-  // ユーザーが編集・確認した内容
+interface Step4Input {
+  // storyboardsから生成される表示用データ
+  acts: Array<{                // 幕と場の構成（詳細な台本付き）
+    actNumber: number;         // 幕番号
+    actTitle: string;          // 幕タイトル
+    scenes: Array<{
+      sceneNumber: number;     // 場番号
+      sceneTitle: string;      // 場タイトル
+      summary: string;         // シーン概要
+      dialogues: Array<{       // このシーンのセリフ
+        speaker: string;       // キャラクターID
+        text: string;          // セリフ
+      }>;
+      imagePrompt: string;     // 画像生成用プロンプト
+      duration?: number;       // 推定秒数（オプション）
+    }>;
+  }>;
+}
+```
+
+#### Step4Output
+```typescript
+interface Step4Output {
   userInput: {
     acts: Array<{                 // 幕と場の構成（編集済み台本）
       actNumber: number;          // 幕番号
@@ -348,29 +705,31 @@ interface Step4Json {
       }>;
     }>;
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    voiceAssignments: Record<string, { // 話者への音声割り当て案
-      voiceId: string;            // OpenAI音声ID
-      voiceDescription: string;   // 音声の説明
-    }>;
-    pronunciation: Array<{        // 読み方の注意点
-      actNumber: number;
-      sceneNumber: number;
-      originalText: string;
-      suggestedReading: string;
-    }>;
-  };
 }
 ```
 
 ### ステップ5: 音声生成 (05_VOICE_GEN)
-**入力**: Step4Json
-**出力**:
+
+#### Step5Input
 ```typescript
-interface Step5Json {
-  // ユーザーが編集・確認した内容
+interface Step5Input {
+  // storyboardsから生成される表示用データ
+  voiceAssignments: Record<string, { // 話者への音声割り当て案
+    voiceId: string;            // OpenAI音声ID
+    voiceDescription: string;   // 音声の説明
+  }>;
+  pronunciation: Array<{        // 読み方の注意点
+    actNumber: number;
+    sceneNumber: number;
+    originalText: string;
+    suggestedReading: string;
+  }>;
+}
+```
+
+#### Step5Output
+```typescript
+interface Step5Output {
   userInput: {
     speakers: Record<string, {
       voiceId: string;           // OpenAI音声ID
@@ -386,29 +745,31 @@ interface Step5Json {
       correctedText?: string;    // 読み間違い修正済みテキスト
     }>;
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    bgmSuggestions: Array<{      // BGM候補
-      url: string;
-      description: string;
-      mood: string;
-    }>;
-    captionSettings: {           // 字幕設定案
-      enabled: boolean;
-      lang: string;
-      stylePreset: string;
-    };
-  };
 }
 ```
 
 ### ステップ6: BGM & 字幕設定 (06_BGM_SUBTITLE)
-**入力**: Step5Json
-**出力**:
+
+#### Step6Input
 ```typescript
-interface Step6Json {
-  // ユーザーが編集・確認した内容
+interface Step6Input {
+  // storyboardsから生成される表示用データ
+  bgmSuggestions: Array<{      // BGM候補
+    url: string;
+    description: string;
+    mood: string;
+  }>;
+  captionSettings: {           // 字幕設定案
+    enabled: boolean;
+    lang: string;
+    stylePreset: string;
+  };
+}
+```
+
+#### Step6Output
+```typescript
+interface Step6Output {
   userInput: {
     bgm: {
       url: string;               // BGM URL
@@ -424,20 +785,38 @@ interface Step6Json {
       styles: string[];          // CSSスタイル
     };
   };
-  
-  // LLMが生成した次ステップ用の初期表示内容
-  generatedContent: {
-    finalTitle: string;          // 最終タイトル案
-    description: string;         // 作品説明文
-    tags: string[];              // タグ候補
-    estimatedDuration: number;   // 推定動画時間（秒）
-  };
 }
 ```
 
 ### ステップ7: 最終確認 (07_CONFIRM_PREVIEW)
-**入力**: すべての前ステップのJSONを統合
-**出力**: 
+
+#### Step7Input
+```typescript
+interface Step7Input {
+  // storyboardsから生成される表示用データ
+  finalTitle: string;          // 最終タイトル案
+  description: string;         // 作品説明文
+  tags: string[];              // タグ候補
+  estimatedDuration: number;   // 推定動画時間（秒）
+  
+  // 最終的なMulmoScript
+  mulmoScript: MulmoScript;
+}
+```
+
+#### Step7Output
+```typescript
+interface Step7Output {
+  userInput: {
+    finalTitle: string;          // 最終タイトル
+    description: string;         // 作品説明文
+    tags: string[];              // タグ
+    confirmGeneration: boolean;  // 動画生成確認
+  };
+}
+```
+
+### MulmoScript
 ```typescript
 interface MulmoScript {
   $mulmocast: { version: string };
