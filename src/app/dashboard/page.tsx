@@ -75,7 +75,35 @@ const DashboardContent: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
         </svg>
       ),
-      action: (
+      action: process.env.NEXT_PUBLIC_ENABLE_WORKFLOW === 'true' ? (
+        <Button 
+          variant="primary" 
+          size="md" 
+          className="w-full"
+          onClick={async () => {
+            try {
+              const response = await fetch('/api/workflow/create', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to create workflow');
+              }
+
+              const data = await response.json();
+              window.location.href = data.redirect_url;
+            } catch (err) {
+              console.error('Failed to create workflow:', err);
+              error('ワークフローの作成に失敗しました');
+            }
+          }}
+        >
+          脚本を作成
+        </Button>
+      ) : (
         <Link href="/stories/new">
           <Button variant="primary" size="md" className="w-full">
             脚本を作成
