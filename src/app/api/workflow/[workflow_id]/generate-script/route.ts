@@ -286,6 +286,20 @@ function enhanceMulmoScriptWithWorkflowData(
     });
   }
 
+  // 字幕設定を適用
+  if (storyboard.caption_data?.enabled) {
+    baseScript.captionParams = {
+      lang: storyboard.caption_data.language || 'ja',
+      styles: storyboard.caption_data.styles || [
+        "font-size: 24px",
+        "color: white",
+        "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
+        "font-family: 'Noto Sans JP', sans-serif",
+        "font-weight: bold"
+      ]
+    };
+  }
+
   return baseScript as MulmoScript;
 }
 

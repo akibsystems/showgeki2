@@ -24,14 +24,18 @@ function BgmSelector({
   volume,
   onBgmChange,
   onVolumeChange,
-  isLoading
+  onPreview,
+  isLoading,
+  isPreviewLoading
 }: {
   selectedBgm: string;
   bgmOptions: string[];
   volume: number;
   onBgmChange: (bgm: string) => void;
   onVolumeChange: (volume: number) => void;
+  onPreview: (bgm: string) => void;
   isLoading: boolean;
+  isPreviewLoading: boolean;
 }) {
   const bgmDisplayNames: { [key: string]: string } = {
     'default-bgm-1': 'スタンダード',
@@ -50,22 +54,40 @@ function BgmSelector({
         {/* BGM選択 */}
         <div className="mb-6">
           <label className="block text-sm font-medium mb-3">BGMを選択</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {bgmOptions.map((bgm) => (
-              <button
+              <div
                 key={bgm}
-                onClick={() => onBgmChange(bgm)}
-                disabled={isLoading}
                 className={`
-                  p-3 rounded-lg text-sm transition-all
+                  p-4 rounded-lg transition-all border
                   ${selectedBgm === bgm
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    ? 'bg-purple-600/20 border-purple-600'
+                    : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                   }
                 `}
               >
-                {bgmDisplayNames[bgm] || bgm}
-              </button>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => onBgmChange(bgm)}
+                    disabled={isLoading}
+                    className="flex-1 text-left"
+                  >
+                    <div className="font-medium text-white">
+                      {bgmDisplayNames[bgm] || bgm}
+                    </div>
+                    {selectedBgm === bgm && (
+                      <div className="text-xs text-purple-300 mt-1">選択中</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => onPreview(bgm)}
+                    disabled={isLoading || isPreviewLoading}
+                    className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
+                  >
+                    {isPreviewLoading ? '読込中...' : '試聴'}
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -101,25 +123,56 @@ function BgmSelector({
 function CaptionSettings({
   enabled,
   language,
-  style,
+  styles = [],
   onEnabledChange,
   onLanguageChange,
-  onStyleChange,
+  onStylesChange,
   isLoading
 }: {
   enabled: boolean;
   language: string;
-  style: {
-    fontSize: number;
-    fontColor: string;
-    backgroundColor: string;
-    position: 'top' | 'bottom';
-  };
+  styles: string[];
   onEnabledChange: (enabled: boolean) => void;
   onLanguageChange: (lang: string) => void;
-  onStyleChange: (style: any) => void;
+  onStylesChange: (styles: string[]) => void;
   isLoading: boolean;
 }) {
+  // スタイルプリセット
+  const stylePresets = {
+    default: [
+      "font-size: 24px",
+      "color: white",
+      "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
+      "font-family: 'Noto Sans JP', sans-serif",
+      "font-weight: bold"
+    ],
+    withBackground: [
+      "font-size: 24px",
+      "color: white",
+      "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
+      "font-family: 'Noto Sans JP', sans-serif",
+      "font-weight: bold",
+      "background-color: rgba(0,0,0,0.5)",
+      "padding: 10px 20px",
+      "border-radius: 5px"
+    ],
+    large: [
+      "font-size: 32px",
+      "color: white",
+      "text-shadow: 3px 3px 6px rgba(0,0,0,0.9)",
+      "font-family: 'Noto Sans JP', sans-serif",
+      "font-weight: bold"
+    ],
+    minimal: [
+      "font-size: 20px",
+      "color: white",
+      "text-shadow: 1px 1px 2px rgba(0,0,0,0.6)",
+      "font-family: 'Noto Sans JP', sans-serif"
+    ]
+  };
+
+  const [selectedPreset, setSelectedPreset] = useState('withBackground');
+  const [customStyles, setCustomStyles] = useState(styles ? styles.join('\n') : '');
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-6">
@@ -174,53 +227,54 @@ function CaptionSettings({
               </div>
             </div>
 
-            {/* 表示位置 */}
+            {/* スタイルプリセット */}
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">表示位置</label>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => onStyleChange({ ...style, position: 'top' })}
-                  disabled={isLoading}
-                  className={`
-                    px-4 py-2 rounded-lg text-sm transition-all
-                    ${style.position === 'top'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                    }
-                  `}
-                >
-                  上部
-                </button>
-                <button
-                  onClick={() => onStyleChange({ ...style, position: 'bottom' })}
-                  disabled={isLoading}
-                  className={`
-                    px-4 py-2 rounded-lg text-sm transition-all
-                    ${style.position === 'bottom'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                    }
-                  `}
-                >
-                  下部
-                </button>
+              <label className="block text-sm font-medium mb-3">スタイルプリセット</label>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(stylePresets).map(([key, value]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setSelectedPreset(key);
+                      onStylesChange(value);
+                      setCustomStyles(value.join('\n'));
+                    }}
+                    disabled={isLoading}
+                    className={`
+                      p-3 rounded-lg text-sm transition-all
+                      ${selectedPreset === key
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                      }
+                    `}
+                  >
+                    {key === 'default' && 'スタンダード'}
+                    {key === 'withBackground' && '背景付き'}
+                    {key === 'large' && '大きい文字'}
+                    {key === 'minimal' && 'シンプル'}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* フォントサイズ */}
+            {/* カスタムスタイル編集 */}
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                フォントサイズ: {style.fontSize}px
-              </label>
-              <input
-                type="range"
-                min="12"
-                max="32"
-                value={style.fontSize}
-                onChange={(e) => onStyleChange({ ...style, fontSize: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              <label className="block text-sm font-medium mb-2">カスタムスタイル (CSS)</label>
+              <textarea
+                value={customStyles}
+                onChange={(e) => {
+                  setCustomStyles(e.target.value);
+                  setSelectedPreset('');
+                  const newStyles = e.target.value.split('\n').filter(s => s.trim());
+                  onStylesChange(newStyles);
+                }}
+                className="w-full h-32 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm resize-none"
+                placeholder="font-size: 24px&#10;color: white&#10;text-shadow: 2px 2px 4px rgba(0,0,0,0.8)"
                 disabled={isLoading}
               />
+              <p className="text-xs text-gray-400 mt-1">
+                各行に1つのCSSプロパティを記述してください
+              </p>
             </div>
 
             {/* プレビュー */}
@@ -230,16 +284,17 @@ function CaptionSettings({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-gray-500">動画プレビュー</span>
                 </div>
-                <div 
-                  className={`absolute left-0 right-0 ${style.position === 'top' ? 'top-4' : 'bottom-4'} flex justify-center`}
-                >
+                <div className="absolute left-0 right-0 bottom-8 flex justify-center">
                   <div
-                    className="px-4 py-2 rounded"
-                    style={{
-                      fontSize: `${style.fontSize}px`,
-                      color: style.fontColor,
-                      backgroundColor: style.backgroundColor,
-                    }}
+                    style={styles && styles.length > 0 ? Object.fromEntries(
+                      styles.map(style => {
+                        const [prop, value] = style.split(':').map(s => s.trim());
+                        return [
+                          prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase()),
+                          value
+                        ];
+                      })
+                    ) : {}}
                   >
                     サンプル字幕テキスト
                   </div>
@@ -263,6 +318,7 @@ export default function Step6BgmSubtitle({
   const { error, success } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   
   // BGM設定
   const [bgmSettings, setBgmSettings] = useState({
@@ -273,7 +329,18 @@ export default function Step6BgmSubtitle({
     volume: initialData?.stepOutput?.userInput?.bgm?.volume ?? 0.5,
   });
 
-  // 字幕設定
+  // 字幕設定 - mulmocast形式のstyles配列をサポート
+  const defaultStyles = [
+    "font-size: 24px",
+    "color: white",
+    "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
+    "font-family: 'Noto Sans JP', sans-serif",
+    "font-weight: bold",
+    "background-color: rgba(0,0,0,0.5)",
+    "padding: 10px 20px",
+    "border-radius: 5px"
+  ];
+  
   const [captionSettings, setCaptionSettings] = useState({
     enabled: initialData?.stepOutput?.userInput?.caption?.enabled ?? 
              initialData?.stepInput?.captionSettings?.enabled ?? 
@@ -281,18 +348,37 @@ export default function Step6BgmSubtitle({
     language: initialData?.stepOutput?.userInput?.caption?.language || 
               initialData?.stepInput?.captionSettings?.language || 
               'ja',
-    style: initialData?.stepOutput?.userInput?.caption?.style || {
-      fontSize: 20,
-      fontColor: '#FFFFFF',
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      position: 'bottom' as const,
-    },
+    styles: initialData?.stepOutput?.userInput?.caption?.styles || 
+            initialData?.stepInput?.captionSettings?.styles ||
+            defaultStyles,
   });
 
   // 常に次へ進める
   useEffect(() => {
     onUpdate(true);
   }, [onUpdate]);
+
+  // BGMプレビュー処理
+  const handleBgmPreview = async (bgm: string) => {
+    setIsPreviewLoading(true);
+    try {
+      // TODO: 実際のBGMプレビューAPIを実装
+      success(`BGM「${bgm}」の試聴機能は準備中です`);
+      
+      // 実際の実装例:
+      // const response = await fetch(`/api/bgm/preview/${bgm}`);
+      // const audioBlob = await response.blob();
+      // const audioUrl = URL.createObjectURL(audioBlob);
+      // const audio = new Audio(audioUrl);
+      // await audio.play();
+      
+    } catch (err) {
+      console.error('BGMプレビューエラー:', err);
+      error('BGMの再生に失敗しました');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   // 保存処理
   const handleSave = async () => {
@@ -316,7 +402,7 @@ export default function Step6BgmSubtitle({
             caption: {
               enabled: captionSettings.enabled,
               language: captionSettings.language,
-              style: captionSettings.style,
+              styles: captionSettings.styles, // mulmocast形式のstyles配列
             },
           },
         }),
@@ -354,17 +440,19 @@ export default function Step6BgmSubtitle({
         volume={bgmSettings.volume}
         onBgmChange={(bgm) => setBgmSettings({ ...bgmSettings, selected: bgm })}
         onVolumeChange={(volume) => setBgmSettings({ ...bgmSettings, volume })}
+        onPreview={handleBgmPreview}
         isLoading={isLoading}
+        isPreviewLoading={isPreviewLoading}
       />
 
       {/* 字幕設定 */}
       <CaptionSettings
         enabled={captionSettings.enabled}
         language={captionSettings.language}
-        style={captionSettings.style}
+        styles={captionSettings.styles}
         onEnabledChange={(enabled) => setCaptionSettings({ ...captionSettings, enabled })}
         onLanguageChange={(language) => setCaptionSettings({ ...captionSettings, language })}
-        onStyleChange={(style) => setCaptionSettings({ ...captionSettings, style })}
+        onStylesChange={(styles) => setCaptionSettings({ ...captionSettings, styles })}
         isLoading={isLoading}
       />
 

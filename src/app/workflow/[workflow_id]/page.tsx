@@ -47,6 +47,10 @@ function WorkflowPageContent({ params }: PageProps) {
 
   // ワークフロー情報を取得
   useEffect(() => {
+    // ステップが変更されたときに、古いデータをクリア
+    setStepData(null);
+    setIsLoading(true);
+
     const fetchWorkflow = async () => {
       if (!user) {
         setIsLoading(false);

@@ -297,52 +297,6 @@ export default function Step1StoryInput({
             </p>
           </div>
 
-          {/* 詳細設定（折りたたみ） */}
-          <details className="mt-6">
-            <summary className="cursor-pointer text-sm font-medium text-gray-300 hover:text-white">
-              詳細設定 ▼
-            </summary>
-            <div className="mt-4 space-y-4">
-              {/* スタイル設定 */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  スタイル
-                </label>
-                <select
-                  value={formData.settings.style}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, style: e.target.value }
-                  }))}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  disabled={isSaving}
-                >
-                  <option value="shakespeare">シェイクスピア風</option>
-                  <option value="modern">現代風</option>
-                  <option value="fairytale">童話風</option>
-                </select>
-              </div>
-
-              {/* 言語設定 */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  言語
-                </label>
-                <select
-                  value={formData.settings.language}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, language: e.target.value }
-                  }))}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  disabled={isSaving}
-                >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-            </div>
-          </details>
         </CardContent>
       </Card>
 

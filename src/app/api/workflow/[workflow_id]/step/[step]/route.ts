@@ -598,7 +598,7 @@ async function generateAndUpdateStoryboard(
       storyboardUpdates.caption_data = {
         enabled: step6Output.userInput.caption.enabled,
         language: step6Output.userInput.caption.language,
-        style: step6Output.userInput.caption.style
+        styles: step6Output.userInput.caption.styles
       };
       
       // Step7Input を生成（最終確認用）

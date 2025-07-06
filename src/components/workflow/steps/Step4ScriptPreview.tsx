@@ -87,54 +87,52 @@ function SceneCard({
           )}
         </div>
 
-        {/* 対話 */}
-        <div>
-          <h4 className="text-sm font-medium text-gray-300 mb-3">対話</h4>
-          <div className="space-y-3">
-            {scene.dialogue.map((line, index) => (
-              <div key={index} className="bg-gray-700 rounded-md p-3">
-                {isEditingDialogue === index ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={line.speaker}
-                      onChange={(e) => onDialogueChange(index, 'speaker', e.target.value)}
-                      placeholder="話者"
-                      className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      disabled={isLoading}
-                    />
-                    <textarea
-                      value={line.text}
-                      onChange={(e) => onDialogueChange(index, 'text', e.target.value)}
-                      placeholder="セリフ"
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                      rows={2}
-                      disabled={isLoading}
-                    />
-                    <button
-                      onClick={() => setIsEditingDialogue(null)}
-                      className="text-sm text-purple-400 hover:text-purple-300"
-                    >
-                      完了
-                    </button>
-                  </div>
-                ) : (
-                  <div 
-                    className="cursor-pointer hover:bg-gray-600 transition-colors"
-                    onClick={() => setIsEditingDialogue(index)}
+        {/* 台詞 - 最初の1つのみ表示 */}
+        {scene.dialogue.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-300 mb-3">台詞</h4>
+            <div className="bg-gray-700 rounded-md p-3">
+              {isEditingDialogue === 0 ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={scene.dialogue[0].speaker}
+                    onChange={(e) => onDialogueChange(0, 'speaker', e.target.value)}
+                    placeholder="話者"
+                    className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    disabled={isLoading}
+                  />
+                  <textarea
+                    value={scene.dialogue[0].text}
+                    onChange={(e) => onDialogueChange(0, 'text', e.target.value)}
+                    placeholder="セリフ"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    rows={2}
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={() => setIsEditingDialogue(null)}
+                    className="text-sm text-purple-400 hover:text-purple-300"
                   >
-                    <div className="font-medium text-purple-300 text-sm mb-1">
-                      {line.speaker}
-                    </div>
-                    <div className="text-gray-200">
-                      {line.text}
-                    </div>
+                    完了
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  className="cursor-pointer hover:bg-gray-600 transition-colors"
+                  onClick={() => setIsEditingDialogue(0)}
+                >
+                  <div className="font-medium text-purple-300 text-sm mb-1">
+                    {scene.dialogue[0].speaker}
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="text-gray-200">
+                    {scene.dialogue[0].text}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -152,25 +150,88 @@ export default function Step4ScriptPreview({
   const [isLoading, setIsLoading] = useState(false);
   
   // シーンデータの管理
-  const [scenes, setScenes] = useState(
-    initialData?.stepOutput?.userInput?.scenes || 
-    initialData?.stepInput?.scenes || 
-    []
-  );
-
+  const [scenes, setScenes] = useState<any[]>([]);
+  
   // 幕の情報を管理
-  const [acts] = useState(
-    initialData?.stepInput?.acts || []
-  );
+  const [acts, setActs] = useState<any[]>([]);
+  
+  // データが読み込まれたかどうか
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  // データが生成中かどうか
+  const [isGenerating, setIsGenerating] = useState(false);
+  // ポーリング間隔
+  const [pollingCount, setPollingCount] = useState(0);
 
   // initialDataが変更されたときにデータを更新
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput?.scenes) {
-      setScenes(initialData.stepOutput.userInput.scenes);
-    } else if (initialData?.stepInput?.scenes) {
-      setScenes(initialData.stepInput.scenes);
+    console.log('[Step4ScriptPreview] initialData changed:', initialData);
+    
+    if (initialData) {
+      // シーンデータの設定
+      const newScenes = initialData.stepOutput?.userInput?.scenes || 
+                       initialData.stepInput?.scenes || 
+                       [];
+      console.log('[Step4ScriptPreview] Setting scenes:', newScenes);
+      
+      // シーンデータがない場合は生成中
+      if (newScenes.length === 0 && !initialData.stepOutput?.userInput?.scenes) {
+        setIsGenerating(true);
+      } else {
+        setScenes(newScenes);
+        setIsGenerating(false);
+      }
+      
+      // 幕データの設定
+      const newActs = initialData.stepInput?.acts || [];
+      console.log('[Step4ScriptPreview] Setting acts:', newActs);
+      setActs(newActs);
+      
+      // データ読み込み完了
+      setIsDataLoaded(true);
     }
   }, [initialData]);
+
+  // データ生成中の場合、ポーリングでデータを取得
+  useEffect(() => {
+    if (!isGenerating || !user) return;
+
+    const pollData = async () => {
+      try {
+        const response = await fetch(`/api/workflow/${workflowId}/step/4`, {
+          headers: {
+            'X-User-UID': user.id,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.stepInput?.scenes && data.stepInput.scenes.length > 0) {
+            setScenes(data.stepInput.scenes);
+            setActs(data.stepInput.acts || []);
+            setIsGenerating(false);
+            console.log('[Step4ScriptPreview] Data generated successfully');
+          } else {
+            // まだ生成中なので、次のポーリングをスケジュール
+            setPollingCount(prev => prev + 1);
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    };
+
+    // 3秒ごとにポーリング（最大20回 = 1分）
+    const timer = setTimeout(() => {
+      if (pollingCount < 20) {
+        pollData();
+      } else {
+        setIsGenerating(false);
+        error('台本生成がタイムアウトしました');
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [isGenerating, pollingCount, workflowId, user, error]);
 
   // 常に次へ進める（編集はオプション）
   useEffect(() => {
@@ -249,6 +310,68 @@ export default function Step4ScriptPreview({
     scenes: scenes.filter(scene => scene.actNumber === act.actNumber)
   }));
 
+  // データ読み込み中の表示
+  if (!isDataLoaded) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">台本データを読み込んでいます...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // データ生成中の表示
+  if (isGenerating) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-6"></div>
+            <h3 className="text-xl font-semibold text-white mb-2">台本を生成中...</h3>
+            <p className="text-gray-400 mb-4">
+              AI がキャラクター設定を元に台本を作成しています
+            </p>
+            <div className="flex justify-center gap-1">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                />
+              ))}
+            </div>
+            {pollingCount > 10 && (
+              <p className="text-sm text-gray-500 mt-4">
+                生成に時間がかかっています...もう少しお待ちください
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // データが読み込まれたが、シーンがない場合
+  if (scenes.length === 0 && !isGenerating) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+        <div className="text-center py-8">
+          <p className="text-gray-400">台本データが見つかりません</p>
+          <button
+            onClick={onBack}
+            className="mt-4 px-6 py-3 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-white transition-all"
+          >
+            ← 戻る
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
       {/* ヘッダー */}
@@ -263,38 +386,44 @@ export default function Step4ScriptPreview({
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-6">
           <h3 className="text-xl font-bold text-center">
-            {initialData?.stepInput?.title}
+            {initialData?.stepInput?.title || 'タイトル'}
           </h3>
         </CardContent>
       </Card>
 
       {/* シーン一覧 */}
       <div>
-        {scenesByAct.map((act) => (
-          <div key={act.actNumber} className="mb-8">
-            {/* 幕タイトル */}
-            <div className="mb-4 px-2">
-              <h3 className="text-lg font-semibold text-purple-300">
-                第{act.actNumber}幕：{act.actTitle}
-              </h3>
+        {scenesByAct.length > 0 ? (
+          scenesByAct.map((act) => (
+            <div key={act.actNumber} className="mb-8">
+              {/* 幕タイトル */}
+              <div className="mb-4 px-2">
+                <h3 className="text-lg font-semibold text-purple-300">
+                  第{act.actNumber}幕：{act.actTitle}
+                </h3>
+              </div>
+              
+              {/* この幕のシーン */}
+              {act.scenes.map((scene: any) => (
+                <SceneCard
+                  key={scene.id}
+                  scene={scene}
+                  actNumber={act.actNumber}
+                  actTitle={act.actTitle}
+                  onImagePromptChange={(value) => handleImagePromptChange(scene.id, value)}
+                  onDialogueChange={(index, field, value) => 
+                    handleDialogueChange(scene.id, index, field, value)
+                  }
+                  isLoading={isLoading}
+                />
+              ))}
             </div>
-            
-            {/* この幕のシーン */}
-            {act.scenes.map((scene) => (
-              <SceneCard
-                key={scene.id}
-                scene={scene}
-                actNumber={act.actNumber}
-                actTitle={act.actTitle}
-                onImagePromptChange={(value) => handleImagePromptChange(scene.id, value)}
-                onDialogueChange={(index, field, value) => 
-                  handleDialogueChange(scene.id, index, field, value)
-                }
-                isLoading={isLoading}
-              />
-            ))}
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-400">シーンデータがありません</p>
           </div>
-        ))}
+        )}
       </div>
 
       {/* アクションボタン */}

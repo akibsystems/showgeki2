@@ -86,15 +86,19 @@ export interface ScenesData {
 }
 
 export interface AudioData {
-  voiceSettings: {
+  voiceSettings?: {
     [characterId: string]: {
       voiceType: string;
       pitch?: number;
       speed?: number;
     };
   };
-  bgmSettings: {
+  bgmSettings?: {
     defaultBgm: string;
+    customBgm?: {
+      url: string;
+    };
+    bgmVolume?: number;
     sceneBgm?: {
       [sceneId: string]: string;
     };
@@ -110,7 +114,8 @@ export interface StyleData {
 export interface CaptionData {
   enabled: boolean;
   language: string;
-  style: {
+  styles?: string[]; // mulmocast形式のCSS配列
+  style?: { // 旧形式との互換性のため
     fontSize: number;
     fontColor: string;
     backgroundColor: string;
@@ -352,6 +357,7 @@ export interface Step6Input {
   captionSettings: {
     enabled: boolean;
     language: string;
+    styles?: string[]; // mulmocast形式のCSS配列
   };
 }
 
@@ -365,12 +371,7 @@ export interface Step6Output {
     caption: {
       enabled: boolean;
       language: string;
-      style: {
-        fontSize: number;
-        fontColor: string;
-        backgroundColor: string;
-        position: 'top' | 'bottom';
-      };
+      styles: string[]; // mulmocast形式のCSS配列
     };
   };
 }

@@ -90,48 +90,45 @@ function SceneAudioPreview({
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-4">
         <h4 className="font-medium mb-3">{scene.title}</h4>
-        <div className="space-y-2">
-          {scene.dialogue.map((line, index) => (
-            <div
-              key={index}
-              className="bg-gray-700 rounded-md p-3 cursor-pointer hover:bg-gray-600 transition-colors"
-              onClick={() => setExpandedDialogue(expandedDialogue === index ? null : index)}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-purple-300 mb-1">
-                    {line.speaker}
-                  </div>
-                  <div className="text-sm text-gray-200">
-                    {line.text}
-                  </div>
+        {scene.dialogue.length > 0 && (
+          <div
+            className="bg-gray-700 rounded-md p-3 cursor-pointer hover:bg-gray-600 transition-colors"
+            onClick={() => setExpandedDialogue(expandedDialogue === 0 ? null : 0)}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-purple-300 mb-1">
+                  {scene.dialogue[0].speaker}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPreview(line.text, line.speaker);
-                  }}
-                  disabled={isLoading}
-                  className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"
-                >
-                  試聴
-                </button>
+                <div className="text-sm text-gray-200">
+                  {scene.dialogue[0].text}
+                </div>
               </div>
-              
-              {expandedDialogue === index && (
-                <div className="mt-3 pt-3 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-2">読み修正（任意）</div>
-                  <input
-                    type="text"
-                    placeholder="例: 花子→はなこ"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreview(scene.dialogue[0].text, scene.dialogue[0].speaker);
+                }}
+                disabled={isLoading}
+                className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"
+              >
+                試聴
+              </button>
             </div>
-          ))}
-        </div>
+            
+            {expandedDialogue === 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-600">
+                <div className="text-xs text-gray-400 mb-2">読み修正（任意）</div>
+                <input
+                  type="text"
+                  placeholder="例: 花子→はなこ"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
