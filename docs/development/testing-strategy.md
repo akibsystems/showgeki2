@@ -395,11 +395,11 @@ test.describe('Story Creation Flow', () => {
     // 成功メッセージを確認
     await expect(page.locator('text=保存しました')).toBeVisible();
     
-    // 台本生成
-    await page.click('button:has-text("台本を作成")');
+    // 脚本生成
+    await page.click('button:has-text("脚本を作成")');
     
     // 生成完了を待つ（最大30秒）
-    await expect(page.locator('text=台本が生成されました')).toBeVisible({
+    await expect(page.locator('text=脚本が生成されました')).toBeVisible({
       timeout: 30000
     });
     
@@ -496,7 +496,7 @@ export const mockStory = {
 
 export const mockScript = {
   $mulmocast: { version: '1.0' },
-  title: 'テスト台本',
+  title: 'テスト脚本',
   lang: 'ja',
   beats: [
     {

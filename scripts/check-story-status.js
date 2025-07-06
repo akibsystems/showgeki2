@@ -44,7 +44,7 @@ async function checkStories() {
   const draftStories = stories.filter(s => s.status === 'draft');
   if (draftStories.length > 0) {
     console.log(`\n⚠️  ${draftStories.length}件のストーリーがdraft状態です。`);
-    console.log('これらは台本生成がトリガーされていない可能性があります。');
+    console.log('これらは脚本生成がトリガーされていない可能性があります。');
   }
 }
 

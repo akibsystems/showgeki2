@@ -68,7 +68,7 @@ CREATE INDEX idx_workspaces_uid ON workspaces(uid);
 
 ### 2. stories テーブル
 
-**用途**: ストーリーと台本の管理
+**用途**: ストーリーと脚本の管理
 
 ```sql
 CREATE TABLE stories (
@@ -313,7 +313,7 @@ interface ScriptJson {
 // ストーリーステータス
 type StoryStatus = 
   | 'draft'              // 下書き
-  | 'script_generated'   // 台本生成済み
+  | 'script_generated'   // 脚本生成済み
   | 'video_processing'   // 動画処理中
   | 'completed'          // 完了
   | 'failed';           // 失敗

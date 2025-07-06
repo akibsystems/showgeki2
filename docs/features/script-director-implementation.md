@@ -2,7 +2,7 @@
 
 ## 概要
 
-ScriptDirectorは、MulmoScript形式の台本を視覚的に編集するためのReactコンポーネントです。JSON編集の代替として、直感的なUIで台本の各要素を編集できます。
+ScriptDirectorは、MulmoScript形式の脚本を視覚的に編集するためのReactコンポーネントです。JSON編集の代替として、直感的なUIで脚本の各要素を編集できます。
 
 ## コンポーネント構造
 

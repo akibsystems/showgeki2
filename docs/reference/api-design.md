@@ -40,7 +40,7 @@ showgeki2のAPIは、Next.js 14のApp Router APIルートを使用して実装�
 | POST | `/api/stories` | ストーリー作成 |
 | PUT | `/api/stories/[id]` | ストーリー更新 |
 | DELETE | `/api/stories/[id]` | ストーリー削除 |
-| POST | `/api/stories/[id]/generate-script` | 台本生成 |
+| POST | `/api/stories/[id]/generate-script` | 脚本生成 |
 | POST | `/api/stories/[id]/generate-video` | 動画生成 |
 | POST | `/api/stories/[id]/generate-preview` | プレビュー生成 |
 

@@ -113,7 +113,7 @@ gcloud secrets versions add slack-webhook-url --data-file=<(echo "your_slack_web
 新しいwebhook-handler.jsは以下の処理を実行します：
 
 1. **Webhook受信**: `/webhook` エンドポイントでvideo_generation リクエストを受信
-2. **スクリプト生成**: OpenAI o4-miniモデルで5幕構成のシェイクスピア風台本を生成
+2. **スクリプト生成**: OpenAI o4-miniモデルで5幕構成のシェイクスピア風脚本を生成
 3. **動画生成**: mulmocast-cliを使用してFFmpegベースの動画生成
 4. **ストレージ**: Supabase Storageに動画をアップロード
 5. **データベース更新**: videosテーブルのステータスとメタデータを更新

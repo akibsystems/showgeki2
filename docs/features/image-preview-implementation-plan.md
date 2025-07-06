@@ -2,18 +2,18 @@
 
 ## 概要
 
-台本編集画面において、本格的な動画生成前に画像のみを生成してプレビューできる機能を追加します。
+脚本編集画面において、本格的な動画生成前に画像のみを生成してプレビューできる機能を追加します。
 これにより、ユーザーは画像プロンプトの品質を事前に確認し、必要に応じて調整してから動画生成を行えるようになります。
 
 ## 機能要件
 
 1. **画像生成機能**
-   - 台本編集画面から画像のみを生成するボタンを追加
+   - 脚本編集画面から画像のみを生成するボタンを追加
    - webhook-handlerで`yarn images`コマンドを実行
    - 生成された画像をSupabaseストレージに保存
 
 2. **プレビュー表示**
-   - 生成された画像を台本編集画面内でインラインで表示
+   - 生成された画像を脚本編集画面内でインラインで表示
    - 各ビート（シーン）ごとの画像を確認可能
    - 画像クリックで拡大表示
 
@@ -28,7 +28,7 @@
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
-    participant UI as 台本編集画面
+    participant UI as 脚本編集画面
     participant API as API Routes
     participant CloudRun as Cloud Run
     participant Supabase as Supabase Storage
@@ -218,7 +218,7 @@ videos/
 
 ## UI設計
 
-### 台本編集画面の変更
+### 脚本編集画面の変更
 
 1. **プレビューボタンの配置**
    - ScriptDirectorコンポーネントの上部ツールバーに追加

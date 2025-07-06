@@ -67,7 +67,7 @@ const SceneEditorContent: React.FC = () => {
           }
         }
         
-        // 既存の台本がある場合でも、シーン分析が必要な場合は再生成
+        // 既存の脚本がある場合でも、シーン分析が必要な場合は再生成
         // ナビゲーションパスをチェックして、戻ってきた場合は再生成
         const navPath = sessionStorage.getItem('navigationPath');
         if (story.script_json && (story.script_json as any).beats && navPath !== 'story-scenes-script') {
@@ -92,7 +92,7 @@ const SceneEditorContent: React.FC = () => {
           });
           setScenes(extractedScenes);
         } else {
-          // 台本がない場合、または戻ってきた場合は、ストーリーから生成
+          // 脚本がない場合、または戻ってきた場合は、ストーリーから生成
           generateInitialScenes();
         }
       }
@@ -176,7 +176,7 @@ const SceneEditorContent: React.FC = () => {
     // デバッグ: 送信するシーン情報を確認
     console.log('[SceneEditor] Generating script with scenes:', scenes);
     
-    // シーン情報をクリア（台本生成後は新しいシーン分析が必要）
+    // シーン情報をクリア（脚本生成後は新しいシーン分析が必要）
     sessionStorage.removeItem(`scenes_${storyId}`);
     
     try {
@@ -212,7 +212,7 @@ const SceneEditorContent: React.FC = () => {
         await mutate(swrKeys.story(storyId), result.data.story, false);
       }
 
-      // 台本生成成功をストレージに保存
+      // 脚本生成成功をストレージに保存
       sessionStorage.setItem('scriptGenerationSuccess', 'true');
       
       // Set navigation tracking if coming from scene editor
@@ -226,7 +226,7 @@ const SceneEditorContent: React.FC = () => {
         router.push(`/stories/${storyId}?tab=content`);
       }, 1000);  // 1秒待機に変更
     } catch (err) {
-      showError('台本の生成に失敗しました');
+      showError('脚本の生成に失敗しました');
     } finally {
       setIsGeneratingScript(false);
     }
@@ -260,7 +260,7 @@ const SceneEditorContent: React.FC = () => {
             href={story?.script_json ? `/stories/${storyId}` : `/stories/new?storyId=${storyId}&beats=${beatsCount}`} 
             className="text-purple-400 hover:text-purple-300 text-sm mb-4 inline-block"
           >
-            ← {story?.script_json ? '台本編集画面に戻る' : 'ストーリー入力画面に戻る'}
+            ← {story?.script_json ? '脚本編集画面に戻る' : 'ストーリー入力画面に戻る'}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">
             シーン構成の編集
@@ -270,7 +270,7 @@ const SceneEditorContent: React.FC = () => {
           </p>
           {story.script_json && !shouldRegenerate && (
             <p className="text-xs text-purple-400 mt-1">
-              ※ 現在の台本から読み込まれたシーン構成です
+              ※ 現在の脚本から読み込まれたシーン構成です
             </p>
           )}
         </div>
@@ -404,10 +404,10 @@ const SceneEditorContent: React.FC = () => {
                 {isGeneratingScript ? (
                   <>
                     <Spinner size="sm" color="white" className="mr-2" />
-                    台本を作成中...
+                    脚本を作成中...
                   </>
                 ) : (
-                  story.script_json ? '台本を更新' : '台本を作成'
+                  story.script_json ? '脚本を更新' : '脚本を作成'
                 )}
               </Button>
             </div>

@@ -4,7 +4,7 @@ import type { ScriptDirectorState, ValidationErrors } from '../types';
 
 const initialState: ScriptDirectorState = {
   // UI状態
-  activeTab: 'beats', // デフォルトは台本編集
+  activeTab: 'beats', // デフォルトは脚本編集
   editingBeat: null,
   draggedBeat: null,
   

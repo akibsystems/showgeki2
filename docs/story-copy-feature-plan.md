@@ -1,16 +1,16 @@
-# 台本コピー機能 実装プラン
+# 脚本コピー機能 実装プラン
 
 ## 概要
-動画生成済みの台本をコピーして、新たに動画生成に使用できるようにする機能を追加する。
+動画生成済みの脚本をコピーして、新たに動画生成に使用できるようにする機能を追加する。
 
 ## 現状分析
 
-### 台本一覧画面
+### 脚本一覧画面
 - **ファイルパス**: `/src/app/stories/page.tsx`
 - **URL**: `/stories`
 - **データ取得**: `useStories()` フックを使用（SWRベース）
 
-### 台本のステータスフロー
+### 脚本のステータスフロー
 ```
 draft → script_generated → processing → completed
                                     ↓ (エラー時)
@@ -24,14 +24,14 @@ draft → script_generated → processing → completed
 ## 実装方針
 
 ### 1. コピー機能の仕様
-- **対象**: ステータスが `completed`（動画生成済み）の台本のみ
+- **対象**: ステータスが `completed`（動画生成済み）の脚本のみ
 - **コピー内容**:
   - `title` → `{元のタイトル} (コピー)`
   - `text_raw` → そのままコピー
   - `script_json` → そのままコピー
   - `beats` → そのままコピー
   - `status` → `script_generated`（新規として扱い、即座に動画生成可能）
-- **コピー後の動作**: 新しい台本の編集画面へ自動遷移
+- **コピー後の動作**: 新しい脚本の編集画面へ自動遷移
 
 ### 2. API設計
 
@@ -52,7 +52,7 @@ POST /api/stories/[id]/copy
 {
   success: true,
   data: {
-    story: Story // 新しく作成された台本
+    story: Story // 新しく作成された脚本
   }
 }
 ```
@@ -60,10 +60,10 @@ POST /api/stories/[id]/copy
 ### 3. UI/UX設計
 
 #### コピーボタンの配置
-台本カード内に「コピー」アイコンボタンを追加（編集画面へのリンクの隣）
+脚本カード内に「コピー」アイコンボタンを追加（編集画面へのリンクの隣）
 
 ```
-[台本カード]
+[脚本カード]
 ┌─────────────────────────────┐
 │ タイトル                     │
 │ ステータス: 完了              │
@@ -76,7 +76,7 @@ POST /api/stories/[id]/copy
 1. コピーボタンクリック
 2. 確認モーダル表示（オプション）
 3. API呼び出し（ローディング表示）
-4. 成功時：新しい台本の編集画面へ遷移
+4. 成功時：新しい脚本の編集画面へ遷移
 5. エラー時：エラーメッセージ表示
 
 ### 4. 実装詳細
@@ -104,7 +104,7 @@ const copyStory = async (storyId: string) => {
 };
 ```
 
-##### 2. 台本カードコンポーネントの更新
+##### 2. 脚本カードコンポーネントの更新
 ```typescript
 // StoryCard コンポーネントに追加
 const handleCopy = async () => {
@@ -113,7 +113,7 @@ const handleCopy = async () => {
     const newStory = await copyStory(story.id);
     router.push(`/stories/${newStory.id}?tab=content`);
   } catch (error) {
-    showError('台本のコピーに失敗しました');
+    showError('脚本のコピーに失敗しました');
   } finally {
     setIsCopying(false);
   }
@@ -129,10 +129,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const { id: storyId } = await context.params;
   const auth = await getAuth(request);
   
-  // 元の台本を取得
+  // 元の脚本を取得
   const originalStory = await getStory(storyId, auth.uid);
   
-  // 新しい台本を作成
+  // 新しい脚本を作成
   const newStory = {
     workspace_id: originalStory.workspace_id,
     uid: auth.uid,
@@ -161,17 +161,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
 - [ ] エラーハンドリングのテスト
 
 #### 統合テスト
-- [ ] 台本コピーから編集画面遷移までのフロー
-- [ ] 権限チェック（他ユーザーの台本をコピーできないこと）
+- [ ] 脚本コピーから編集画面遷移までのフロー
+- [ ] 権限チェック（他ユーザーの脚本をコピーできないこと）
 - [ ] SWRキャッシュの更新確認
 
 #### E2Eテスト
-- [ ] 完了済み台本のコピー → 新規動画生成
+- [ ] 完了済み脚本のコピー → 新規動画生成
 - [ ] エラー時の表示確認
 
 ### 6. セキュリティ考慮事項
 
-- ユーザーは自分の台本のみコピー可能（uid確認）
+- ユーザーは自分の脚本のみコピー可能（uid確認）
 - レート制限の実装（必要に応じて）
 - 入力値のサニタイズ（タイトルの長さ制限など）
 
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 1. **APIエンドポイントの実装**（`/api/stories/[id]/copy`）
 2. **`useStories` フックの拡張**（`copyStory` 関数の追加）
-3. **台本一覧画面のUI更新**（コピーボタンの追加）
+3. **脚本一覧画面のUI更新**（コピーボタンの追加）
 4. **エラーハンドリングとローディング状態の実装**
 5. **テストの作成と実行**
 

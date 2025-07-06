@@ -30,9 +30,9 @@ docs/
 各機能の詳細な実装ドキュメント：
 
 #### スクリプト編集機能
-- **[script-editing-architecture.md](./features/script-editing-architecture.md)** - 台本編集システムの全体設計
+- **[script-editing-architecture.md](./features/script-editing-architecture.md)** - 脚本編集システムの全体設計
 - **[script-director-implementation.md](./features/script-director-implementation.md)** - ビジュアルエディタの実装詳細
-- **[script-generation-api.md](./features/script-generation-api.md)** - OpenAI GPT-4による台本自動生成
+- **[script-generation-api.md](./features/script-generation-api.md)** - OpenAI GPT-4による脚本自動生成
 
 #### 動画生成機能
 - **[video-generation-pipeline.md](./features/video-generation-pipeline.md)** - Cloud Runでの動画生成プロセス

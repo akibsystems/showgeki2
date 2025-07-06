@@ -68,8 +68,8 @@ const DashboardContent: React.FC = () => {
   const steps = [
     {
       number: 1,
-      title: "台本を作成",
-      description: "ストーリーからシェイクスピア風の台本を作ります",
+      title: "脚本を作成",
+      description: "ストーリーからシェイクスピア風の脚本を作ります",
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -78,7 +78,7 @@ const DashboardContent: React.FC = () => {
       action: (
         <Link href="/stories/new">
           <Button variant="primary" size="md" className="w-full">
-            台本を作成
+            脚本を作成
           </Button>
         </Link>
       ),
@@ -86,8 +86,8 @@ const DashboardContent: React.FC = () => {
     },
     {
       number: 2,
-      title: "台本を編集",
-      description: "作成した台本を確認・編集できます",
+      title: "脚本を編集",
+      description: "作成した脚本を確認・編集できます",
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -96,7 +96,7 @@ const DashboardContent: React.FC = () => {
       action: (
         <Link href="/stories">
           <Button variant="secondary" size="md" className="w-full">
-            台本一覧
+            脚本一覧
           </Button>
         </Link>
       ),
@@ -105,7 +105,7 @@ const DashboardContent: React.FC = () => {
     {
       number: 3,
       title: "動画を生成する",
-      description: "台本をもとにAIがアニメ風の動画を自動生成します",
+      description: "脚本をもとにAIがアニメ風の動画を自動生成します",
       icon: (
         <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -230,7 +230,7 @@ const DashboardContent: React.FC = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              台本を作成
+              脚本を作成
             </Button>
           </Link>
         </div>

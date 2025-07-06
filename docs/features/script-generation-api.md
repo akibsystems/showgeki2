@@ -1,8 +1,8 @@
-# 台本生成API 実装詳細ドキュメント
+# 脚本生成API 実装詳細ドキュメント
 
 ## 概要
 
-台本生成APIは、ユーザーが入力したストーリーテキストからOpenAI GPT-4を使用してシェイクスピア風の5幕構成の台本を自動生成します。生成された台本はMulmoScript形式のJSONとして保存されます。
+脚本生成APIは、ユーザーが入力したストーリーテキストからOpenAI GPT-4を使用してシェイクスピア風の5幕構成の脚本を自動生成します。生成された脚本はMulmoScript形式のJSONとして保存されます。
 
 ## APIエンドポイント
 
@@ -55,7 +55,7 @@ export const POST = withAuth(async (
     );
   }
   
-  // 既存の台本チェック
+  // 既存の脚本チェック
   if (story.script_json && !options.regenerate) {
     return NextResponse.json({
       success: true,
@@ -73,7 +73,7 @@ export const POST = withAuth(async (
   }
   
   try {
-    // 台本生成
+    // 脚本生成
     const script = await generateScript(story, options);
     
     // データベース更新
@@ -127,7 +127,7 @@ export async function generateScript(
 
 ```typescript
 function buildSystemPrompt(): string {
-  return `あなたは優れた脚本家です。ユーザーのストーリーをシェイクスピア風の感動的な5幕構成の台本に変換してください。
+  return `あなたは優れた脚本家です。ユーザーのストーリーをシェイクスピア風の感動的な5幕構成の脚本に変換してください。
 
 要件：
 1. 古典的な5幕構成（導入・展開・転換・クライマックス・結末）
@@ -138,7 +138,7 @@ function buildSystemPrompt(): string {
 
 出力形式：
 {
-  "title": "台本のタイトル",
+  "title": "脚本のタイトル",
   "characters": {
     "キャラクター名": {
       "description": "キャラクターの説明",
@@ -162,7 +162,7 @@ function buildSystemPrompt(): string {
 }
 
 function buildUserPrompt(story: Story, beats: number, style: string): string {
-  return `以下のストーリーを${beats}シーンのシェイクスピア風台本に変換してください。
+  return `以下のストーリーを${beats}シーンのシェイクスピア風脚本に変換してください。
 
 【ストーリー】
 ${story.text_raw}
@@ -445,5 +445,5 @@ export async function* generateScriptStream(
    - 部分的な編集可能性
 
 4. **多言語対応**
-   - 英語台本の生成
+   - 英語脚本の生成
    - 自動翻訳オプション

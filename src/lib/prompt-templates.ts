@@ -219,9 +219,9 @@ const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
 - 対象言語: {{language}}
 
 ## 創作指針
-この物語をもとに、シェイクスピア風の５幕構成の悲喜劇として台本を考えてください
+この物語をもとに、シェイクスピア風の５幕構成の悲喜劇として脚本を考えてください
 台詞には現代的で少しカジュアルな日本語を使う。
-台詞の数が台本全体で{{beats}}個となるようにカウントする。
+台詞の数が脚本全体で{{beats}}個となるようにカウントする。
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
 {{enableCaptions}}
@@ -410,7 +410,7 @@ export function substituteVariables(
   // Format scene titles if provided
   let scenesTitlesContent = '';
   if (context.scenes && context.scenes.length > 0) {
-    scenesTitlesContent = '\n## 指定されたシーン構成\n以下のシーンタイトルに従って台本を作成してください：\n';
+    scenesTitlesContent = '\n## 指定されたシーン構成\n以下のシーンタイトルに従って脚本を作成してください：\n';
     context.scenes.forEach(scene => {
       scenesTitlesContent += `- シーン ${scene.number}: ${scene.title}\n`;
     });
