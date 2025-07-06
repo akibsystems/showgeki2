@@ -56,17 +56,20 @@
   - POST: ユーザー入力保存 + LLM生成 + storyboard更新
   - バリデーション処理
 
-- [ ] `/src/app/api/workflow/[workflow_id]/generate-script/route.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/generate-script/route.ts`
   - POST: MulmoScript生成
   - 動画生成ジョブの開始
+  - stories/videosテーブルへの保存
 
-- [ ] `/src/app/api/workflow/[workflow_id]/upload/image/route.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/upload/image/route.ts`
   - POST: 画像アップロード（顔参照、CM画像）
   - Supabase Storageへの保存
+  - DELETE: 画像削除
 
-- [ ] `/src/app/api/workflow/[workflow_id]/upload/audio/route.ts`
+- [x] `/src/app/api/workflow/[workflow_id]/upload/audio/route.ts`
   - POST: 音声アップロード（カスタムBGM）
   - Supabase Storageへの保存
+  - DELETE: 音声削除
 
 ## 4. LLM生成ロジック
 
@@ -190,10 +193,12 @@
   - プレビュー
   - 独自の「戻る」「次へ」ボタン
 
-- [ ] `/src/components/workflow/steps/Step7Confirm.tsx`
+- [x] `/src/components/workflow/steps/Step7Confirm.tsx`
   - 最終確認画面
   - サムネイル一覧
   - 動画生成開始
+  - タグ管理機能
+  - 独自の「戻る」「動画を生成する」ボタン
 
 ### サブコンポーネント
 - [ ] `/src/components/workflow/cards/SceneCard.tsx`
@@ -320,11 +325,13 @@
 2. 画像/音声アップロード（未実装 - Phase 4へ移動）
 3. プレビュー機能（一部実装済み）
 
-### Phase 4: 完成と最適化（1週間）
-1. ステップ7実装
-2. MulmoScript生成
-3. エラーハンドリング強化
-4. パフォーマンス最適化
+### Phase 4: 完成と最適化（完了）
+1. ステップ7実装 ✓
+2. MulmoScript生成 ✓
+3. エラーハンドリング強化（未実装）
+4. パフォーマンス最適化（未実装）
+5. 画像/音声アップロードAPI ✓
+6. generateMulmoscriptWithOpenAI統合 ✓
 
 ### Phase 5: テストとドキュメント（3日）
 1. テスト作成
@@ -338,5 +345,34 @@
 - エラーハンドリングを適切に実装
 - モバイルファーストで実装
 - アクセシビリティを考慮
-- フッターナビゲーションの重複を避ける（Step1-6は独自ボタン）
+- フッターナビゲーションの重複を避ける（全ステップで独自ボタン使用）
 - Next.js 15のPromise params対応を忘れずに
+- Supabase Storageのバケット設定が必要（workflow-uploads）
+- BGMのURLマッピングは実際のURLに置き換える必要あり
+
+## 追加実装（2025-07-06）
+
+### ダッシュボード改善
+1. **新規脚本作成カード** ✓
+   - `/src/components/dashboard/CreateScriptCard.tsx`
+   - ワークフロー作成APIと連携
+
+2. **最近のワークフロー表示** ✓
+   - `/src/components/dashboard/RecentWorkflows.tsx`
+   - `/src/app/api/dashboard/recent-workflows/route.ts`
+   - タイトル、ステータス、進捗表示
+
+3. **最近の動画表示** ✓
+   - `/src/components/dashboard/RecentVideos.tsx`
+   - `/src/app/api/dashboard/recent-videos/route.ts`
+   - サムネイル付きグリッド表示
+
+4. **ダッシュボード統合** ✓
+   - `/src/app/dashboard/page.tsx`
+   - ワークフローUIと統一感のあるデザイン
+   - レスポンシブ対応
+
+5. **利用状況統計** ✓
+   - `/src/components/dashboard/UsageStats.tsx`
+   - `/src/app/api/dashboard/stats/route.ts`
+   - 脚本数、動画数、総再生時間の表示

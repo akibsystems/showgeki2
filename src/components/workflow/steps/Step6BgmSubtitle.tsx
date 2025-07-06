@@ -326,7 +326,6 @@ export default function Step6BgmSubtitle({
         throw new Error('Failed to save data');
       }
 
-      success('設定を保存しました');
       onNext();
     } catch (err) {
       console.error('Failed to save step 6:', err);

@@ -15,7 +15,7 @@ import Step3CharacterStyle from '@/components/workflow/steps/Step3CharacterStyle
 import Step4ScriptPreview from '@/components/workflow/steps/Step4ScriptPreview';
 import Step5VoiceGen from '@/components/workflow/steps/Step5VoiceGen';
 import Step6BgmSubtitle from '@/components/workflow/steps/Step6BgmSubtitle';
-// import Step7Confirm from '@/components/workflow/steps/Step7Confirm';
+import Step7Confirm from '@/components/workflow/steps/Step7Confirm';
 
 interface PageProps {
   params: Promise<{
@@ -195,10 +195,16 @@ function WorkflowPageContent({ params }: PageProps) {
         );
       case 7:
         return (
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">ステップ7: 最終確認</h2>
-            <p className="text-gray-400">このコンポーネントはPhase 4で実装予定です</p>
-          </div>
+          <Step7Confirm
+            workflowId={workflow_id}
+            initialData={{
+              stepInput: stepData.stepInput as any,
+              stepOutput: stepData.stepOutput as any,
+            }}
+            onNext={handleNext}
+            onBack={handleBack}
+            onUpdate={setCanProceed}
+          />
         );
       default:
         return null;
@@ -226,7 +232,7 @@ function WorkflowPageContent({ params }: PageProps) {
       currentStep={currentStep}
       workflowState={workflowState}
       onNext={handleNext}
-      hideFooter={currentStep === 1 || currentStep === 2 || currentStep === 3 || currentStep === 4 || currentStep === 5 || currentStep === 6}
+      hideFooter={true} // すべてのステップで独自ボタンを使用
     >
       {renderStepComponent()}
     </WorkflowLayout>

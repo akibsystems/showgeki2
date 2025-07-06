@@ -265,7 +265,6 @@ export default function Step5VoiceGen({
         throw new Error('Failed to save data');
       }
 
-      success('音声設定を保存しました');
       onNext();
     } catch (err) {
       console.error('Failed to save step 5:', err);

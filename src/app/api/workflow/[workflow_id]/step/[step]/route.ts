@@ -351,7 +351,34 @@ async function generateStepInput(
         }
       } as Step6Input;
 
-    // 他のステップも同様に実装
+    case 7:
+      // Step7Input: 最終確認用データ生成
+      return {
+        title: storyboard.title || '',
+        description: storyboard.summary_data?.description || '',
+        thumbnails: storyboard.scenes_data?.scenes.slice(0, 3).map(scene => ({
+          sceneId: scene.id,
+          imageUrl: scene.imageUrl || ''
+        })) || [],
+        estimatedDuration: storyboard.summary_data?.estimatedDuration || 60,
+        preview: storyboard.mulmoscript || {
+          $mulmocast: { version: '0.1.0' },
+          title: storyboard.title || '',
+          lang: storyboard.caption_data?.language || 'ja',
+          beats: [],
+          speechParams: { provider: 'openai', speakers: {} },
+          imageParams: {},
+          audioParams: storyboard.audio_data?.bgmSettings ? {
+            bgm: { kind: 'url', url: storyboard.audio_data.bgmSettings.defaultBgm },
+            bgmVolume: 0.5
+          } : undefined,
+          captionParams: storyboard.caption_data?.enabled ? {
+            lang: storyboard.caption_data.language,
+            styles: []
+          } : undefined
+        }
+      } as Step7Input;
+
     default:
       return {} as StepInput;
   }
@@ -603,7 +630,28 @@ async function generateAndUpdateStoryboard(
       } as Step7Input;
       break;
 
-    // 他のステップも同様に実装
+    case 7:
+      // Step7完了時: 最終的なMulmoScriptを生成
+      const step7Output = stepOutput as Step7Output;
+      
+      // summary_dataの最終更新
+      storyboardUpdates.summary_data = {
+        ...currentStoryboard.summary_data,
+        title: step7Output.userInput.title,
+        description: step7Output.userInput.description,
+        tags: step7Output.userInput.tags
+      } as SummaryData;
+      
+      storyboardUpdates.title = step7Output.userInput.title;
+      
+      // ワークフローのstatusを完了に更新
+      storyboardUpdates.status = 'completed';
+      
+      // MulmoScriptは別途generate-script APIで生成するため、ここでは生成しない
+      break;
+
+    default:
+      break;
   }
 
   return { nextStepInput, storyboardUpdates };
