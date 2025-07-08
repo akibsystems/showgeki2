@@ -245,21 +245,26 @@ export default function Step5VoiceGen({
 
     setIsLoading(true);
     try {
+      // workflow-design.mdの仕様に従い、Step5Outputを送信
+      const step5Output: Step5Output = {
+        userInput: {
+          voiceSettings
+        },
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/5`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({
-          data: {
-            voiceSettings
-          },
-        }),
+        body: JSON.stringify(step5Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.text();
+        console.error('Step 5 save failed:', response.status, errorData);
+        throw new Error(`Failed to save: ${response.status} ${errorData}`);
       }
 
       onNext();

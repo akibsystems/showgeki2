@@ -137,34 +137,44 @@ export default function Step3CharacterStyle({
 
     setIsLoading(true);
     
-    // すぐに次のステップへ遷移
-    onNext();
-    
-    // バックグラウンドで処理を実行
-    fetch(`/api/workflow/${workflowId}/step/3`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-UID': user.id,
-      },
-      body: JSON.stringify({
-        data: {
+    try {
+      // workflow-design.mdの仕様に従い、Step3Outputを送信
+      const step3Output: Step3Output = {
+        userInput: {
           characters,
           imageStyle,
         },
-      }),
-    })
-    .then(response => {
+      };
+      
+      const response = await fetch(`/api/workflow/${workflowId}/step/3`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': user.id,
+        },
+        body: JSON.stringify(step3Output),
+      });
+
       if (!response.ok) {
-        console.error('Step 3 save failed:', response.status);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Step 3 save failed:', response.status, errorData);
+        
+        if (errorData.error) {
+          error(errorData.error);
+        } else {
+          error('保存に失敗しました');
+        }
+        return;
       }
-    })
-    .catch(err => {
+      
+      // 保存成功後に次のステップへ
+      onNext();
+    } catch (err) {
       console.error('Failed to save step 3:', err);
-    })
-    .finally(() => {
-      // ローディング状態は解除しない（既に次のステップに移動しているため）
-    });
+      error('保存に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

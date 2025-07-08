@@ -30,7 +30,8 @@ function WorkflowPageContent({ params }: PageProps) {
   const { error } = useToast();
   const { user } = useAuth();
 
-  const [stepData, setStepData] = useState<StepResponse | null>(null);
+  const [stepInput, setStepInput] = useState<any>(null);
+  const [stepOutput, setStepOutput] = useState<any>(null);
   const [workflowInfo, setWorkflowInfo] = useState<{ current_step: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canProceed, setCanProceed] = useState(false);
@@ -48,7 +49,8 @@ function WorkflowPageContent({ params }: PageProps) {
   // ワークフロー情報を取得
   useEffect(() => {
     // ステップが変更されたときに、古いデータをクリア
-    setStepData(null);
+    setStepInput(null);
+    setStepOutput(null);
     setIsLoading(true);
 
     const fetchWorkflow = async () => {
@@ -58,6 +60,7 @@ function WorkflowPageContent({ params }: PageProps) {
       }
 
       try {
+        // StepXInputを取得（workflow-design.mdの仕様に従う）
         const response = await fetch(`/api/workflow/${workflow_id}/step/${currentStep}`, {
           headers: {
             'X-User-UID': user.id,
@@ -68,11 +71,11 @@ function WorkflowPageContent({ params }: PageProps) {
           throw new Error('Failed to fetch workflow');
         }
 
-        const data: StepResponse = await response.json();
-        console.log('[WorkflowPage] Fetched step data:', data);
-        setStepData(data);
+        const stepInputData = await response.json();
+        console.log('[WorkflowPage] Fetched step input:', stepInputData);
+        setStepInput(stepInputData);
         
-        // ワークフロー情報を取得（現在のステップなど）
+        // ワークフロー情報を取得してstepOutputも取得
         const workflowResponse = await fetch(`/api/workflow/${workflow_id}`, {
           headers: {
             'X-User-UID': user.id,
@@ -82,6 +85,15 @@ function WorkflowPageContent({ params }: PageProps) {
         if (workflowResponse.ok) {
           const workflowData = await workflowResponse.json();
           setWorkflowInfo({ current_step: workflowData.workflow.current_step });
+          
+          // stepOutputを取得
+          const stepOutColumnName = `step${currentStep}_out`;
+          if (workflowData.workflow[stepOutColumnName]) {
+            setStepOutput(workflowData.workflow[stepOutColumnName]);
+          } else if (currentStep === 1 && stepInputData && Object.keys(stepInputData).length > 0) {
+            // Step1でstepOutputがない場合、stepInputをstepOutputとして使用
+            setStepOutput({ userInput: stepInputData });
+          }
         }
       } catch (err) {
         console.error('Failed to fetch workflow:', err);
@@ -117,7 +129,7 @@ function WorkflowPageContent({ params }: PageProps) {
 
   // ステップコンポーネントをレンダリング
   const renderStepComponent = () => {
-    if (!stepData) return null;
+    if (!stepInput) return null;
 
     switch (currentStep) {
       case 1:
@@ -125,8 +137,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step1StoryInput
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onUpdate={setCanProceed}
@@ -137,8 +149,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step2ScenePreview
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -150,8 +162,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step3CharacterStyle
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -163,8 +175,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step4ScriptPreview
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -176,8 +188,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step5VoiceGen
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -189,8 +201,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step6BgmSubtitle
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -202,8 +214,8 @@ function WorkflowPageContent({ params }: PageProps) {
           <Step7Confirm
             workflowId={workflow_id}
             initialData={{
-              stepInput: stepData.stepInput as any,
-              stepOutput: stepData.stepOutput as any,
+              stepInput: stepInput,
+              stepOutput: stepOutput,
             }}
             onNext={handleNext}
             onBack={handleBack}
@@ -226,7 +238,7 @@ function WorkflowPageContent({ params }: PageProps) {
     );
   }
 
-  if (!stepData || !user) {
+  if (!stepInput || !user) {
     return null;
   }
 

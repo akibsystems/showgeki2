@@ -25,10 +25,6 @@ export default function Step1StoryInput({
   const { error } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
-  
-  // デバッグ: initialDataの内容を確認
-  console.log('[Step1StoryInput] initialData:', initialData);
-  
   // フォームの状態管理
   const [formData, setFormData] = useState({
     storyText: initialData?.stepOutput?.userInput?.storyText || '',
@@ -63,7 +59,7 @@ export default function Step1StoryInput({
   }, [initialData]);
 
   // フォームが有効かどうかをチェック
-  const isValid = 
+  const isValid =
     formData.storyText.trim().length > 0 &&
     formData.characters.trim().length > 0;
 
@@ -74,6 +70,7 @@ export default function Step1StoryInput({
 
   // 保存処理
   const handleSave = async () => {
+    console.log("@@@ handleSave", isValid, user);
     if (!isValid || !user) {
       error('必須項目を入力してください');
       return;
@@ -81,31 +78,48 @@ export default function Step1StoryInput({
 
     setIsSaving(true);
     try {
-      // API呼び出し
+      // workflow-design.mdの仕様に従い、Step1Outputを送信
+      const step1Output: Step1Output = {
+        userInput: {
+          storyText: formData.storyText,
+          characters: formData.characters,
+          dramaticTurningPoint: formData.dramaticTurningPoint,
+          futureVision: formData.futureVision,
+          learnings: formData.learnings,
+          totalScenes: formData.totalScenes,
+          settings: formData.settings,
+        }
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({ 
-          data: {
-            storyText: formData.storyText,
-            characters: formData.characters,
-            dramaticTurningPoint: formData.dramaticTurningPoint,
-            futureVision: formData.futureVision,
-            learnings: formData.learnings,
-            totalScenes: formData.totalScenes,
-            settings: formData.settings,
-          } 
-        }),
+        body: JSON.stringify(step1Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Step 1 save failed:', response.status, errorData);
+        
+        // エラーの詳細を表示
+        if (errorData.error) {
+          error(errorData.error);
+          if (errorData.details) {
+            console.error('詳細:', errorData.details);
+          }
+        } else {
+          error('保存に失敗しました。時間をおいて再度お試しください。');
+        }
+        
+        setIsSaving(false);
+        return;
       }
 
       const result = await response.json();
+      console.log("@@@ Step1StoryInput", result);
 
       // 保存成功後に次へ
       onNext();
@@ -117,22 +131,14 @@ export default function Step1StoryInput({
     }
   };
 
-  // 現在のステップから他のステップに移動したかを検知
-  useEffect(() => {
-    // ページアンマウント時には実行しない
-    const mounted = { current: true };
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   // 入力変更ハンドラー
   const handleChange = (field: keyof typeof formData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // 有効性をチェックして親コンポーネントに通知
     const newData = { ...formData, [field]: value };
-    const valid = 
+    const valid =
       (typeof newData.storyText === 'string' && newData.storyText.trim().length > 0) &&
       (typeof newData.characters === 'string' && newData.characters.trim().length > 0);
     onUpdate(valid);

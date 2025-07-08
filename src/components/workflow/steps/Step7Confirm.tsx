@@ -150,28 +150,33 @@ export default function Step7Confirm({
 
     setIsLoading(true);
     try {
+      // workflow-design.mdの仕様に従い、Step7Outputを送信
+      const step7Output: Step7Output = {
+        userInput: {
+          title: formData.title,
+          description: formData.description,
+          tags: formData.tags,
+          confirmed: true,
+        },
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/7`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({
-          data: {
-            title: formData.title,
-            description: formData.description,
-            tags: formData.tags,
-            confirmed: true,
-          },
-        }),
+        body: JSON.stringify(step7Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.text();
+        console.error('Step 7 save failed:', response.status, errorData);
+        throw new Error(`Failed to save: ${response.status} ${errorData}`);
       }
 
-      // 動画生成を開始
-      await generateVideo();
+      // 保存が成功したら次のステップに進む
+      onNext();
       
     } catch (err) {
       console.error('Failed to save step 7:', err);
@@ -183,10 +188,36 @@ export default function Step7Confirm({
 
   // 動画生成
   const generateVideo = async () => {
-    if (!user) return;
+    if (!user || !formData.title.trim()) return;
     
     setIsGenerating(true);
     try {
+      // まず設定を保存
+      const step7Output: Step7Output = {
+        userInput: {
+          title: formData.title,
+          description: formData.description,
+          tags: formData.tags,
+          confirmed: true,
+        },
+      };
+
+      const saveResponse = await fetch(`/api/workflow/${workflowId}/step/7`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': user.id,
+        },
+        body: JSON.stringify(step7Output),
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.text();
+        console.error('Step 7 save failed:', saveResponse.status, errorData);
+        throw new Error(`Failed to save settings: ${saveResponse.status} ${errorData}`);
+      }
+
+      // 設定保存が成功したら動画生成を開始
       const response = await fetch(`/api/workflow/${workflowId}/generate-script`, {
         method: 'POST',
         headers: {
@@ -347,19 +378,34 @@ export default function Step7Confirm({
         >
           ← 戻る
         </button>
-        <button
-          onClick={handleSave}
-          disabled={!formData.title.trim() || isLoading || isGenerating}
-          className={`
-            px-6 py-3 rounded-lg font-medium transition-all
-            ${formData.title.trim() && !isLoading && !isGenerating
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-            }
-          `}
-        >
-          {isGenerating ? '生成中...' : isLoading ? '保存中...' : '動画を生成する'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={!formData.title.trim() || isLoading || isGenerating}
+            className={`
+              px-6 py-3 rounded-lg font-medium transition-all
+              ${formData.title.trim() && !isLoading && !isGenerating
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            {isLoading ? '保存中...' : '設定を保存'}
+          </button>
+          <button
+            onClick={generateVideo}
+            disabled={!formData.title.trim() || isLoading || isGenerating}
+            className={`
+              px-6 py-3 rounded-lg font-medium transition-all
+              ${formData.title.trim() && !isLoading && !isGenerating
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            {isGenerating ? '生成中...' : '動画を生成する'}
+          </button>
+        </div>
       </div>
     </div>
   );

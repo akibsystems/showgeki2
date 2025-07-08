@@ -416,22 +416,27 @@ export default function Step2ScenePreview({
         return;
       }
 
+      // workflow-design.mdの仕様に従い、Step2Outputを送信
+      const step2Output: Step2Output = {
+        userInput: {
+          title: title.trim(),
+          acts: filteredActs,
+        },
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({
-          data: {
-            title: title.trim(),
-            acts: filteredActs,
-          },
-        }),
+        body: JSON.stringify(step2Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.text();
+        console.error('Step 2 save failed:', response.status, errorData);
+        throw new Error(`Failed to save: ${response.status} ${errorData}`);
       }
 
       onNext();

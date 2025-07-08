@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import type { 
-  Step1Input, Step1Output, Step2Input, Step2Output, 
+import type {
+  Step1Input, Step1Output, Step2Input, Step2Output,
   Step3Input, Step3Output, Step4Input, Step4Output,
   Step5Input, Step5Output, Step6Input, Step6Output,
   Step7Input, Step7Output,
@@ -9,6 +9,15 @@ import type {
   SummaryData, ActsData, CharactersData
 } from '@/types/workflow';
 import { generateStep4Input } from '@/lib/workflow/generators/step3-generator';
+import { 
+  generateStep2Input,
+  generateStep3Input,
+  generateStep5Input,
+  generateStep6Input,
+  generateStep7Input,
+  processStep7Output,
+  WorkflowStepManager
+} from '@/lib/workflow/step-processors';
 
 // SERVICE_ROLEキーを使用してSupabaseクライアントを作成
 const supabase = createClient(
@@ -25,6 +34,19 @@ type StepNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type StepInput = Step1Input | Step2Input | Step3Input | Step4Input | Step5Input | Step6Input | Step7Input;
 type StepOutput = Step1Output | Step2Output | Step3Output | Step4Output | Step5Output | Step6Output | Step7Output;
 
+// ワークフロー生成エラークラス
+class WorkflowGenerationError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public step: number,
+    public originalError?: Error
+  ) {
+    super(message);
+    this.name = 'WorkflowGenerationError';
+  }
+}
+
 interface RouteParams {
   params: Promise<{
     workflow_id: string;
@@ -34,7 +56,7 @@ interface RouteParams {
 
 /**
  * GET /api/workflow/[workflow_id]/step/[step]
- * ステップ表示用データを取得
+ * workflow-design.mdで定義されたStepXInputを返す
  */
 export async function GET(
   request: NextRequest,
@@ -52,7 +74,7 @@ export async function GET(
 
     const { workflow_id, step } = await params;
     const stepNumber = parseInt(step, 10) as StepNumber;
-    
+
     console.log(`[GET] /api/workflow/${workflow_id}/step/${step}`);
     console.log(`[GET] uid: ${uid}, stepNumber: ${stepNumber}`);
 
@@ -90,8 +112,9 @@ export async function GET(
 
     // キャッシュがない場合は、storyboardsから再生成
     if (!stepInput && stepNumber > 1) {
+      // 最初はストーリーボードの内容から、各ステップの入力を合成する
       stepInput = await generateStepInput(stepNumber, workflow.storyboard);
-      
+
       // キャッシュを保存
       await supabase
         .from('workflows')
@@ -99,23 +122,11 @@ export async function GET(
         .eq('id', workflow_id);
     }
 
-    // ステップ出力データを取得
-    const stepOutColumnName = `step${stepNumber}_out` as keyof Workflow;
-    const stepOutput = workflow[stepOutColumnName] as StepOutput | undefined;
+    // workflow-design.mdの仕様に従い、StepXInputのみを返す
+    const response = stepInput || {};
 
-    // 編集可能かどうかを判定
-    const canEdit = workflow.status === 'active' && workflow.current_step >= stepNumber;
-    const canProceed = workflow.current_step >= stepNumber && !!stepOutput;
-
-    const response: StepResponse = {
-      stepInput: stepInput || {},
-      stepOutput,
-      canEdit,
-      canProceed,
-    };
-    
     console.log(`[GET] Response:`, JSON.stringify(response, null, 2));
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching step data:', error);
@@ -128,7 +139,7 @@ export async function GET(
 
 /**
  * POST /api/workflow/[workflow_id]/step/[step]
- * ユーザー入力を保存し、次ステップのデータを生成
+ * workflow-design.mdで定義されたStepXOutputを受け付けて保存
  */
 export async function POST(
   request: NextRequest,
@@ -146,7 +157,7 @@ export async function POST(
 
     const { workflow_id, step } = await params;
     const stepNumber = parseInt(step, 10) as StepNumber;
-    
+
     console.log(`[POST] /api/workflow/${workflow_id}/step/${step}`);
     console.log(`[POST] uid: ${uid}, stepNumber: ${stepNumber}`);
 
@@ -158,14 +169,15 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const { data } = body;
-    
-    console.log(`[POST] Request body:`, JSON.stringify(body, null, 2));
+    // workflow-design.mdの仕様に従い、StepXOutputを直接受け取る
+    const stepOutput = await request.json() as StepOutput;
 
-    if (!data) {
+    console.log(`[POST] Request body (StepOutput):`, JSON.stringify(stepOutput, null, 2));
+
+    // StepXOutputの基本的な検証
+    if (!stepOutput || !stepOutput.userInput) {
       return NextResponse.json(
-        { error: 'Data is required' },
+        { error: 'Invalid StepOutput format: userInput is required' },
         { status: 400 }
       );
     }
@@ -198,14 +210,16 @@ export async function POST(
       );
     }
 
-    // StepNOutputを構築
-    const stepOutput: StepOutput = { userInput: data } as any;
-
     // ワークフローのステップ出力データを更新
     const workflowUpdateData: any = {
       [`step${stepNumber}_out`]: stepOutput,
       current_step: Math.max(workflow.current_step, stepNumber),
     };
+
+    // Step1の場合のみ、stepX_inにuserInputを保存（次回のGET用）
+    if (stepNumber === 1) {
+      workflowUpdateData[`step${stepNumber}_in`] = stepOutput.userInput;
+    }
 
     // ステップ1-3の編集時は後続ステップをリセット
     if (stepNumber <= 3) {
@@ -216,19 +230,51 @@ export async function POST(
     }
 
     // LLMで次ステップ用のデータを生成し、storyboardsを更新
-    const { nextStepInput, storyboardUpdates } = await generateAndUpdateStoryboard(
-      stepNumber, 
-      stepOutput, 
-      workflow.storyboard,
-      workflow_id
-    );
+    let nextStepInput: StepInput | null = null;
+    let storyboardUpdates: Partial<Storyboard> = {};
+    
+    try {
+      const result = await generateAndUpdateStoryboard(
+        stepNumber,
+        stepOutput,
+        workflow.storyboard,
+        workflow_id
+      );
+      nextStepInput = result.nextStepInput;
+      storyboardUpdates = result.storyboardUpdates;
+    } catch (error) {
+      console.error('Storyboard generation error:', error);
+      
+      // WorkflowGenerationErrorの場合は、わかりやすいエラーメッセージを返す
+      if (error instanceof WorkflowGenerationError) {
+        return NextResponse.json(
+          { 
+            error: error.message,
+            code: error.code,
+            step: error.step,
+            details: error.originalError?.message
+          },
+          { status: 500 }
+        );
+      }
+      
+      // その他のエラー
+      return NextResponse.json(
+        { 
+          error: 'データ生成中に予期しないエラーが発生しました',
+          code: 'UNKNOWN_GENERATION_ERROR',
+          step: stepNumber
+        },
+        { status: 500 }
+      );
+    }
 
     // 次ステップの入力データをキャッシュとして保存
     if (stepNumber < 7) {
       workflowUpdateData[`step${stepNumber + 1}_in`] = nextStepInput;
     }
 
-    console.log(`[POST] Workflow update data:`, JSON.stringify(workflowUpdateData, null, 2));
+    //console.log(`[POST] Workflow update data:`, JSON.stringify(workflowUpdateData, null, 2));
     console.log(`[POST] Storyboard update data:`, JSON.stringify(storyboardUpdates, null, 2));
 
     // トランザクション的に更新（エラー時は両方ロールバック）
@@ -266,9 +312,9 @@ export async function POST(
       success: true,
       nextStepInput: stepNumber < 7 ? nextStepInput : null,
     };
-    
+
     console.log(`[POST] Response:`, JSON.stringify(response, null, 2));
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error saving step data:', error);
@@ -398,103 +444,83 @@ async function generateAndUpdateStoryboard(
 
   switch (stepNumber) {
     case 1:
-      // Step1完了時: summary_data, acts_data, characters_dataを生成
+      // Step1完了時: AIでstoryboardを生成してStep2Inputを作成
       const step1Output = stepOutput as Step1Output;
-      const { totalScenes } = step1Output.userInput;
       
-      // シーン数に基づいて幕場構成を動的に生成
-      const acts = generateActsStructure(totalScenes);
-      
-      // summary_dataを更新
-      storyboardUpdates.summary_data = {
-        title: '未来への挑戦 〜夢を追う若者の物語〜',
-        description: step1Output.userInput.storyText,
-        genre: 'ドラマ',
-        tags: ['青春', '成長', '友情', '挑戦'],
-        estimatedDuration: totalScenes * 15, // 1シーン約15秒と仮定
-      };
-
-      // acts_dataを更新
-      storyboardUpdates.acts_data = { acts };
-
-      // characters_dataを更新
-      storyboardUpdates.characters_data = {
-        characters: [
-          { 
-            id: 'taro', 
-            name: '太郎', 
-            role: '主人公', 
-            personality: '情熱的で前向き、時に無鉄砲だが仲間思い',
-            visualDescription: '黒髪の短髪、明るく元気な表情、スポーティな服装'
-          },
-          { 
-            id: 'hanako', 
-            name: '花子', 
-            role: '親友', 
-            personality: '優しく思慮深い、主人公を支える存在',
-            visualDescription: '茶髪のロングヘア、優しい眼差し、清楚な雰囲気'
-          },
-          { 
-            id: 'shisho', 
-            name: '師匠', 
-            role: 'メンター', 
-            personality: '厳格だが温かい心を持つ指導者',
-            visualDescription: '白髪混じりの髪、威厳のある風貌、和装'
-          },
-          { 
-            id: 'rival', 
-            name: 'ライバル', 
-            role: '好敵手', 
-            personality: '誇り高く実力者、最後は良き理解者に',
-            visualDescription: '銀髪、鋭い眼光、クールで洗練された外見'
-          },
-        ],
-      };
-
-      // Step2Input を生成
-      nextStepInput = {
-        suggestedTitle: storyboardUpdates.summary_data.title,
-        acts: acts,
-        charactersList: storyboardUpdates.characters_data.characters.map(char => ({
-          id: char.id,
-          name: char.name,
-          role: char.role,
-          personality: char.personality,
-        })),
-      } as Step2Input;
+      try {
+        // WorkflowStepManagerを使用してAI生成を実行
+        const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
+        const result = await manager.proceedToNextStep(1, step1Output);
+        
+        if (result.success && result.data) {
+          nextStepInput = result.data;
+          // storyboardUpdatesは step1-processor内で既に更新されているため、ここでは空
+        } else {
+          const errorMessage = result.error?.message || 'AIによるストーリー生成に失敗しました';
+          const errorCode = result.error?.code || 'STEP2_GENERATION_FAILED';
+          throw new WorkflowGenerationError(
+            `Step2入力の生成に失敗しました: ${errorMessage}`,
+            errorCode,
+            1
+          );
+        }
+      } catch (error) {
+        console.error('Step1→Step2 生成エラー:', error);
+        
+        // エラーを明確に返す
+        if (error instanceof WorkflowGenerationError) {
+          throw error;
+        }
+        
+        throw new WorkflowGenerationError(
+          'AIによるストーリー構成の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
+          'AI_GENERATION_ERROR',
+          1,
+          error instanceof Error ? error : undefined
+        );
+      }
       break;
 
     case 2:
-      // Step2完了時: タイトルとacts_dataを確定
+      // Step2完了時: AIでキャラクターを詳細化してStep3Inputを作成
       const step2Output = stepOutput as Step2Output;
-      
-      storyboardUpdates.title = step2Output.userInput.title;
-      storyboardUpdates.summary_data = {
-        ...currentStoryboard.summary_data,
-        title: step2Output.userInput.title,
-      } as SummaryData;
-      
-      storyboardUpdates.acts_data = {
-        acts: step2Output.userInput.acts,
-      };
 
-      // Step3Input を生成
-      nextStepInput = {
-        title: step2Output.userInput.title,
-        detailedCharacters: currentStoryboard.characters_data?.characters.map(char => ({
-          id: char.id,
-          name: char.name,
-          role: char.role,
-          personality: char.personality,
-          visualDescription: char.visualDescription,
-        })) || [],
-      } as Step3Input;
+      try {
+        const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
+        const result = await manager.proceedToNextStep(2, step2Output);
+        
+        if (result.success && result.data) {
+          nextStepInput = result.data;
+          // storyboardUpdatesはstep2-processor内で更新
+        } else {
+          const errorMessage = result.error?.message || 'AIによるキャラクター詳細化に失敗しました';
+          const errorCode = result.error?.code || 'STEP3_GENERATION_FAILED';
+          throw new WorkflowGenerationError(
+            `Step3入力の生成に失敗しました: ${errorMessage}`,
+            errorCode,
+            2
+          );
+        }
+      } catch (error) {
+        console.error('Step2→Step3 生成エラー:', error);
+        
+        if (error instanceof WorkflowGenerationError) {
+          throw error;
+        }
+        
+        throw new WorkflowGenerationError(
+          'AIによるキャラクター設定の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
+          'AI_GENERATION_ERROR',
+          2,
+          error instanceof Error ? error : undefined
+        );
+      }
       break;
 
     case 3:
       // Step3完了時: step3-generatorを使用してStep4Inputを生成
       const step3Output = stepOutput as Step3Output;
-      
+
       try {
         // step3-generatorを呼び出してStep4Inputを生成
         nextStepInput = await generateStep4Input(
@@ -502,7 +528,7 @@ async function generateAndUpdateStoryboard(
           currentStoryboard.id,
           step3Output
         );
-        
+
         // storyboardUpdatesは generateStep4Input 内で更新されるため、ここでは空
         // 将来的にはgeneratorから更新内容を返すように変更することも検討
       } catch (error) {
@@ -519,7 +545,7 @@ async function generateAndUpdateStoryboard(
     case 4:
       // Step4完了時: 編集されたscenes_dataを更新
       const step4Output = stepOutput as Step4Output;
-      
+
       // 既存のscenes_dataをマージして更新
       const currentScenes = currentStoryboard.scenes_data?.scenes || [];
       const updatedScenes = currentScenes.map(scene => {
@@ -534,11 +560,11 @@ async function generateAndUpdateStoryboard(
         }
         return scene;
       });
-      
+
       storyboardUpdates.scenes_data = {
         scenes: updatedScenes
       };
-      
+
       // Step5Input を生成（音声生成用）
       nextStepInput = {
         characters: currentStoryboard.characters_data?.characters.map(char => ({
@@ -561,7 +587,7 @@ async function generateAndUpdateStoryboard(
     case 5:
       // Step5完了時: audio_dataを更新
       const step5Output = stepOutput as Step5Output;
-      
+
       storyboardUpdates.audio_data = {
         voiceSettings: step5Output.userInput.voiceSettings,
         bgmSettings: {
@@ -569,7 +595,7 @@ async function generateAndUpdateStoryboard(
           sceneBgm: {}
         }
       };
-      
+
       // Step6Input を生成（BGM & 字幕設定用）
       nextStepInput = {
         suggestedBgm: 'default-bgm-1',
@@ -584,7 +610,7 @@ async function generateAndUpdateStoryboard(
     case 6:
       // Step6完了時: audio_dataとcaption_dataを更新
       const step6Output = stepOutput as Step6Output;
-      
+
       // audio_dataのBGM設定を更新
       storyboardUpdates.audio_data = {
         ...currentStoryboard.audio_data,
@@ -593,14 +619,14 @@ async function generateAndUpdateStoryboard(
           sceneBgm: {} // シーンごとのBGM設定は将来実装
         }
       };
-      
+
       // caption_dataを更新
       storyboardUpdates.caption_data = {
         enabled: step6Output.userInput.caption.enabled,
         language: step6Output.userInput.caption.language,
         styles: step6Output.userInput.caption.styles
       };
-      
+
       // Step7Input を生成（最終確認用）
       // MulmoScriptを生成する必要がある
       nextStepInput = {
@@ -633,7 +659,7 @@ async function generateAndUpdateStoryboard(
     case 7:
       // Step7完了時: 最終的なMulmoScriptを生成
       const step7Output = stepOutput as Step7Output;
-      
+
       // summary_dataの最終更新
       storyboardUpdates.summary_data = {
         ...currentStoryboard.summary_data,
@@ -641,12 +667,12 @@ async function generateAndUpdateStoryboard(
         description: step7Output.userInput.description,
         tags: step7Output.userInput.tags
       } as SummaryData;
-      
+
       storyboardUpdates.title = step7Output.userInput.title;
-      
+
       // ワークフローのstatusを完了に更新
       storyboardUpdates.status = 'completed';
-      
+
       // MulmoScriptは別途generate-script APIで生成するため、ここでは生成しない
       break;
 
@@ -677,15 +703,15 @@ function generateActsStructure(totalScenes: number) {
     ['仲間と共に最終決戦への準備を整える', '全てを賭けた最後の挑戦', '激しい戦いの中で真の強さを発揮'],
     ['目標を達成し、それぞれの道へ', '成長した主人公が新たな冒険へ旅立つ', '物語の終わりと新たな始まり']
   ];
-  
+
   // 5幕構成で、各幕のシーン数を計算
   let totalScenesAssigned = 0;
   const scenesPerAct = Math.ceil(totalScenes / 5);
-  
+
   for (let actIndex = 0; actIndex < 5; actIndex++) {
     const actScenes = [];
     const actualScenesInAct = Math.min(scenesPerAct, totalScenes - totalScenesAssigned);
-    
+
     for (let sceneIndex = 0; sceneIndex < actualScenesInAct; sceneIndex++) {
       actScenes.push({
         sceneNumber: sceneIndex + 1,
@@ -694,7 +720,7 @@ function generateActsStructure(totalScenes: number) {
       });
       totalScenesAssigned++;
     }
-    
+
     if (actScenes.length > 0) {
       acts.push({
         actNumber: actIndex + 1,
@@ -704,6 +730,6 @@ function generateActsStructure(totalScenes: number) {
       });
     }
   }
-  
+
   return acts;
 }

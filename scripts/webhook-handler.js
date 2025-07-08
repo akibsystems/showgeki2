@@ -237,7 +237,7 @@ function generateAudio(scriptPath, outputDir) {
       // 生成された音声ファイルを確認
       const audioPath = path.join(outputDir, 'audio');
       const audioScriptPath = path.join(audioPath, 'script');
-      
+
       // audio/script/ ディレクトリの音声ファイルを確認
       if (fs.existsSync(audioScriptPath)) {
         const audioFiles = fs.readdirSync(audioScriptPath).filter(f => f.endsWith('.mp3') || f.endsWith('.wav'));
@@ -715,7 +715,7 @@ function getContentType(filename) {
  * Process image preview generation
  */
 async function processImagePreview(payload) {
-  const { video_id, story_id, uid, title, script_json } = payload;
+  let { video_id, story_id, uid, title, script_json } = payload;
   let uniquePaths = null;
   const processingStartTime = Date.now();
 
@@ -792,20 +792,20 @@ async function processImagePreview(payload) {
     if (existingPreviewPath) {
       // 既存のプレビューをダウンロードして再利用
       console.log('📦 既存の画像プレビューを再利用します');
-      
+
       const downloadSuccess = await downloadStorageDirectory(existingPreviewPath, outputDir);
-      
+
       if (downloadSuccess) {
         wasReused = true;
         console.log('✅ 既存の画像プレビューを正常に再利用しました');
-        
+
         // 再利用時のダミーメトリクス
         const imagesPath = path.join(outputDir, 'images', 'script');
         let imageCount = 0;
         if (fs.existsSync(imagesPath)) {
           imageCount = fs.readdirSync(imagesPath).filter(f => f.endsWith('.png')).length;
         }
-        
+
         result = {
           imagesPath: imagesPath,
           imageCount: imageCount,
@@ -826,10 +826,10 @@ async function processImagePreview(payload) {
 
     // outputフォルダ全体をSupabaseにアップロード（再利用時はスキップ）
     let uploadedFiles = [];
-    
+
     if (wasReused) {
       console.log('📦 既存プレビューを再利用したため、アップロードをスキップします');
-      
+
       // 既存ファイルから uploadedFiles 形式のデータを構築
       const imagesPath = path.join(outputDir, 'images', 'script');
       if (fs.existsSync(imagesPath)) {
@@ -840,7 +840,7 @@ async function processImagePreview(payload) {
           const { data: urlData } = supabase.storage
             .from('videos')
             .getPublicUrl(fullPath);
-          
+
           return {
             path: storagePath,
             fileName: fileName,
@@ -986,14 +986,14 @@ async function processAudioPreview(payload) {
 
     // script.jsonファイルに書き込み
     const jsonContent = JSON.stringify(script_json, null, 2);
-    
+
     // MulmoScriptの内容を表示
     console.log('\n📋 MulmoScript (音声プレビュー用):');
     console.log('━'.repeat(60));
     console.log(jsonContent);
     console.log('━'.repeat(60));
     console.log('');
-    
+
     writeScriptJson(jsonContent, uniquePaths.scriptPath);
     console.log('✅ script.jsonファイル作成完了');
 
@@ -1005,24 +1005,24 @@ async function processAudioPreview(payload) {
     if (existingAudioPath) {
       // 既存の音声プレビューをダウンロードして再利用
       console.log('📦 既存の音声プレビューを再利用します');
-      
+
       const downloadSuccess = await downloadStorageDirectory(existingAudioPath, uniquePaths.tempDir);
-      
+
       if (downloadSuccess) {
         wasReused = true;
         console.log('✅ 既存の音声プレビューを正常に再利用しました');
-        
+
         // 再利用時のダミーメトリクス
         const audioPath = path.join(uniquePaths.tempDir, 'audio');
         const audioScriptPath = path.join(audioPath, 'script');
         let audioCount = 0;
-        
+
         if (fs.existsSync(audioScriptPath)) {
           audioCount = fs.readdirSync(audioScriptPath).filter(f => f.endsWith('.mp3') || f.endsWith('.wav')).length;
         } else if (fs.existsSync(audioPath)) {
           audioCount = fs.readdirSync(audioPath).filter(f => f.endsWith('.mp3') || f.endsWith('.wav')).length;
         }
-        
+
         audioResult = {
           audioPath: audioPath,
           audioCount: audioCount,
@@ -1042,23 +1042,23 @@ async function processAudioPreview(payload) {
 
     // outputディレクトリ全体をSupabaseにアップロード（再利用時はスキップ）
     let uploadedFiles = [];
-    
+
     if (wasReused) {
       console.log('📦 既存音声プレビューを再利用したため、アップロードをスキップします');
-      
+
       // 既存ファイルから uploadedFiles 形式のデータを構築
       const audioScriptPath = path.join(uniquePaths.tempDir, 'audio', 'script');
       if (fs.existsSync(audioScriptPath)) {
         const audioFileNames = fs.readdirSync(audioScriptPath)
           .filter(f => f.endsWith('.mp3') && f.startsWith('script_') && f !== 'script.mp3');
-        
+
         uploadedFiles = audioFileNames.map(fileName => {
           const storagePath = `audio/script/${fileName}`;
           const fullPath = `videos/${video_id}/audio-preview/output/${storagePath}`;
           const { data: urlData } = supabase.storage
             .from('videos')
             .getPublicUrl(fullPath);
-          
+
           return {
             path: storagePath,
             fileName: fileName,
@@ -1075,33 +1075,33 @@ async function processAudioPreview(payload) {
     // 音声ファイルのURLリストを作成
     const audioData = [];
     const audioScriptPath = path.join(uniquePaths.tempDir, 'audio', 'script');
-    
+
     console.log('🔍 音声ファイルのマッピング開始...');
     console.log(`  - audioScriptPath: ${audioScriptPath}`);
     console.log(`  - 存在確認: ${fs.existsSync(audioScriptPath)}`);
-    
+
     // mulmocast-cliは audio/script/ ディレクトリに生成する
     if (fs.existsSync(audioScriptPath)) {
       const allFiles = fs.readdirSync(audioScriptPath);
       console.log('  - 全ファイル:', allFiles);
-      
+
       const audioFiles = allFiles
         .filter(f => f.endsWith('.mp3') && f.startsWith('script_') && f !== 'script.mp3')
         .sort(); // ファイル名でソート
-      
+
       console.log('  - 対象音声ファイル:', audioFiles);
       console.log('  - アップロード済みファイル数:', uploadedFiles.length);
-      
+
       // beatsの数だけループ
       const beats = script_json.beats || [];
       console.log(`  - beats数: ${beats.length}`);
-      
+
       for (let i = 0; i < beats.length && i < audioFiles.length; i++) {
         const fileName = audioFiles[i];
         // uploadedFilesのfileNameから該当するファイルを検索
         const uploadedFile = uploadedFiles.find(f => f.fileName === fileName);
         console.log(`  - Beat ${i}: ${fileName} -> ${uploadedFile ? 'マッチ' : 'マッチなし'}`);
-        
+
         if (uploadedFile) {
           audioData.push({
             beatIndex: i,
@@ -1113,7 +1113,7 @@ async function processAudioPreview(payload) {
         }
       }
     }
-    
+
     console.log(`✅ 音声データマッピング完了: ${audioData.length}件`);
 
     // 音声プレビューデータを保存
@@ -1146,7 +1146,7 @@ async function processAudioPreview(payload) {
     }
     console.log(`🎵 音声ファイル数: ${audioData.length}件`);
     console.log('');
-    
+
     return true;
 
   } catch (error) {
@@ -1225,7 +1225,7 @@ async function checkExistingPreviewOutput(videoId, previewType = 'preview') {
 async function downloadExistingPreviewOutput(basePath, localDir) {
   try {
     console.log(`📥 既存のプレビュー出力をダウンロード中: ${basePath} → ${localDir}`);
-    
+
     // Ensure local directory exists
     if (!fs.existsSync(localDir)) {
       fs.mkdirSync(localDir, { recursive: true });
@@ -1384,7 +1384,7 @@ async function checkExistingVideo(videoId) {
 async function downloadExistingVideo(filePath, outputPath) {
   try {
     console.log(`📥 既存の動画をダウンロード中: ${filePath} → ${outputPath}`);
-    
+
     const { data, error } = await supabase
       .storage
       .from('videos')
@@ -1417,7 +1417,7 @@ async function downloadExistingVideo(filePath, outputPath) {
 }
 
 async function processVideoGeneration(payload) {
-  const { video_id, story_id, uid, title, text_raw, script_json } = payload;
+  let { video_id, story_id, uid, title, text_raw, script_json } = payload;
   let uniquePaths = null;
   const processingStartTime = Date.now(); // 処理開始時刻を記録
 
@@ -1519,14 +1519,14 @@ async function processVideoGeneration(payload) {
 
     // 3. script.jsonに書き込み (ユニークなパス)
     console.log('3. script.jsonファイルに書き込み中...');
-    
+
     // MulmoScriptの内容を表示
     console.log('\n📋 MulmoScript (動画生成用):');
     console.log('━'.repeat(60));
     console.log(jsonContent);
     console.log('━'.repeat(60));
     console.log('');
-    
+
     writeScriptJson(jsonContent, uniquePaths.scriptPath);
     console.log('');
 
@@ -1538,22 +1538,22 @@ async function processVideoGeneration(payload) {
 
     // 既存の動画ファイルを確認
     const existingVideoPath = await checkExistingVideo(video_id);
-    
+
     if (existingVideoPath) {
       // 既存の動画をダウンロードして再利用
       console.log('📦 既存の動画を再利用します');
-      
+
       // 期待される出力パスを設定（字幕の有無に応じて）
       const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
       const expectedFileName = captionLang ? `script__${captionLang}.mp4` : 'script.mp4';
       videoPath = path.join(path.dirname(uniquePaths.outputPath), expectedFileName);
-      
+
       const downloadSuccess = await downloadExistingVideo(existingVideoPath, videoPath);
-      
+
       if (downloadSuccess) {
         wasReused = true;
         console.log('✅ 既存の動画を正常に再利用しました');
-        
+
         // ダミーのメトリクスを設定（再利用時）
         movieMetrics = {
           imageGenerationTime: 0,
@@ -1570,7 +1570,7 @@ async function processVideoGeneration(payload) {
     if (!wasReused) {
       try {
         console.log('🎬 新規動画を生成します...');
-        
+
         // captionParamsの有無と言語を確認
         const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
         if (captionLang) {
@@ -1832,16 +1832,43 @@ async function pollForQueuedVideos() {
         .eq('id', video.story_id)
         .single();
 
+      let title, text_raw, script_json;
+
       if (storyError || !story) {
-        console.error('❌ ストーリー取得エラー:', storyError?.message);
-        await supabase
-          .from('videos')
-          .update({
-            status: 'failed',
-            error_msg: 'ストーリーが見つかりません'
-          })
-          .eq('id', video.id);
-        return;
+        // storiesテーブルに見つからない場合、storyboardsテーブルから取得
+        console.log('📋 storiesテーブルにエントリがありません。storyboardsテーブルから取得します...');
+        const { data: storyboard, error: storyboardError } = await supabase
+          .from('storyboards')
+          .select(`
+            id,
+            title,
+            mulmoscript
+          `)
+          .eq('id', video.story_id)
+          .single();
+
+        if (storyboardError || !storyboard) {
+          console.error('❌ storyboard取得エラー:', storyboardError?.message);
+          await supabase
+            .from('videos')
+            .update({
+              status: 'failed',
+              error_msg: 'ストーリー/ストーリーボードが見つかりません'
+            })
+            .eq('id', video.id);
+          return;
+        }
+
+        // storyboardsから取得したデータを使用
+        title = storyboard.title || '無題';
+        text_raw = ''; // storyboardsにはtext_rawがない
+        script_json = storyboard.mulmoscript;
+        console.log('✅ storyboardsからデータを取得しました');
+      } else {
+        // storiesから取得したデータを使用
+        title = story.title;
+        text_raw = story.text_raw;
+        script_json = story.script_json;
       }
 
       // 既存のprocessVideoGeneration関数を呼び出し
@@ -1849,9 +1876,9 @@ async function pollForQueuedVideos() {
         video_id: video.id,
         story_id: video.story_id,
         uid: video.uid,
-        title: story.title,
-        text_raw: story.text_raw,
-        script_json: story.script_json
+        title: title,
+        text_raw: text_raw,
+        script_json: script_json  // storiesまたはstoryboardsから取得したscript
       };
 
       await processVideoGeneration(payload);

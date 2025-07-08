@@ -117,6 +117,7 @@ export async function POST(
     }
 
     const mulmoScript = enhanceMulmoScriptWithWorkflowData(result.script, storyboard);
+    console.log('mulmoScript', mulmoScript);
 
     // ストーリーボードにMulmoScriptを保存
     const { error: updateError } = await supabase
@@ -135,40 +136,14 @@ export async function POST(
       );
     }
 
-    // 新しいストーリーを作成（既存のstoriesテーブルを使用）
-    const { data: story, error: storyError } = await supabase
-      .from('stories')
-      .insert({
-        workspace_id: uid, // uidをworkspace_idとして使用
-        uid: uid,
-        title: storyboard.title || '無題の作品',
-        text_raw: storyboard.summary_data?.description || '',
-        beats: storyboard.scenes_data?.scenes.length || 1,
-        script_json: mulmoScript,
-        status: 'script_completed',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (storyError || !story) {
-      console.error('ストーリー作成エラー:', storyError);
-      return NextResponse.json(
-        { error: 'ストーリーの作成に失敗しました' },
-        { status: 500 }
-      );
-    }
-
     // 新しいビデオエントリを作成
     const { data: video, error: videoError } = await supabase
       .from('videos')
       .insert({
-        story_id: story.id,
+        story_id: storyboard.id,
         uid: uid,
         status: 'queued',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -187,11 +162,40 @@ export async function POST(
       .update({ status: 'completed' })
       .eq('id', workflow_id);
 
+    // Webhookを送信（従来の形式）
+    if (process.env.CLOUD_RUN_WEBHOOK_URL) {
+      try {
+        const webhookPayload = {
+          type: 'video_generation',
+          payload: {
+            video_id: video.id,
+            story_id: storyboard.id,
+            uid: uid,
+            title: storyboard.title || '無題の作品',
+            text_raw: storyboard.summary_data?.description || '',
+            script_json: mulmoScript
+          }
+        };
+
+        await fetch(process.env.CLOUD_RUN_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+        });
+
+        console.log('Webhook sent successfully for video:', video.id);
+      } catch (webhookError) {
+        console.error('Webhook送信エラー:', webhookError);
+        // Webhookエラーは無視して続行
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      storyId: story.id,
+      storyboardId: storyboard.id,
       videoId: video.id,
-      mulmoScript
     });
 
   } catch (error) {
@@ -219,25 +223,41 @@ function enhanceMulmoScriptWithWorkflowData(
     characters.forEach(char => {
       const voiceSettings = audioData?.voiceSettings?.[char.id];
       if (baseScript.speechParams.speakers[char.name]) {
-        baseScript.speechParams.speakers[char.name].voiceId = 
+        baseScript.speechParams.speakers[char.name].voiceId =
           voiceSettings?.voiceType || char.voiceType || baseScript.speechParams.speakers[char.name].voiceId;
       }
     });
   }
 
   // BGM設定を適用
-  if (audioData?.bgmSettings) {
-    baseScript.audioParams = {
-      ...baseScript.audioParams,
-      bgm: audioData.bgmSettings.customBgm ? {
-        kind: 'url' as const,
-        url: audioData.bgmSettings.customBgm.url
-      } : audioData.bgmSettings.defaultBgm ? {
-        kind: 'url' as const,
-        url: getBgmUrl(audioData.bgmSettings.defaultBgm)
-      } : undefined,
-      bgmVolume: audioData.bgmSettings.bgmVolume || 0.2
-    };
+  if (storyboard.audio_data) {
+    // storyboardからStep6で保存されたBGM設定を取得
+    const step6BgmData = storyboard.audio_data as any; // Step6Output形式のデータ
+    
+    if (step6BgmData.bgm) {
+      // Step6から保存されたBGM設定を使用
+      if (step6BgmData.bgm.selected && step6BgmData.bgm.selected !== 'none') {
+        baseScript.audioParams = {
+          ...baseScript.audioParams,
+          bgm: {
+            kind: 'url' as const,
+            url: step6BgmData.bgm.selected  // selectedは既に完全なURL
+          },
+          bgmVolume: step6BgmData.bgm.volume || 0.5
+        };
+      }
+      // customBgmがある場合は優先
+      if (step6BgmData.bgm.customBgm) {
+        baseScript.audioParams = {
+          ...baseScript.audioParams,
+          bgm: {
+            kind: 'url' as const,
+            url: step6BgmData.bgm.customBgm
+          },
+          bgmVolume: step6BgmData.bgm.volume || 0.5
+        };
+      }
+    }
   }
 
   // 画風設定を適用
@@ -255,7 +275,7 @@ function enhanceMulmoScriptWithWorkflowData(
       faceReferences[char.name] = char.faceReference;
     }
   });
-  
+
   if (Object.keys(faceReferences).length > 0) {
     baseScript.imageParams = {
       ...baseScript.imageParams,
@@ -303,19 +323,3 @@ function enhanceMulmoScriptWithWorkflowData(
   return baseScript as MulmoScript;
 }
 
-/**
- * BGM IDからURLを取得
- */
-function getBgmUrl(bgmId: string): string {
-  // BGMのマッピング（実際のURLに置き換える必要があります）
-  const bgmMap: Record<string, string> = {
-    'default-bgm-1': 'https://example.com/bgm/standard.mp3',
-    'default-bgm-2': 'https://example.com/bgm/dramatic.mp3',
-    'default-bgm-3': 'https://example.com/bgm/fantasy.mp3',
-    'epic': 'https://example.com/bgm/epic.mp3',
-    'emotional': 'https://example.com/bgm/emotional.mp3',
-    'peaceful': 'https://example.com/bgm/peaceful.mp3',
-  };
-  
-  return bgmMap[bgmId] || bgmMap['default-bgm-1'];
-}

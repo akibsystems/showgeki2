@@ -273,26 +273,31 @@ export default function Step4ScriptPreview({
 
     setIsLoading(true);
     try {
+      // workflow-design.mdの仕様に従い、Step4Outputを送信
+      const step4Output: Step4Output = {
+        userInput: {
+          scenes: scenes.map(scene => ({
+            id: scene.id,
+            imagePrompt: scene.imagePrompt,
+            dialogue: scene.dialogue,
+            customImage: scene.customImage
+          }))
+        },
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/4`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({
-          data: {
-            scenes: scenes.map(scene => ({
-              id: scene.id,
-              imagePrompt: scene.imagePrompt,
-              dialogue: scene.dialogue,
-              customImage: scene.customImage
-            }))
-          },
-        }),
+        body: JSON.stringify(step4Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.text();
+        console.error('Step 4 save failed:', response.status, errorData);
+        throw new Error(`Failed to save data: ${response.status} ${errorData}`);
       }
 
       onNext();

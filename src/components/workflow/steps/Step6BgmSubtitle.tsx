@@ -386,30 +386,35 @@ export default function Step6BgmSubtitle({
 
     setIsLoading(true);
     try {
+      // workflow-design.mdの仕様に従い、Step6Outputを送信
+      const step6Output: Step6Output = {
+        userInput: {
+          bgm: {
+            selected: bgmSettings.selected,
+            customBgm: bgmSettings.customBgm,
+            volume: bgmSettings.volume,
+          },
+          caption: {
+            enabled: captionSettings.enabled,
+            language: captionSettings.language,
+            styles: captionSettings.styles, // mulmocast形式のstyles配列
+          },
+        },
+      };
+
       const response = await fetch(`/api/workflow/${workflowId}/step/6`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
         },
-        body: JSON.stringify({
-          data: {
-            bgm: {
-              selected: bgmSettings.selected,
-              customBgm: bgmSettings.customBgm,
-              volume: bgmSettings.volume,
-            },
-            caption: {
-              enabled: captionSettings.enabled,
-              language: captionSettings.language,
-              styles: captionSettings.styles, // mulmocast形式のstyles配列
-            },
-          },
-        }),
+        body: JSON.stringify(step6Output),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.text();
+        console.error('Step 6 save failed:', response.status, errorData);
+        throw new Error(`Failed to save: ${response.status} ${errorData}`);
       }
 
       onNext();

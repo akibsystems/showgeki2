@@ -46,11 +46,11 @@ export async function updateSession(request: NextRequest) {
     '/auth/signup',
   ];
 
-  const isProtectedPath = protectedPaths.some(path => 
+  const isProtectedPath = protectedPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   );
 
-  const isAuthPath = authPaths.some(path => 
+  const isAuthPath = authPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   );
 
@@ -60,12 +60,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Middleware - path:', request.nextUrl.pathname);
-    console.log('Middleware - user:', user ? `${user.email} (${user.id})` : 'null');
-    console.log('Middleware - isProtectedPath:', isProtectedPath);
-    console.log('Middleware - isAuthPath:', isAuthPath);
-  }
+  // if (process.env.NODE_ENV === 'development') {
+  //   console.log('Middleware - path:', request.nextUrl.pathname);
+  //   console.log('Middleware - user:', user ? `${user.email} (${user.id})` : 'null');
+  //   console.log('Middleware - isProtectedPath:', isProtectedPath);
+  //   console.log('Middleware - isAuthPath:', isAuthPath);
+  // }
 
   // Redirect to login if accessing protected route without authentication
   if (isProtectedPath && !user) {

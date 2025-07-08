@@ -230,7 +230,7 @@ CREATE TABLE workflows (
   current_step INTEGER DEFAULT 1,
   status TEXT DEFAULT 'active', -- active, completed, archived
   
-  -- 表示用データ（キャッシュ）
+  -- 表示用データ（キャッシュ） GETで取得
   step1_in JSONB,
   step2_in JSONB,
   step3_in JSONB,
@@ -239,7 +239,7 @@ CREATE TABLE workflows (
   step6_in JSONB,
   step7_in JSONB,
   
-  -- ユーザー入力データ
+  -- ユーザー入力データ POSTで保存
   step1_out JSONB,
   step2_out JSONB,
   step3_out JSONB,
@@ -859,6 +859,110 @@ interface MulmoScript {
 - components/workflow以下に独立したコンポーネントとして作成
 - 各ステップへの入出力はJSON形式
 - 各ステップへの入力JSONとユーザーの入力をもとに、LLMを使ってそのステップでの出力JSONを生成
+
+### ステップ間のAI処理（Step Processors）
+
+#### 概要
+ワークフローの各ステップ間でAIを使用してデータを生成・変換する処理を管理するシステムです。
+
+#### ディレクトリ構成
+```
+src/lib/workflow/step-processors/
+├── index.ts                 # エクスポートとWorkflowStepManager
+├── step1-processor.ts       # Step1→Step2の処理
+├── step2-processor.ts       # Step2→Step3の処理
+├── step4-processor.ts       # Step4→Step5の処理
+├── step5-processor.ts       # Step5→Step6の処理
+├── step6-processor.ts       # Step6→Step7の処理
+└── step7-processor.ts       # Step7の完了処理
+```
+
+※ Step3の処理は既存の`/src/lib/workflow/generators/step3-generator.ts`を使用
+
+#### 各プロセッサーの詳細
+
+**step1-processor.ts**
+- 役割: ユーザーのストーリー入力からAIで初期のstoryboardを生成
+- 生成内容: タイトル案、シェイクスピア風5幕構成、登場人物リスト（性格・外見含む）
+- AIプロンプト設計: ストーリーの要素を分析し、5幕構成に適切にシーンを配分、キャラクターの役割と関係性を定義
+
+**step2-processor.ts**
+- 役割: 幕場構成とタイトルを確定し、キャラクターを詳細化
+- 生成内容: キャラクターの詳細な性格設定、視覚的な外見描写、キャラクター間の関係性
+
+**step3-generator.ts（既存）**
+- 役割: キャラクターと画風設定から台本を生成
+- 特徴: 既に実装済みのジェネレーター、各シーンの台詞と画像プロンプトを生成、シェイクスピア風の文体で日本語台本を作成
+
+**step4-processor.ts**
+- 役割: 台本から音声設定の準備
+- 生成内容: 各キャラクターへの推奨音声タイプ、読み方の注意点、感情表現の指示
+
+**step5-processor.ts**
+- 役割: 音声設定からBGM設定の準備
+- 生成内容: シーンに適したBGMの提案（AudioSettings.tsxで定義されたBGM URLリストから選択）
+- BGMオプション: story001.mp3〜story005.mp3, theme001.mp3, vibe001.mp3, voice001.mp3
+- デフォルト: story002.mp3 (Rise and Shine)
+
+**step6-processor.ts**
+- 役割: 最終確認用データの生成
+- 生成内容: サムネイル候補の選定、動画の説明文案、タグの提案
+
+**step7-processor.ts**
+- 役割: ワークフロー完了処理
+- 処理内容: 最終的なMulmoScriptの生成準備、ワークフローステータスの更新、動画生成キューへの登録準備
+
+#### WorkflowStepManager
+統一的なインターフェースでステップ処理を管理するクラス。
+
+```typescript
+const manager = new WorkflowStepManager(workflowId, storyboardId);
+
+// 次のステップへ進む
+const result = await manager.proceedToNextStep(currentStep, stepOutput);
+
+if (result.success) {
+  // 成功時の処理
+  const nextStepInput = result.data;
+} else {
+  // エラー処理
+  console.error(result.error);
+}
+```
+
+#### エラーハンドリング
+
+**エラーレスポンス形式**
+```typescript
+{
+  error: string;      // 日本語のわかりやすいメッセージ
+  code: string;       // エラーコード（例: STEP2_GENERATION_FAILED）
+  step: number;       // エラーが発生したステップ番号
+  details?: string;   // 詳細情報（デバッグ用）
+}
+```
+
+**エラーメッセージの例**
+- "AIによるストーリー構成の生成中にエラーが発生しました。しばらく待ってから再度お試しください。"
+- "キャラクター設定の生成に失敗しました。入力内容を確認してください。"
+- "台本の生成中にエラーが発生しました。文字数が多すぎる可能性があります。"
+
+#### 技術仕様
+
+**使用AIモデル**
+- モデル: `gpt-4.1`
+- 温度設定: 0.7（創造的な生成のため）
+- レスポンス形式: JSON
+
+**データベース更新**
+- Supabase SERVICE_ROLEキーを使用
+- storyboardsテーブルを直接更新
+- トランザクション的な更新を実装
+
+**パフォーマンス考慮事項**
+- 各ステップの処理は非同期で実行
+- エラー時の再試行は実装していない（ユーザーが手動で再実行）
+- タイムアウトは設定していない（OpenAIのデフォルトを使用）
 
 ### 既存コンポーネントの再利用
 - 画風設定: `/src/components/editor/script-director/components/ImageSettings.tsx`を参照
