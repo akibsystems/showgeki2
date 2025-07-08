@@ -105,7 +105,7 @@ export async function generateMulmoscriptWithOpenAI(
   // Default configuration
   const config = {
     model: 'gpt-4.1', // Latest GPT-4 model for script generation
-    maxTokens: 2000,
+    maxTokens: 32000,
     temperature: 0.7, // Balanced creativity and consistency
   };
 
