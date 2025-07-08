@@ -1791,13 +1791,7 @@ async function pollForQueuedVideos() {
         id,
         story_id,
         uid,
-        created_at,
-        stories!inner (
-          id,
-          title,
-          text_raw,
-          script_json
-        )
+        created_at
       `)
       .eq('status', 'queued')
       .order('created_at', { ascending: true })
@@ -1826,14 +1820,38 @@ async function pollForQueuedVideos() {
 
       console.log(`🚀 ポーリング処理開始: ${video.id}`);
 
+      // storiesテーブルからデータを取得（古いデータ構造）
+      const { data: story, error: storyError } = await supabase
+        .from('stories')
+        .select(`
+          id,
+          title,
+          text_raw,
+          script_json
+        `)
+        .eq('id', video.story_id)
+        .single();
+
+      if (storyError || !story) {
+        console.error('❌ ストーリー取得エラー:', storyError?.message);
+        await supabase
+          .from('videos')
+          .update({
+            status: 'failed',
+            error_msg: 'ストーリーが見つかりません'
+          })
+          .eq('id', video.id);
+        return;
+      }
+
       // 既存のprocessVideoGeneration関数を呼び出し
       const payload = {
         video_id: video.id,
         story_id: video.story_id,
         uid: video.uid,
-        title: video.stories.title,
-        text_raw: video.stories.text_raw,
-        script_json: video.stories.script_json
+        title: story.title,
+        text_raw: story.text_raw,
+        script_json: story.script_json
       };
 
       await processVideoGeneration(payload);
