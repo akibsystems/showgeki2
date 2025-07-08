@@ -67,7 +67,7 @@ let openaiClient: OpenAI | null = null;
 export function initializeOpenAI(config: OpenAIConfig): void {
   openaiClient = new OpenAI({
     apiKey: config.apiKey,
-    timeout: config.timeout || 30000, // 30 seconds default
+    timeout: config.timeout || 60000, // 30 seconds default
   });
 }
 
