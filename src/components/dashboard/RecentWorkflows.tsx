@@ -13,6 +13,7 @@ interface WorkflowItem {
   totalSteps: number;
   createdAt: string;
   updatedAt: string;
+  hasVideo?: boolean; // 動画生成済みかどうか
 }
 
 export function RecentWorkflows() {
@@ -110,13 +111,23 @@ export function RecentWorkflows() {
 
   return (
     <div className="grid gap-4">
-      {workflows.map((workflow) => (
-        <Link key={workflow.id} href={`/workflow/${workflow.id}?step=${workflow.currentStep}`}>
-          <Card className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all cursor-pointer">
+      {workflows.map((workflow) => {
+        const isCompleted = workflow.hasVideo; // 動画生成済みかどうか
+        
+        const CardComponent = (
+          <Card key={workflow.id} className={`bg-gray-800/50 border-gray-700 transition-all ${
+            isCompleted 
+              ? 'opacity-60 cursor-not-allowed' 
+              : 'hover:border-purple-500/50 cursor-pointer'
+          }`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-white mb-1">{workflow.title}</h3>
+                  <h3 className={`font-semibold mb-1 ${
+                    isCompleted ? 'text-gray-400' : 'text-white'
+                  }`}>
+                    {workflow.title}
+                  </h3>
                   <div className="flex items-center gap-4 text-sm">
                     <span className={`${getStatusColor(workflow.status)}`}>
                       {getStatusLabel(workflow.status)}
@@ -142,8 +153,19 @@ export function RecentWorkflows() {
               </div>
             </CardContent>
           </Card>
-        </Link>
-      ))}
+        );
+        
+        // 動画生成済みの場合はリンクを無効化
+        if (isCompleted) {
+          return CardComponent;
+        }
+        
+        return (
+          <Link key={workflow.id} href={`/workflow/${workflow.id}?step=${workflow.currentStep}`}>
+            {CardComponent}
+          </Link>
+        );
+      })}
     </div>
   );
 }

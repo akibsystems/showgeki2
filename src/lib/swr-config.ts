@@ -1,5 +1,5 @@
 import { SWRConfiguration } from 'swr';
-import { getOrCreateUid } from './uid';
+import { supabase } from '@/lib/supabase/client';
 
 // ================================================================
 // SWR Fetcher
@@ -7,8 +7,12 @@ import { getOrCreateUid } from './uid';
 
 const swrFetcher = async (url: string) => {
   try {
-    // Get UID for API authentication
-    const uid = await getOrCreateUid();
+    // Get current user from Supabase Auth
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
+    const uid = user.id;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -44,6 +48,9 @@ const swrFetcher = async (url: string) => {
       }
       if (url.match(/^\/api\/workspaces(\?.*)?$/) && data.workspaces) {
         return data.workspaces;
+      }
+      if (url.match(/^\/api\/storyboards(\?.*)?$/) && data.storyboards) {
+        return data.storyboards;
       }
 
       // For single item endpoints, return the data directly
@@ -121,6 +128,9 @@ export const swrKeys = {
   // Reviews
   storyReviews: (storyId: string) => `/api/stories/${storyId}/reviews`,
   review: (id: string) => `/api/reviews/${id}`,
+  
+  // Storyboards
+  storyboards: () => '/api/storyboards',
 } as const;
 
 // ================================================================

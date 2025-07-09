@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         current_step,
         created_at,
         updated_at,
+        storyboard_id,
         storyboards (
           id,
           title,
@@ -54,35 +55,48 @@ export async function GET(request: NextRequest) {
     }
 
     // ステップ情報を含めてフォーマット
-    const formattedWorkflows = workflows?.map(workflow => {
-      const storyboard = workflow.storyboards as any;
-      
-      // 現在のステップとタイトルを取得
-      let currentStep = 1;
-      let title = '新規脚本';
-      
-      if (workflow.status === 'completed') {
-        currentStep = 7;
-      } else if (workflow.current_step) {
-        currentStep = workflow.current_step;
-      }
-      
-      if (storyboard?.title) {
-        title = storyboard.title;
-      } else if (storyboard?.summary_data?.title) {
-        title = storyboard.summary_data.title;
-      }
-      
-      return {
-        id: workflow.id,
-        title,
-        status: workflow.status,
-        currentStep,
-        totalSteps: 7,
-        createdAt: workflow.created_at,
-        updatedAt: workflow.updated_at,
-      };
-    }) || [];
+    const formattedWorkflows = await Promise.all(
+      (workflows || []).map(async workflow => {
+        const storyboard = workflow.storyboards as any;
+        
+        // 動画生成済みかどうかをチェック
+        const { data: videos } = await supabase
+          .from('videos')
+          .select('id, status')
+          .eq('story_id', workflow.storyboard_id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        const hasVideo = videos && videos.length > 0;
+        
+        // 現在のステップとタイトルを取得
+        let currentStep = 1;
+        let title = '新規脚本';
+        
+        if (workflow.status === 'completed') {
+          currentStep = 7;
+        } else if (workflow.current_step) {
+          currentStep = workflow.current_step;
+        }
+        
+        if (storyboard?.title) {
+          title = storyboard.title;
+        } else if (storyboard?.summary_data?.title) {
+          title = storyboard.summary_data.title;
+        }
+        
+        return {
+          id: workflow.id,
+          title,
+          status: workflow.status,
+          currentStep,
+          totalSteps: 7,
+          createdAt: workflow.created_at,
+          updatedAt: workflow.updated_at,
+          hasVideo, // 動画生成済みかどうか
+        };
+      })
+    );
 
     return NextResponse.json({
       workflows: formattedWorkflows
