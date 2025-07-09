@@ -161,34 +161,33 @@ export async function POST(
       .update({ status: 'completed' })
       .eq('id', workflow_id);
 
-    // Webhookを送信（従来の形式）
+    // Webhookを送信（非同期で実行し、レスポンスを待たない）
     if (process.env.CLOUD_RUN_WEBHOOK_URL) {
-      try {
-        const webhookPayload = {
-          type: 'video_generation',
-          payload: {
-            video_id: video.id,
-            story_id: storyboard.id,
-            uid: uid,
-            title: storyboard.title || '無題の作品',
-            text_raw: storyboard.summary_data?.description || '',
-            script_json: mulmoScript
-          }
-        };
+      const webhookPayload = {
+        type: 'video_generation',
+        payload: {
+          video_id: video.id,
+          story_id: storyboard.id,
+          uid: uid,
+          title: storyboard.title || '無題の作品',
+          text_raw: storyboard.summary_data?.description || '',
+          script_json: mulmoScript
+        }
+      };
 
-        await fetch(process.env.CLOUD_RUN_WEBHOOK_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(webhookPayload),
-        });
-
+      // Webhookを非同期で送信（レスポンスを待たない）
+      fetch(process.env.CLOUD_RUN_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload),
+      }).then(() => {
         console.log('Webhook sent successfully for video:', video.id);
-      } catch (webhookError) {
+      }).catch((webhookError) => {
         console.error('Webhook送信エラー:', webhookError);
-        // Webhookエラーは無視して続行
-      }
+        // Webhookエラーは無視
+      });
     }
 
     return NextResponse.json({

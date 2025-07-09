@@ -230,16 +230,8 @@ export default function Step7Confirm({
         throw new Error('Failed to generate video');
       }
 
-      const result = await response.json();
-      
-      success('動画生成を開始しました！');
-      
-      // 動画管理画面へ遷移
-      if (result.videoId) {
-        router.push(`/videos/${result.videoId}`);
-      } else {
-        router.push('/videos');
-      }
+      // 動画管理画面へ遷移（常に/videosへ）
+      router.push('/videos');
       
     } catch (err) {
       console.error('Failed to generate video:', err);
