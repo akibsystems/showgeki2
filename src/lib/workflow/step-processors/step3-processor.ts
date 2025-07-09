@@ -50,7 +50,7 @@ export async function generateStep4Input(
       .select('step4_out')
       .eq('id', workflowId)
       .single();
-    
+
     const existingStep4Output = workflow?.step4_out as any;
 
     // キャラクター情報と画風設定を更新
@@ -80,7 +80,7 @@ export async function generateStep4Input(
     let mergedScenes = scenesData.scenes;
     if (existingStep4Output?.userInput?.scenes && Array.isArray(existingStep4Output.userInput.scenes)) {
       const savedScenes = existingStep4Output.userInput.scenes;
-      
+
       mergedScenes = scenesData.scenes.map((scene: any) => {
         const savedScene = savedScenes.find((s: any) => s.id === scene.id);
         if (savedScene && savedScene.imagePrompt) {
@@ -204,7 +204,7 @@ function createSceneSystemPrompt(): string {
       "actNumber": 幕番号,
       "sceneNumber": 場番号,
       "title": "シーンの詩的タイトル",
-      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）",
+      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）、登場人物の外見や性別の記述は詳細に",
       "dialogue": [
         {
           "speaker": "話者名",
