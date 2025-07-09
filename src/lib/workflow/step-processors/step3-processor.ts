@@ -188,7 +188,7 @@ async function generateScenesWithAI(
 function createSceneSystemPrompt(): string {
   return `
 あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
-  与えられた物語をシェイクスピアだったらどのような演出をするかを想像しながら、台本を制作してください。
+与えられた物語をシェイクスピアだったらどのような演出をするかを想像しながら、台本を制作してください。
 
 ## 創作指針
 この物語をもとに、シェイクスピア風の５幕構成の悲喜劇として台本を考えてください
@@ -204,11 +204,11 @@ function createSceneSystemPrompt(): string {
       "actNumber": 幕番号,
       "sceneNumber": 場番号,
       "title": "シーンの詩的タイトル",
-      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）、登場人物の外見や性別の記述は詳細に",
+      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）、登場人物全員の性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見をそのままコピーしてください",
       "dialogue": [
         {
           "speaker": "話者名",
-          "text": "心に響く台詞（古風だが理解しやすい日本語）",
+          "text": "心に響く台詞(少しカジュアルな日本語)",
           "emotion": "内なる感情（喜び、悲しみ、怒り、恐れ、愛、希望など）"
         }
       ]
@@ -244,6 +244,15 @@ ${JSON.stringify(storyboard.acts_data?.acts, null, 2)}
 ${characters.map(char => `### ${char.name}
 - 役割: ${char.role || char.description}
 - 性格: ${char.personality || ''}
+- 性別: ${char.sex || ''}
+- 年齢: ${char.age || ''}
+- 肌の色: ${char.skinColor || ''}
+- 身長: ${char.height || ''}
+- 体重: ${char.weight || ''}
+- 髪型: ${char.hairStyle || ''}
+- 瞳の色: ${char.eyeColor || ''}
+- 髪の色: ${char.hairColor || ''}
+- 体型: ${char.bodyType || ''}
 - 外見: ${char.visualDescription || char.description || ''}`).join('\n\n')}
 
 ## 画風設定

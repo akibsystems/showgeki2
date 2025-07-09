@@ -82,6 +82,7 @@ export interface ScenesData {
       text: string;
       emotion?: string;
     }>;
+    charactersInScene?: string[]; // 新規追加：このシーンに登場するキャラクターIDの配列
   }>;
 }
 
@@ -139,6 +140,7 @@ export interface MulmoScript {
     speaker: string;
     imagePrompt?: string;
     image?: { source: { url: string } };
+    imageNames?: string[]; // 新規追加：このビートで使用する参照画像の名前
   }>;
   speechParams: {
     provider: string;
@@ -151,9 +153,15 @@ export interface MulmoScript {
     style?: string;
     quality?: string;
     model?: string;
+    provider?: string;
     images?: Record<string, {
-      name: string;
-      source: { url: string };
+      name?: string;
+      type?: string;
+      source: { 
+        kind?: string;
+        url?: string;
+        path?: string;
+      };
     }>;
   };
   audioParams?: {
@@ -321,6 +329,7 @@ export interface Step4Output {
         text: string;
       }>;
       customImage?: string; // CMなどのアップロード画像
+      charactersInScene?: string[]; // 新規追加：このシーンに登場するキャラクターIDの配列
     }>;
   };
 }

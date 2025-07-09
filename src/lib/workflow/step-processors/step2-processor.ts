@@ -135,6 +135,15 @@ async function generateDetailedCharacters(
       id: char.id || `character-${index + 1}`,
       name: char.name,
       role: char.role,
+      sex: char.sex,
+      age: char.age,
+      skinColor: char.skinColor,
+      bodyType: char.bodyType,
+      height: char.height,
+      weight: char.weight,
+      hairStyle: char.hairStyle,
+      eyeColor: char.eyeColor,
+      hairColor: char.hairColor,
       personality: char.personality || '詳細な性格設定が必要',
       visualDescription: char.visualDescription || '外見の描写が必要'
     };
@@ -156,8 +165,17 @@ function createCharacterSystemPrompt(): string {
       "id": "character-1",
       "name": "キャラクター名",
       "role": "物語での役割（主人公、道化、賢者、恋人など）",
+      "sex": "性別（男性、女性）",
+      "age": "年齢",
+      "skinColor": "肌の色",
+      "bodyType": "体型（スリム、普通、ぽっちゃり、筋肉質）",
+      "height": "身長",
+      "weight": "体重",
+      "hairStyle": "髪型",
+      "hairColor": "髪の色",
+      "eyeColor": "瞳の色",
+      "visualDescription": "特徴的な装飾品、衣装の詳細、全体的な印象",
       "personality": "内面の葛藤、価値観、行動原理、成長の可能性を含む詳細な性格描写",
-      "visualDescription": "髪型、瞳の色、体格、特徴的な装飾品、衣装の詳細、全体的な印象"
     }
   ]
 }
