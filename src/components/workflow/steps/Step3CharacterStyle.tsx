@@ -6,6 +6,7 @@ import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
 import type { Step3Input, Step3Output } from '@/types/workflow';
 import { IMAGE_STYLE_PRESETS } from '@/types/workflow';
+import ImageModal from './ImageModal';
 
 interface Step3CharacterStyleProps {
   workflowId: string;
@@ -25,9 +26,18 @@ export default function Step3CharacterStyle({
   onBack,
   onUpdate,
 }: Step3CharacterStyleProps) {
-  const { error } = useToast();
+  const { error, success } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [imageModalState, setImageModalState] = useState<{
+    isOpen: boolean;
+    characterId: string | null;
+    characterName: string;
+  }>({
+    isOpen: false,
+    characterId: null,
+    characterName: '',
+  });
 
   // デバッグ: initialDataの内容を確認
   console.log('[Step3CharacterStyle] initialData:', initialData);
@@ -121,11 +131,51 @@ export default function Step3CharacterStyle({
     setCharacters(prev => prev.filter(char => char.id !== characterId));
   };
 
-  // 画像アップロード処理（将来実装）
-  const handleImageUpload = async (characterId: string, file: File) => {
-    // TODO: 画像アップロード実装
-    console.log('Image upload not implemented yet:', characterId, file);
-    error('画像アップロード機能は準備中です');
+  // 顔参照画像の更新
+  const handleFaceReferenceUpdate = (characterId: string, url: string) => {
+    setCharacters(prev => 
+      prev.map(char => 
+        char.id === characterId 
+          ? { ...char, faceReference: url }
+          : char
+      )
+    );
+    success('顔参照画像を設定しました');
+  };
+
+  // 顔参照画像の削除
+  const handleDeleteFaceReference = async (characterId: string) => {
+    const character = characters.find(c => c.id === characterId);
+    if (!character?.faceReference) return;
+
+    // アップロードされたファイルの場合はストレージから削除
+    if (character.faceReference.includes('supabase')) {
+      try {
+        const response = await fetch('/api/upload/face-reference', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': user?.id || '',
+          },
+          body: JSON.stringify({ url: character.faceReference }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to delete image from storage');
+        }
+      } catch (err) {
+        console.error('Failed to delete image:', err);
+      }
+    }
+
+    setCharacters(prev => 
+      prev.map(char => 
+        char.id === characterId 
+          ? { ...char, faceReference: undefined }
+          : char
+      )
+    );
+    success('顔参照画像を削除しました');
   };
 
   // 保存処理
@@ -221,24 +271,6 @@ export default function Step3CharacterStyle({
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) {
-                            handleImageUpload(character.id, file);
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      disabled={isLoading}
-                    >
-                      顔画像をアップロード
-                    </button>
-                    <button
                       onClick={() => handleDeleteCharacter(character.id)}
                       className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
                       disabled={isLoading || characters.length <= 1}
@@ -265,16 +297,68 @@ export default function Step3CharacterStyle({
                   />
                 </div>
 
-                {character.faceReference && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-400 mb-2">顔参照画像</p>
-                    <img 
-                      src={character.faceReference} 
-                      alt={`${character.name}の顔参照`}
-                      className="w-32 h-32 object-cover rounded-lg"
-                    />
+                {/* 顔参照画像セクション */}
+                <div className="mt-4 border-t border-gray-700 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium">顔参照画像</label>
+                    {character.faceReference ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setImageModalState({
+                            isOpen: true,
+                            characterId: character.id,
+                            characterName: character.name,
+                          })}
+                          className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+                          disabled={isLoading}
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFaceReference(character.id)}
+                          className="px-3 py-1 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                          disabled={isLoading}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setImageModalState({
+                          isOpen: true,
+                          characterId: character.id,
+                          characterName: character.name,
+                        })}
+                        className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded transition-colors"
+                        disabled={isLoading}
+                      >
+                        画像を追加
+                      </button>
+                    )}
                   </div>
-                )}
+                  {character.faceReference && (
+                    <div className="relative bg-gray-700 rounded-lg overflow-hidden" style={{ maxHeight: '200px' }}>
+                      <img 
+                        src={character.faceReference} 
+                        alt={`${character.name}の顔参照`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          error('画像の読み込みに失敗しました');
+                        }}
+                      />
+                    </div>
+                  )}
+                  {!character.faceReference && (
+                    <div className="bg-gray-700 rounded-lg p-4 text-center text-gray-400">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm">顔参照画像を追加すると、</p>
+                      <p className="text-sm">キャラクターの顔を一貫して生成できます</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -346,6 +430,20 @@ export default function Step3CharacterStyle({
           {isLoading ? '保存中...' : '次へ →'}
         </button>
       </div>
+
+      {/* 画像アップロードモーダル */}
+      {imageModalState.characterId && (
+        <ImageModal
+          isOpen={imageModalState.isOpen}
+          onClose={() => setImageModalState({ isOpen: false, characterId: null, characterName: '' })}
+          onSave={(url) => {
+            handleFaceReferenceUpdate(imageModalState.characterId!, url);
+            setImageModalState({ isOpen: false, characterId: null, characterName: '' });
+          }}
+          characterName={imageModalState.characterName}
+          currentUrl={characters.find(c => c.id === imageModalState.characterId)?.faceReference}
+        />
+      )}
     </div>
   );
 }

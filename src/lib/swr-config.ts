@@ -9,7 +9,7 @@ const swrFetcher = async (url: string) => {
   try {
     // Get UID for API authentication
     const uid = await getOrCreateUid();
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -25,14 +25,18 @@ const swrFetcher = async (url: string) => {
     }
 
     const result = await response.json();
-    
+
     // Extract data from API response format { success: true, data: ... }
     if (result.success && result.data !== undefined) {
       const data = result.data;
-      
+
       // For list endpoints, extract the array from the data object
       if (url.match(/^\/api\/videos(\?.*)?$/) && data.videos) {
         return data.videos;
+      }
+      if (url.match(/^\/api\/admin\/videos(\?.*)?$/) && (data.videos || data.pagination)) {
+        // Admin videos endpoint returns both videos and pagination
+        return data;
       }
       if (url.match(/^\/api\/stories(\?.*)?$/) && data.stories) {
         // This is a GET /api/stories (list endpoint)
@@ -41,11 +45,11 @@ const swrFetcher = async (url: string) => {
       if (url.match(/^\/api\/workspaces(\?.*)?$/) && data.workspaces) {
         return data.workspaces;
       }
-      
+
       // For single item endpoints, return the data directly
       return data;
     }
-    
+
     return result;
   } catch (error) {
     console.error('SWR fetch error:', error);
@@ -60,31 +64,31 @@ const swrFetcher = async (url: string) => {
 export const swrConfig: SWRConfiguration = {
   // Default fetcher using native fetch
   fetcher: swrFetcher,
-  
+
   // Revalidation settings
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
   revalidateIfStale: true,
-  
+
   // Cache settings
   dedupingInterval: 2000, // 2 seconds
-  
+
   // Retry settings
   errorRetryCount: 3,
   errorRetryInterval: 5000, // 5 seconds
-  
+
   // Refresh intervals
   refreshInterval: 0, // Disable automatic refresh by default
-  
+
   // Focus revalidation
   focusThrottleInterval: 5000, // 5 seconds
-  
+
   // Error handling
   onError: (error) => {
     console.error('SWR Error:', error);
     // Could send to error tracking service here
   },
-  
+
   // Success handling
   onSuccess: (data, key, config) => {
     // Could log successful API calls for debugging
@@ -103,17 +107,17 @@ export const swrKeys = {
   // Workspaces
   workspaces: () => '/api/workspaces',
   workspace: (id: string) => `/api/workspaces/${id}`,
-  
+
   // Stories
   stories: () => '/api/stories',
   story: (id: string) => `/api/stories/${id}`,
   storyScript: (id: string) => `/api/stories/${id}/generate-script`,
-  
+
   // Videos
   videos: () => '/api/videos',
   video: (id: string) => `/api/videos/${id}`,
   storyVideos: (storyId: string) => `/api/stories/${storyId}/videos`,
-  
+
   // Reviews
   storyReviews: (storyId: string) => `/api/stories/${storyId}/reviews`,
   review: (id: string) => `/api/reviews/${id}`,
@@ -130,14 +134,14 @@ export function createCacheKey(baseKey: string, params?: Record<string, any>): s
   if (!params || Object.keys(params).length === 0) {
     return baseKey;
   }
-  
+
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       searchParams.append(key, String(value));
     }
   });
-  
+
   const queryString = searchParams.toString();
   return queryString ? `${baseKey}?${queryString}` : baseKey;
 }

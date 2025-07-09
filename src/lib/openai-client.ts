@@ -37,7 +37,7 @@ export interface ScriptGenerationOptions {
   retryCount?: number;
   enableCaptions?: boolean;
   captionStyles?: string[];
-  scenes?: Array<{ number: number; title: string }>;
+  scenes?: Array<{ number: number; title: string; imagePrompt?: string }>;
 }
 
 export interface GenerationResult {

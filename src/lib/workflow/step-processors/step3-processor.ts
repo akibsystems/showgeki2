@@ -44,6 +44,15 @@ export async function generateStep4Input(
       throw new Error('ストーリーボードの取得に失敗しました');
     }
 
+    // workflowから既存のStep4Outputを取得（保存されたプロンプトがあるか確認）
+    const { data: workflow } = await supabase
+      .from('workflows')
+      .select('step4_out')
+      .eq('id', workflowId)
+      .single();
+    
+    const existingStep4Output = workflow?.step4_out as any;
+
     // キャラクター情報と画風設定を更新
     const updatedCharactersData = {
       characters: step3Output.userInput.characters.map(char => ({
@@ -67,13 +76,35 @@ export async function generateStep4Input(
       updatedStyleData
     );
 
-    // storyboardを更新
+    // 既存のStep4Outputがある場合、保存されたプロンプトをマージ
+    let mergedScenes = scenesData.scenes;
+    if (existingStep4Output?.userInput?.scenes && Array.isArray(existingStep4Output.userInput.scenes)) {
+      const savedScenes = existingStep4Output.userInput.scenes;
+      
+      mergedScenes = scenesData.scenes.map((scene: any) => {
+        const savedScene = savedScenes.find((s: any) => s.id === scene.id);
+        if (savedScene && savedScene.imagePrompt) {
+          // 保存されたプロンプトを優先
+          return {
+            ...scene,
+            imagePrompt: savedScene.imagePrompt,
+            dialogue: savedScene.dialogue || scene.dialogue,
+            customImage: savedScene.customImage
+          };
+        }
+        return scene;
+      });
+    }
+
+    // storyboardを更新（マージされたシーンデータで）
     const { error: updateError } = await supabase
       .from('storyboards')
       .update({
         characters_data: updatedCharactersData,
         style_data: updatedStyleData,
-        scenes_data: scenesData
+        scenes_data: {
+          scenes: mergedScenes
+        }
       })
       .eq('id', storyboardId);
 
@@ -81,11 +112,11 @@ export async function generateStep4Input(
       throw new Error('ストーリーボードの更新に失敗しました');
     }
 
-    // Step4Input を構築
+    // Step4Input を構築（マージされたシーンデータで）
     const step4Input: Step4Input = {
       title: storyboard.title || '',
       acts: storyboard.acts_data?.acts || [],
-      scenes: scenesData.scenes
+      scenes: mergedScenes
     };
 
     return step4Input;
@@ -186,7 +217,8 @@ function createSceneSystemPrompt(): string {
 }
 
 ## 技術使用
-- １場を１シーンとする
+- 1場を1シーンとする
+- 1シーンでの会話は1名1台詞のみ
 - すべての要素がJSONフォーマットで出力されること
 - 指定していないキャラクターは絶対に使用しない
 `;

@@ -44,6 +44,15 @@ export async function generateStep7Input(
       throw new Error('ストーリーボードの取得に失敗しました');
     }
 
+    // workflowからStep4の編集済みプロンプトを取得
+    const { data: workflow } = await supabase
+      .from('workflows')
+      .select('step4_out')
+      .eq('id', workflowId)
+      .single();
+    
+    const step4Output = workflow?.step4_out as any;
+
     // 字幕データを更新
     const updatedCaptionData: CaptionData = {
       enabled: step6Output.userInput.caption.enabled,
@@ -70,7 +79,7 @@ export async function generateStep7Input(
     };
 
     // 最終的なMulmoScriptを生成
-    const mulmoScript = await generateFinalMulmoScript(storyboard, updatedCaptionData, updatedAudioData);
+    const mulmoScript = await generateFinalMulmoScript(storyboard, updatedCaptionData, updatedAudioData, step4Output);
 
     // storyboardを更新
     const { error: updateError } = await supabase
@@ -114,14 +123,34 @@ export async function generateStep7Input(
 async function generateFinalMulmoScript(
   storyboard: any,
   captionData: CaptionData,
-  audioData: AudioData
+  audioData: AudioData,
+  step4Output?: any
 ): Promise<MulmoScript> {
   const scenes = storyboard.scenes_data?.scenes || [];
   const characters = storyboard.characters_data?.characters || [];
   const styleData = storyboard.style_data || {};
 
-  // beatsを生成
-  const beats = scenes.flatMap((scene: any) => 
+  // Step4で編集されたプロンプトをマージ
+  let mergedScenes = scenes;
+  if (step4Output?.userInput?.scenes && Array.isArray(step4Output.userInput.scenes)) {
+    const editedScenes = step4Output.userInput.scenes;
+    
+    mergedScenes = scenes.map((scene: any) => {
+      const editedScene = editedScenes.find((s: any) => s.id === scene.id);
+      if (editedScene) {
+        return {
+          ...scene,
+          imagePrompt: editedScene.imagePrompt || scene.imagePrompt,
+          dialogue: editedScene.dialogue || scene.dialogue,
+          customImage: editedScene.customImage
+        };
+      }
+      return scene;
+    });
+  }
+
+  // beatsを生成（マージされたシーンから）
+  const beats = mergedScenes.flatMap((scene: any) => 
     scene.dialogue.map((dialog: any) => ({
       text: dialog.text,
       speaker: dialog.speaker,
@@ -155,7 +184,7 @@ async function generateFinalMulmoScript(
     },
     imageParams: {
       style: styleData.imageStyle || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
-      images: generateImageReferences(storyboard.scenes_data?.scenes || [])
+      images: generateImageReferences(mergedScenes)
     },
     audioParams: audioData.bgmSettings?.defaultBgm && audioData.bgmSettings.defaultBgm !== 'none' ? {
       bgm: audioData.bgmSettings.customBgm ? 

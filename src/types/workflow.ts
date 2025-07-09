@@ -149,6 +149,8 @@ export interface MulmoScript {
   };
   imageParams: {
     style?: string;
+    quality?: string;
+    model?: string;
     images?: Record<string, {
       name: string;
       source: { url: string };

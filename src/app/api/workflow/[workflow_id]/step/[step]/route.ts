@@ -120,6 +120,31 @@ export async function GET(
         .eq('id', workflow_id);
     }
 
+    // Step4の場合、保存されたStep4Outputがあればマージ
+    if (stepNumber === 4 && stepInput) {
+      const stepOutColumnName = `step${stepNumber}_out` as keyof Workflow;
+      const stepOutput = workflow[stepOutColumnName] as Step4Output | undefined;
+      
+      if (stepOutput?.userInput?.scenes && Array.isArray(stepOutput.userInput.scenes)) {
+        const step4Input = stepInput as Step4Input;
+        const savedScenes = stepOutput.userInput.scenes;
+        
+        // 保存されたプロンプトをマージ
+        step4Input.scenes = step4Input.scenes.map((scene: any) => {
+          const savedScene = savedScenes.find((s: any) => s.id === scene.id);
+          if (savedScene) {
+            return {
+              ...scene,
+              imagePrompt: savedScene.imagePrompt || scene.imagePrompt,
+              dialogue: savedScene.dialogue || scene.dialogue,
+              customImage: savedScene.customImage
+            };
+          }
+          return scene;
+        });
+      }
+    }
+
     // workflow-design.mdの仕様に従い、StepXInputのみを返す
     const response = stepInput || {};
 
@@ -558,6 +583,8 @@ async function generateAndUpdateStoryboard(
       storyboardUpdates.scenes_data = {
         scenes: updatedScenes
       };
+      
+      console.log('[Step4 Save] Updated scenes_data with edited prompts:', JSON.stringify(storyboardUpdates.scenes_data, null, 2));
 
       // Step5Input を生成（音声生成用）
       nextStepInput = {
