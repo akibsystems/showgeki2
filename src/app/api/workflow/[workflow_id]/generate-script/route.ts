@@ -301,7 +301,6 @@ function generateMulmoScriptFromStoryboard(
     },
     imageParams: {
       style: styleData?.imageStyle || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
-      quality: 'medium',
       model: 'gpt-image-1',
       ...(Object.keys(faceReferences).length > 0 ? { images: faceReferences } : {})
     },

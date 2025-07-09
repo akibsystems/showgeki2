@@ -35,19 +35,90 @@ function WorkflowPageContent({ params }: PageProps) {
   const [workflowInfo, setWorkflowInfo] = useState<{ current_step: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canProceed, setCanProceed] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // URLパラメータからステップ番号を取得
-  const currentStep = parseInt(searchParams.get('step') || '1', 10);
+  // URLパラメータからステップ番号を取得（初期値はnull）
+  const stepParam = searchParams.get('step');
+  const currentStep = stepParam ? parseInt(stepParam, 10) : null;
 
-  // ステップが有効な範囲内かチェック
+  // ステップが有効な範囲内かチェック（stepParamが存在する場合のみ）
   useEffect(() => {
-    if (currentStep < 1 || currentStep > 7) {
+    if (currentStep !== null && (currentStep < 1 || currentStep > 7)) {
       router.replace(`/workflow/${workflow_id}?step=1`);
     }
   }, [currentStep, workflow_id, router]);
 
-  // ワークフロー情報を取得
+  // ワークフロー情報を取得し、必要に応じてリダイレクト
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    // 初回のみワークフロー情報を取得してリダイレクト判定
+    if (!isInitialized) {
+      const initWorkflow = async () => {
+        try {
+          const workflowResponse = await fetch(`/api/workflow/${workflow_id}`, {
+            headers: {
+              'X-User-UID': user.id,
+            },
+          });
+          
+          if (!workflowResponse.ok) {
+            console.error('Workflow info fetch failed:', {
+              status: workflowResponse.status,
+              statusText: workflowResponse.statusText,
+              url: workflowResponse.url
+            });
+            throw new Error(`Failed to fetch workflow info: ${workflowResponse.status} ${workflowResponse.statusText}`);
+          }
+          
+          if (workflowResponse.ok) {
+            const workflowData = await workflowResponse.json();
+            const dbCurrentStep = workflowData.workflow.current_step;
+            setWorkflowInfo({ current_step: dbCurrentStep });
+            
+            // URLにstepパラメータがない場合、データベースのcurrent_stepにリダイレクト
+            if (currentStep === null && dbCurrentStep) {
+              router.replace(`/workflow/${workflow_id}?step=${dbCurrentStep}`);
+              return;
+            }
+            
+            setIsInitialized(true);
+          }
+        } catch (err) {
+          console.error('Failed to fetch workflow info - Error details:', {
+            error: err,
+            errorMessage: err instanceof Error ? err.message : 'Unknown error',
+            errorStack: err instanceof Error ? err.stack : undefined,
+            workflow_id,
+            currentStep,
+            user_id: user?.id,
+            phase: 'initialization'
+          });
+          
+          // 重大なエラーの場合のみダッシュボードへ
+          if (err instanceof Error && (err.message.includes('404') || err.message.includes('401'))) {
+            error('ワークフローの読み込みに失敗しました');
+            router.push('/dashboard');
+          } else {
+            console.log('Non-critical error during init, continuing...');
+            // 初期化を完了としてマーク（次回リトライ）
+            setIsInitialized(true);
+          }
+        }
+      };
+      
+      initWorkflow();
+    }
+  }, [workflow_id, currentStep, user, router, error, isInitialized]);
+
+  // ステップデータを取得
+  useEffect(() => {
+    // 初期化が完了していない、またはcurrentStepがnullの場合はスキップ
+    if (!isInitialized || currentStep === null) return;
+    
     // ステップが変更されたときに、古いデータをクリア
     setStepInput(null);
     setStepOutput(null);
@@ -60,6 +131,18 @@ function WorkflowPageContent({ params }: PageProps) {
       }
 
       try {
+        // current_stepを更新（ユーザーが訪れたステップを記録）
+        fetch(`/api/workflow/${workflow_id}/current-step`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': user.id,
+          },
+          body: JSON.stringify({ step: currentStep }),
+        }).catch((err) => {
+          console.log('Failed to update current step:', err);
+        });
+        
         // StepXInputを取得（workflow-design.mdの仕様に従う）
         const response = await fetch(`/api/workflow/${workflow_id}/step/${currentStep}`, {
           headers: {
@@ -68,7 +151,12 @@ function WorkflowPageContent({ params }: PageProps) {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch workflow');
+          console.error('Step fetch failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url
+          });
+          throw new Error(`Failed to fetch workflow: ${response.status} ${response.statusText}`);
         }
 
         const stepInputData = await response.json();
@@ -96,23 +184,43 @@ function WorkflowPageContent({ params }: PageProps) {
           }
         }
       } catch (err) {
-        console.error('Failed to fetch workflow:', err);
-        error('ワークフローの読み込みに失敗しました');
-        router.push('/dashboard');
+        console.error('Failed to fetch workflow - Error details:', {
+          error: err,
+          errorMessage: err instanceof Error ? err.message : 'Unknown error',
+          errorStack: err instanceof Error ? err.stack : undefined,
+          workflow_id,
+          currentStep,
+          user_id: user?.id
+        });
+        
+        // 404エラーの場合のみダッシュボードへ
+        if (err instanceof Error && err.message.includes('404')) {
+          error('ワークフローが見つかりません');
+          router.push('/dashboard');
+        } else if (err instanceof Error && err.message.includes('401')) {
+          error('認証エラーが発生しました');
+          router.push('/dashboard');
+        } else {
+          // その他のエラーは無視（ネットワークエラーなど）
+          console.log('Non-critical error, staying on page');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchWorkflow();
-  }, [workflow_id, currentStep, error, router, user]);
+  }, [workflow_id, currentStep, error, router, user, isInitialized]);
+
+  // 実際に使用するステップ番号（nullの場合は1）
+  const effectiveStep = currentStep || 1;
 
   // ワークフロー状態を計算
   const workflowState: WorkflowState = {
     id: workflow_id,
-    currentStep,
+    currentStep: effectiveStep,
     canProceed,
-    canGoBack: currentStep > 1,
+    canGoBack: effectiveStep > 1,
     completedSteps: workflowInfo
       ? Array.from({ length: workflowInfo.current_step }, (_, i) => i + 1)
       : [],
@@ -120,18 +228,18 @@ function WorkflowPageContent({ params }: PageProps) {
 
   // ナビゲーション関数
   const handleNext = () => {
-    router.push(`/workflow/${workflow_id}?step=${currentStep + 1}`);
+    router.push(`/workflow/${workflow_id}?step=${effectiveStep + 1}`);
   };
 
   const handleBack = () => {
-    router.push(`/workflow/${workflow_id}?step=${currentStep - 1}`);
+    router.push(`/workflow/${workflow_id}?step=${effectiveStep - 1}`);
   };
 
   // ステップコンポーネントをレンダリング
   const renderStepComponent = () => {
     if (!stepInput) return null;
 
-    switch (currentStep) {
+    switch (effectiveStep) {
       case 1:
         return (
           <Step1StoryInput
@@ -245,7 +353,7 @@ function WorkflowPageContent({ params }: PageProps) {
   return (
     <WorkflowLayout
       workflowId={workflow_id}
-      currentStep={currentStep}
+      currentStep={effectiveStep}
       workflowState={workflowState}
       onNext={handleNext}
       hideFooter={true} // すべてのステップで独自ボタンを使用

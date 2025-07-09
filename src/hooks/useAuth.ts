@@ -74,10 +74,20 @@ export function useAuth(): UseAuthReturn {
           // Temporarily disabled - profile/workspace creation is handled by database trigger
           // await ensureUserSetup(session.user.id, session.user.email);
 
+          // 既にログイン画面や特定のリダイレクトパラメータがある場合のみリダイレクト
+          const currentPath = window.location.pathname;
           const searchParams = new URLSearchParams(window.location.search);
-          const redirectTo = searchParams.get('redirect') || '/dashboard';
-          console.log('redirectTo', redirectTo);
-          router.push(redirectTo);
+          const hasRedirectParam = searchParams.has('redirect');
+          
+          // ログイン画面からの遷移、またはredirectパラメータがある場合のみリダイレクト
+          if (currentPath === '/login' || currentPath === '/' || hasRedirectParam) {
+            const redirectTo = searchParams.get('redirect') || '/dashboard';
+            console.log('redirectTo', redirectTo);
+            router.push(redirectTo);
+          } else {
+            // その他のページ（ワークフロー画面など）では現在のページに留まる
+            console.log('Staying on current page:', currentPath);
+          }
         }
 
         // Refresh the page to update server components

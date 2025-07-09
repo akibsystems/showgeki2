@@ -66,7 +66,7 @@ async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
   const userPrompt = createStoryboardUserPrompt(step1Output);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1-mini',
+    model: 'gpt-4.1',
     messages: [
       {
         role: 'system',

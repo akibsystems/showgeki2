@@ -115,7 +115,7 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   const userPrompt = createBGMUserPrompt(storyboard);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1-mini',
+    model: 'gpt-4.1',
     messages: [
       {
         role: 'system',
