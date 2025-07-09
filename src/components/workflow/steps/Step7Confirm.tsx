@@ -5,7 +5,9 @@ import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { ScriptEditor } from '@/components/editor/script-editor';
 import type { Step7Input, Step7Output, MulmoScript } from '@/types/workflow';
+import type { Mulmoscript } from '@/types';
 
 interface Step7ConfirmProps {
   workflowId: string;
@@ -108,6 +110,15 @@ export default function Step7Confirm({
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
+  // タブの管理（Script Editorが有効な場合のみ）
+  const isScriptEditorEnabled = process.env.NEXT_PUBLIC_ENABLE_SCRIPT_EDITOR === 'true';
+  const [activeTab, setActiveTab] = useState<'info' | 'script'>('info');
+  
+  // MulmoScriptの管理
+  const [mulmoScript, setMulmoScript] = useState<Mulmoscript | null>(
+    initialData?.stepInput?.preview as Mulmoscript || null
+  );
+  
   // フォームデータ
   const [formData, setFormData] = useState({
     title: initialData?.stepOutput?.userInput?.title || 
@@ -186,6 +197,50 @@ export default function Step7Confirm({
     }
   };
 
+  // MulmoScriptを保存（Script Editorから呼ばれる）
+  const handleScriptSave = async (updatedScript: Mulmoscript) => {
+    if (!user) return;
+    
+    try {
+      // storyboardのIDを取得
+      const workflowResponse = await fetch(`/api/workflow/${workflowId}`, {
+        headers: {
+          'X-User-UID': user.id,
+        },
+      });
+      
+      if (!workflowResponse.ok) {
+        throw new Error('ワークフロー情報の取得に失敗しました');
+      }
+      
+      const workflowData = await workflowResponse.json();
+      const storyboardId = workflowData.workflow.storyboard_id;
+      
+      // MulmoScriptを直接storyboardsテーブルに保存
+      const updateResponse = await fetch(`/api/storyboards/${storyboardId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': user.id,
+        },
+        body: JSON.stringify({
+          mulmoscript: updatedScript,
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        throw new Error('MulmoScriptの保存に失敗しました');
+      }
+      
+      setMulmoScript(updatedScript);
+      success('MulmoScriptを保存しました');
+    } catch (err) {
+      console.error('Failed to save MulmoScript:', err);
+      error('MulmoScriptの保存に失敗しました');
+      throw err;
+    }
+  };
+
   // 動画生成
   const generateVideo = async () => {
     if (!user || !formData.title.trim()) return;
@@ -260,10 +315,37 @@ export default function Step7Confirm({
         <ThumbnailPreview thumbnails={thumbnails} />
       </div>
 
-      {/* 動画情報編集 */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">動画情報</h3>
+      {/* タブUI（Script Editorが有効な場合のみ表示） */}
+      {isScriptEditorEnabled && (
+        <div className="flex gap-4 mb-6 border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab('info')}
+            className={`pb-2 px-1 font-medium transition-colors ${
+              activeTab === 'info'
+                ? 'text-purple-400 border-b-2 border-purple-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            動画情報
+          </button>
+          <button
+            onClick={() => setActiveTab('script')}
+            className={`pb-2 px-1 font-medium transition-colors ${
+              activeTab === 'script'
+                ? 'text-purple-400 border-b-2 border-purple-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            脚本エディター
+          </button>
+        </div>
+      )}
+
+      {/* 動画情報編集（タブ1） */}
+      {(!isScriptEditorEnabled || activeTab === 'info') && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">動画情報</h3>
           
           {/* タイトル */}
           <div className="mb-4">
@@ -333,14 +415,40 @@ export default function Step7Confirm({
           </div>
         </CardContent>
       </Card>
+      )}
 
-      {/* 動画情報プレビュー */}
-      <VideoInfoPreview
-        title={formData.title}
-        description={formData.description}
-        estimatedDuration={estimatedDuration}
-        tags={formData.tags}
-      />
+      {/* 脚本エディター（タブ2） */}
+      {isScriptEditorEnabled && activeTab === 'script' && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">MulmoScript エディター</h3>
+              <p className="text-sm text-gray-400">
+                動画生成用のMulmoScriptを直接編集できます。JSONフォーマットで記述してください。
+              </p>
+            </div>
+            <div className="min-h-[500px]">
+              <ScriptEditor
+                script={mulmoScript}
+                onChange={setMulmoScript}
+                onSave={handleScriptSave}
+                isReadOnly={isGenerating}
+                isLoading={isLoading}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 動画情報プレビュー（動画情報タブの時のみ表示） */}
+      {(!isScriptEditorEnabled || activeTab === 'info') && (
+        <VideoInfoPreview
+          title={formData.title}
+          description={formData.description}
+          estimatedDuration={estimatedDuration}
+          tags={formData.tags}
+        />
+      )}
 
       {/* 注意事項 */}
       <Card className="bg-yellow-900/20 border-yellow-600/50">

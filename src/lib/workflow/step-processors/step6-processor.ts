@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import { generateMulmoScriptFromStoryboard } from '@/app/api/workflow/[workflow_id]/generate-script/route';
+import { generateMulmoScriptFromStoryboard } from '@/lib/workflow/mulmoscript-generator';
 import type {
   Step6Output,
   Step7Input,
