@@ -458,7 +458,7 @@ async function generateAndUpdateStoryboard(
   currentStoryboard: Storyboard,
   workflowId: string
 ): Promise<{ nextStepInput: StepInput | null; storyboardUpdates: Partial<Storyboard> }> {
-  const storyboardUpdates: Partial<Storyboard> = {};
+  let storyboardUpdates: Partial<Storyboard> = {};
   let nextStepInput: StepInput | null = null;
 
   switch (stepNumber) {
@@ -629,52 +629,22 @@ async function generateAndUpdateStoryboard(
       break;
 
     case 6:
-      // Step6完了時: audio_dataとcaption_dataを更新
+      // Step6完了時: WorkflowStepManagerを使用してStep7Inputを生成
       const step6Output = stepOutput as Step6Output;
-
-      // audio_dataのBGM設定を更新
-      storyboardUpdates.audio_data = {
-        ...currentStoryboard.audio_data,
-        bgmSettings: {
-          defaultBgm: step6Output.userInput.bgm.selected,
-          sceneBgm: {} // シーンごとのBGM設定は将来実装
-        }
-      };
-
-      // caption_dataを更新
-      storyboardUpdates.caption_data = {
-        enabled: step6Output.userInput.caption.enabled,
-        language: step6Output.userInput.caption.language,
-        styles: step6Output.userInput.caption.styles
-      };
-
-      // Step7Input を生成（最終確認用）
-      // MulmoScriptを生成する必要がある
-      nextStepInput = {
-        title: currentStoryboard.title || '',
-        description: currentStoryboard.summary_data?.description || '',
-        thumbnails: currentStoryboard.scenes_data?.scenes.slice(0, 3).map(scene => ({
-          sceneId: scene.id,
-          imageUrl: '' // 画像はまだ生成されていない
-        })) || [],
-        estimatedDuration: currentStoryboard.summary_data?.estimatedDuration || 60,
-        preview: {
-          $mulmocast: { version: '0.1.0' },
-          title: currentStoryboard.title || '',
-          lang: step6Output.userInput.caption.language,
-          beats: [],
-          speechParams: { provider: 'openai', speakers: {} },
-          imageParams: {},
-          audioParams: {
-            bgm: { kind: 'url', url: step6Output.userInput.bgm.selected },
-            bgmVolume: step6Output.userInput.bgm.volume
-          },
-          captionParams: step6Output.userInput.caption.enabled ? {
-            lang: step6Output.userInput.caption.language,
-            styles: []
-          } : undefined
-        }
-      } as Step7Input;
+      
+      // WorkflowStepManagerを使用してgenerateStep7Inputを呼ぶ
+      const stepManager = new WorkflowStepManager(workflowId, currentStoryboard.id);
+      const step7InputResult = await stepManager.proceedToNextStep(6, step6Output);
+      
+      if (!step7InputResult.success || !step7InputResult.data) {
+        const errorMessage = step7InputResult.error?.message || 'Step7入力の生成に失敗しました';
+        throw new WorkflowGenerationError(errorMessage, 'STEP7_GENERATION_FAILED', 6);
+      }
+      
+      nextStepInput = step7InputResult.data;
+      
+      // storyboardの更新は generateStep7Input 内で行われているため、
+      // ここでは追加の更新は不要（空のオブジェクトを返す）
       break;
 
     case 7:

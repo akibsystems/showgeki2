@@ -172,7 +172,7 @@ export async function POST(
 /**
  * storyboardのデータから直接MulmoScriptを生成
  */
-function generateMulmoScriptFromStoryboard(
+export function generateMulmoScriptFromStoryboard(
   storyboard: Storyboard,
   step4Output?: any
 ): MulmoScript {

@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import type { 
-  Step6Output, 
+import { generateMulmoScriptFromStoryboard } from '@/app/api/workflow/[workflow_id]/generate-script/route';
+import type {
+  Step6Output,
   Step7Input,
   CaptionData,
   AudioData,
@@ -50,7 +51,7 @@ export async function generateStep7Input(
       .select('step4_out')
       .eq('id', workflowId)
       .single();
-    
+
     const step4Output = workflow?.step4_out as any;
 
     // 字幕データを更新
@@ -78,8 +79,16 @@ export async function generateStep7Input(
       }
     };
 
-    // 最終的なMulmoScriptを生成
-    const mulmoScript = await generateFinalMulmoScript(storyboard, updatedCaptionData, updatedAudioData, step4Output);
+    // storyboardを更新（MulmoScript生成前に必要）
+    const updatedStoryboard = {
+      ...storyboard,
+      caption_data: updatedCaptionData,
+      audio_data: updatedAudioData
+    };
+
+    // Step7と同じ方法でMulmoScriptを生成
+    const mulmoScript = generateMulmoScriptFromStoryboard(updatedStoryboard, step4Output);
+    //console.log("mulmoScript:", mulmoScript);
 
     // storyboardを更新
     const { error: updateError } = await supabase
@@ -117,107 +126,6 @@ export async function generateStep7Input(
   }
 }
 
-/**
- * 最終的なMulmoScriptを生成
- */
-async function generateFinalMulmoScript(
-  storyboard: any,
-  captionData: CaptionData,
-  audioData: AudioData,
-  step4Output?: any
-): Promise<MulmoScript> {
-  const scenes = storyboard.scenes_data?.scenes || [];
-  const characters = storyboard.characters_data?.characters || [];
-  const styleData = storyboard.style_data || {};
-
-  // Step4で編集されたプロンプトをマージ
-  let mergedScenes = scenes;
-  if (step4Output?.userInput?.scenes && Array.isArray(step4Output.userInput.scenes)) {
-    const editedScenes = step4Output.userInput.scenes;
-    
-    mergedScenes = scenes.map((scene: any) => {
-      const editedScene = editedScenes.find((s: any) => s.id === scene.id);
-      if (editedScene) {
-        return {
-          ...scene,
-          imagePrompt: editedScene.imagePrompt || scene.imagePrompt,
-          dialogue: editedScene.dialogue || scene.dialogue,
-          customImage: editedScene.customImage
-        };
-      }
-      return scene;
-    });
-  }
-
-  // beatsを生成（マージされたシーンから）
-  const beats = mergedScenes.flatMap((scene: any) => 
-    scene.dialogue.map((dialog: any) => ({
-      text: dialog.text,
-      speaker: dialog.speaker,
-      imagePrompt: scene.imagePrompt,
-      image: scene.imageUrl ? { source: { url: scene.imageUrl } } : undefined
-    }))
-  );
-
-  // speakersを生成
-  const speakers: Record<string, any> = {};
-  characters.forEach((char: any) => {
-    const voiceSettings = audioData.voiceSettings?.[char.id];
-    speakers[char.name] = {
-      voiceId: voiceSettings?.voiceType || 'alloy',
-      displayName: {
-        ja: char.name,
-        en: char.name
-      }
-    };
-  });
-
-  // 最終的なMulmoScriptを構築
-  const mulmoScript: MulmoScript = {
-    $mulmocast: { version: '1.0' },
-    title: storyboard.title || 'untitled',
-    lang: 'ja',
-    beats,
-    speechParams: {
-      provider: 'openai',
-      speakers
-    },
-    imageParams: {
-      style: styleData.imageStyle || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
-      images: generateImageReferences(mergedScenes)
-    },
-    audioParams: audioData.bgmSettings?.defaultBgm && audioData.bgmSettings.defaultBgm !== 'none' ? {
-      bgm: audioData.bgmSettings.customBgm ? 
-        { kind: 'url', url: audioData.bgmSettings.customBgm.url } :
-        { kind: 'url', url: audioData.bgmSettings.defaultBgm }, // defaultBgmは既に完全なURL
-      bgmVolume: audioData.bgmSettings.bgmVolume || 0.5
-    } : undefined,
-    captionParams: captionData.enabled ? {
-      lang: captionData.language,
-      styles: captionData.styles || []
-    } : undefined
-  };
-
-  return mulmoScript;
-}
-
-/**
- * 画像参照を生成
- */
-function generateImageReferences(scenes: any[]): Record<string, any> {
-  const imageReferences: Record<string, any> = {};
-  
-  scenes.forEach((scene: any, index: number) => {
-    if (scene.imageUrl) {
-      imageReferences[`scene-${index + 1}`] = {
-        name: scene.title,
-        source: { url: scene.imageUrl }
-      };
-    }
-  });
-
-  return imageReferences;
-}
 
 /**
  * サムネイル画像を生成
@@ -227,7 +135,7 @@ async function generateThumbnails(scenes: any[]): Promise<Array<{
   imageUrl: string;
 }>> {
   const thumbnails = [];
-  
+
   for (const scene of scenes.slice(0, 3)) { // 最初の3シーンのみ
     if (scene.imageUrl) {
       thumbnails.push({
