@@ -54,14 +54,17 @@ async function uploadFaceReference(
 
     const supabase = createAdminClient();
 
-    // ファイル名を生成（ユーザーID + タイムスタンプ + 元のファイル名）
+    // ファイル名を生成（ユーザーID + タイムスタンプ + ランダム文字列）
     const timestamp = Date.now();
     const extension = file.name.split('.').pop();
-    const fileName = `${auth.uid}/${timestamp}_${characterName}.${extension}`;
+    const randomString = Math.random().toString(36).substring(2, 8);
+    
+    // 日本語文字を含む文字を除去してファイル名を作成
+    const fileName = `${auth.uid}/${timestamp}_${randomString}.${extension}`;
 
     // Supabase Storageにアップロード
     const { data, error } = await supabase.storage
-      .from('face-references')
+      .from('face-reference')
       .upload(fileName, file, {
         contentType: file.type,
         upsert: false
@@ -81,7 +84,7 @@ async function uploadFaceReference(
 
     // 公開URLを取得
     const { data: urlData } = supabase.storage
-      .from('face-references')
+      .from('face-reference')
       .getPublicUrl(fileName);
 
     return NextResponse.json({
@@ -133,7 +136,7 @@ async function deleteFaceReference(
 
     // URLからストレージパスを抽出
     const urlParts = url.split('/');
-    const storagePath = urlParts.slice(urlParts.indexOf('face-references') + 1).join('/');
+    const storagePath = urlParts.slice(urlParts.indexOf('face-reference') + 1).join('/');
 
     // ファイルがユーザーのものか確認
     if (!storagePath.startsWith(auth.uid)) {
@@ -149,7 +152,7 @@ async function deleteFaceReference(
 
     // Supabase Storageから削除
     const { error } = await supabase.storage
-      .from('face-references')
+      .from('face-reference')
       .remove([storagePath]);
 
     if (error) {

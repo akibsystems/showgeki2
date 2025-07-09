@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -20,15 +21,21 @@ export default function ImageModal({
   currentUrl,
 }: ImageModalProps) {
   const { error } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState(currentUrl || '');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl || null);
 
   useEffect(() => {
+    console.log('[ImageModal] Current URL changed:', currentUrl);
     setImageUrl(currentUrl || '');
     setPreviewUrl(currentUrl || null);
   }, [currentUrl]);
+
+  useEffect(() => {
+    console.log('[ImageModal] Preview URL changed:', previewUrl);
+  }, [previewUrl]);
 
   // ファイル選択時の処理
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,13 +60,20 @@ export default function ImageModal({
     // プレビュー用のURLを作成
     const reader = new FileReader();
     reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
+      const dataUrl = e.target?.result as string;
+      console.log('[ImageModal] File read as data URL:', dataUrl ? 'Data URL created' : 'Failed to create data URL');
+      setPreviewUrl(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
   // 保存処理
   const handleSave = async () => {
+    if (!user) {
+      error('認証が必要です');
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (uploadedFile) {
@@ -70,11 +84,16 @@ export default function ImageModal({
 
         const response = await fetch('/api/upload/face-reference', {
           method: 'POST',
+          headers: {
+            'X-User-UID': user.id,
+          },
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error('画像のアップロードに失敗しました');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Upload failed:', response.status, errorData);
+          throw new Error(errorData.error || '画像のアップロードに失敗しました');
         }
 
         const data = await response.json();
@@ -86,7 +105,7 @@ export default function ImageModal({
       onClose();
     } catch (err) {
       console.error('Failed to save image:', err);
-      error('画像の保存に失敗しました');
+      error(err instanceof Error ? err.message : '画像の保存に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +145,8 @@ export default function ImageModal({
                 disabled={isLoading}
               />
               <p className="text-xs text-gray-400 mt-2">
-                JPEG、PNG、WebP、GIF形式（最大5MB）
+                JPEG、PNG、WebP、GIF形式（最大5MB）<br/>
+                ※ファイル名に日本語が含まれる場合は自動的に英数字に変換されます
               </p>
             </div>
 
@@ -155,11 +175,12 @@ export default function ImageModal({
                 <label className="block text-sm font-medium mb-2">
                   プレビュー
                 </label>
-                <div className="relative bg-gray-800 rounded-lg overflow-hidden" style={{ maxHeight: '300px' }}>
+                <div className="relative bg-gray-800 rounded-lg overflow-hidden p-4" style={{ maxHeight: '400px' }}>
                   <img
                     src={previewUrl}
                     alt="プレビュー"
-                    className="w-full h-full object-contain"
+                    className="w-full h-auto max-h-full object-contain rounded mx-auto block"
+                    style={{ maxHeight: '350px' }}
                     onError={() => {
                       error('画像の読み込みに失敗しました');
                       setPreviewUrl(null);
