@@ -103,6 +103,12 @@ export interface AudioData {
       [sceneId: string]: string;
     };
   };
+  // generate-script/route.tsが期待する形式
+  bgm?: {
+    selected: string;
+    customBgm?: string;
+    volume: number;
+  };
 }
 
 export interface StyleData {

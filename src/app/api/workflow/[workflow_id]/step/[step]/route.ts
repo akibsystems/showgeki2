@@ -8,10 +8,10 @@ import type {
   Workflow, Storyboard, StepResponse,
   SummaryData, ActsData, CharactersData
 } from '@/types/workflow';
-import { generateStep4Input } from '@/lib/workflow/generators/step3-generator';
 import { 
   generateStep2Input,
   generateStep3Input,
+  generateStep4Input,
   generateStep5Input,
   generateStep6Input,
   generateStep7Input,
@@ -67,7 +67,7 @@ export async function GET(
     const uid = request.headers.get('X-User-UID');
     if (!uid) {
       return NextResponse.json(
-        { error: 'Unauthorized: UID required' },
+        { error: '認証が必要です。UIDが見つかりません。' },
         { status: 401 }
       );
     }
@@ -75,13 +75,11 @@ export async function GET(
     const { workflow_id, step } = await params;
     const stepNumber = parseInt(step, 10) as StepNumber;
 
-    console.log(`[GET] /api/workflow/${workflow_id}/step/${step}`);
-    console.log(`[GET] uid: ${uid}, stepNumber: ${stepNumber}`);
 
     // バリデーション
     if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 7) {
       return NextResponse.json(
-        { error: 'Invalid step number' },
+        { error: '無効なステップ番号です。1〜7の範囲で指定してください。' },
         { status: 400 }
       );
     }
@@ -99,7 +97,7 @@ export async function GET(
 
     if (fetchError || !workflowData) {
       return NextResponse.json(
-        { error: 'Workflow not found' },
+        { error: 'ワークフローが見つかりません。' },
         { status: 404 }
       );
     }
@@ -125,13 +123,12 @@ export async function GET(
     // workflow-design.mdの仕様に従い、StepXInputのみを返す
     const response = stepInput || {};
 
-    console.log(`[GET] Response:`, JSON.stringify(response, null, 2));
 
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching step data:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'サーバーエラーが発生しました。' },
       { status: 500 }
     );
   }
@@ -150,7 +147,7 @@ export async function POST(
     const uid = request.headers.get('X-User-UID');
     if (!uid) {
       return NextResponse.json(
-        { error: 'Unauthorized: UID required' },
+        { error: '認証が必要です。UIDが見つかりません。' },
         { status: 401 }
       );
     }
@@ -164,7 +161,7 @@ export async function POST(
     // バリデーション
     if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 7) {
       return NextResponse.json(
-        { error: 'Invalid step number' },
+        { error: '無効なステップ番号です。1〜7の範囲で指定してください。' },
         { status: 400 }
       );
     }
@@ -177,7 +174,7 @@ export async function POST(
     // StepXOutputの基本的な検証
     if (!stepOutput || !stepOutput.userInput) {
       return NextResponse.json(
-        { error: 'Invalid StepOutput format: userInput is required' },
+        { error: '無効なデータ形式です。userInputが必要です。' },
         { status: 400 }
       );
     }
@@ -195,7 +192,7 @@ export async function POST(
 
     if (fetchError || !workflowData) {
       return NextResponse.json(
-        { error: 'Workflow not found' },
+        { error: 'ワークフローが見つかりません。' },
         { status: 404 }
       );
     }
@@ -205,7 +202,7 @@ export async function POST(
     // ワークフローがアクティブでない場合は編集不可
     if (workflow.status !== 'active') {
       return NextResponse.json(
-        { error: 'Workflow is not active' },
+        { error: 'ワークフローがアクティブではありません。' },
         { status: 400 }
       );
     }
@@ -261,7 +258,7 @@ export async function POST(
       // その他のエラー
       return NextResponse.json(
         { 
-          error: 'データ生成中に予期しないエラーが発生しました',
+          error: 'データ生成中に予期しないエラーが発生しました。',
           code: 'UNKNOWN_GENERATION_ERROR',
           step: stepNumber
         },
@@ -274,8 +271,6 @@ export async function POST(
       workflowUpdateData[`step${stepNumber + 1}_in`] = nextStepInput;
     }
 
-    //console.log(`[POST] Workflow update data:`, JSON.stringify(workflowUpdateData, null, 2));
-    console.log(`[POST] Storyboard update data:`, JSON.stringify(storyboardUpdates, null, 2));
 
     // トランザクション的に更新（エラー時は両方ロールバック）
     // 1. ワークフローを更新
@@ -288,7 +283,7 @@ export async function POST(
     if (workflowUpdateError) {
       console.error('Failed to update workflow:', workflowUpdateError);
       return NextResponse.json(
-        { error: 'Failed to save data' },
+        { error: 'データの保存に失敗しました。' },
         { status: 500 }
       );
     }
@@ -303,7 +298,7 @@ export async function POST(
     if (storyboardUpdateError) {
       console.error('Failed to update storyboard:', storyboardUpdateError);
       return NextResponse.json(
-        { error: 'Failed to update storyboard' },
+        { error: 'ストーリーボードの更新に失敗しました。' },
         { status: 500 }
       );
     }
@@ -313,13 +308,12 @@ export async function POST(
       nextStepInput: stepNumber < 7 ? nextStepInput : null,
     };
 
-    console.log(`[POST] Response:`, JSON.stringify(response, null, 2));
 
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error saving step data:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'サーバーエラーが発生しました。' },
       { status: 500 }
     );
   }

@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import type { 
-  Step2Output, 
+import type {
+  Step2Output,
   Step3Input,
-  CharactersData 
+  CharactersData
 } from '@/types/workflow';
 
 // Supabase クライアント
@@ -94,48 +94,19 @@ async function generateDetailedCharacters(
   personality: string;
   visualDescription: string;
 }>> {
-  const prompt = `
-以下の情報から、キャラクターの詳細な設定を作成してください：
-
-## 作品情報
-タイトル: ${step2Output.userInput.title}
-
-## 幕場構成
-${JSON.stringify(step2Output.userInput.acts, null, 2)}
-
-## 既存キャラクター
-${existingCharacters.map(char => `- ${char.name}: ${char.role} (${char.personality})`).join('\n')}
-
-## 生成要件
-1. 各キャラクターに詳細な性格設定
-2. 視覚的な特徴の具体的な描写
-3. 物語での役割を明確化
-4. アニメ風の外見描写
-
-JSONフォーマットで出力してください：
-{
-  "characters": [
-    {
-      "id": "character-1",
-      "name": "キャラクター名",
-      "role": "物語での役割",
-      "personality": "詳細な性格設定",
-      "visualDescription": "具体的な外見描写"
-    }
-  ]
-}
-`;
+  const systemPrompt = createCharacterSystemPrompt();
+  const userPrompt = createCharacterUserPrompt(step2Output, existingCharacters);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
     messages: [
       {
         role: 'system',
-        content: 'あなたはキャラクターデザインの専門家です。物語に適したキャラクターの詳細設定を作成してください。'
+        content: systemPrompt
       },
       {
         role: 'user',
-        content: prompt
+        content: userPrompt
       }
     ],
     temperature: 0.7,
@@ -143,25 +114,93 @@ JSONフォーマットで出力してください：
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
-  
-  // 結果を検証・補完
-  if (!result.characters || !Array.isArray(result.characters)) {
-    return existingCharacters.map((char, index) => ({
-      id: char.id || `character-${index + 1}`,
-      name: char.name || `キャラクター${index + 1}`,
-      role: char.role || '登場人物',
-      personality: char.personality || '詳細な性格設定が必要',
-      visualDescription: char.visualDescription || '外見の描写が必要'
-    }));
+
+  // 結果を検証
+  if (!result.characters || !Array.isArray(result.characters) || result.characters.length === 0) {
+    throw new CharacterGenerationError(
+      'AIがキャラクターの詳細設定を生成できませんでした。入力内容を確認してください。',
+      'MISSING_CHARACTER_DETAILS'
+    );
   }
 
-  return result.characters.map((char: any, index: number) => ({
-    id: char.id || `character-${index + 1}`,
-    name: char.name || `キャラクター${index + 1}`,
-    role: char.role || '登場人物',
-    personality: char.personality || '詳細な性格設定が必要',
-    visualDescription: char.visualDescription || '外見の描写が必要'
-  }));
+  return result.characters.map((char: any, index: number) => {
+    if (!char.name || !char.role) {
+      throw new CharacterGenerationError(
+        `キャラクター${index + 1}の必須情報（名前または役割）が不足しています。`,
+        'INCOMPLETE_CHARACTER_DETAILS'
+      );
+    }
+
+    return {
+      id: char.id || `character-${index + 1}`,
+      name: char.name,
+      role: char.role,
+      personality: char.personality || '詳細な性格設定が必要',
+      visualDescription: char.visualDescription || '外見の描写が必要'
+    };
+  });
+}
+
+/**
+ * キャラクター生成用のシステムプロンプトを作成
+ */
+function createCharacterSystemPrompt(): string {
+  return `
+あなたはシェイクスピア劇団の衣装デザイナー兼キャスティングディレクターです。
+キャラクターの魂と外見を、シェイクスピアが現代に蘇ったらどう演出するかを想像しながら創造してください。
+
+## キャラクター創造の指針
+
+### シェイクスピア的キャラクター造形
+- **多面的な人間性**: 善悪二元論ではなく、光と影を併せ持つ複雑な人物像
+- **内なる葛藤**: 各キャラクターが抱える内的矛盾と成長の可能性
+- **象徴的役割**: 物語の主題を体現する存在としての機能
+- **対話の妙**: 機知に富んだ台詞を生み出せる知性と感情
+
+### 現代的アニメビジュアル演出
+- **印象的な外見**: 一目で記憶に残る特徴的なデザイン
+- **色彩心理**: キャラクターの内面を反映する配色
+- **衣装の象徴性**: 役割と性格を視覚的に表現する装い
+- **表情の豊かさ**: 感情の機微を伝える表現力
+
+### 出力形式
+{
+  "characters": [
+    {
+      "id": "character-1",
+      "name": "キャラクター名",
+      "role": "物語での役割（主人公、道化、賢者、恋人など）",
+      "personality": "内面の葛藤、価値観、行動原理、成長の可能性を含む詳細な性格描写",
+      "visualDescription": "髪型、瞳の色、体格、特徴的な装飾品、衣装の詳細、全体的な印象"
+    }
+  ]
+}
+
+## 重要な指示
+- 各キャラクターに明確な存在理由と物語上の機能を持たせること
+- 外見は性格と役割を視覚的に表現するものであること
+- シェイクスピア的な深みと現代的な親しみやすさの融合
+- 主要キャラクターには特に豊かな内面性を付与
+`;
+}
+
+/**
+ * キャラクター生成用のユーザープロンプトを作成
+ */
+function createCharacterUserPrompt(
+  step2Output: Step2Output,
+  existingCharacters: any[]
+): string {
+  return `## 作品情報
+タイトル: ${step2Output.userInput.title}
+
+## 幕場構成
+${JSON.stringify(step2Output.userInput.acts, null, 2)}
+
+## 既存キャラクター情報
+${existingCharacters.map(char => `- ${char.name}: ${char.role} (${char.personality})`).join('\n')}
+
+これらの情報を基に、各キャラクターの詳細な設定をJSONフォーマットで作成してください。`;
 }
 
 /**

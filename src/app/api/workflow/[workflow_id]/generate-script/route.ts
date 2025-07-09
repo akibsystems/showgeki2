@@ -117,7 +117,6 @@ export async function POST(
     }
 
     const mulmoScript = enhanceMulmoScriptWithWorkflowData(result.script, storyboard);
-    console.log('mulmoScript', mulmoScript);
 
     // ストーリーボードにMulmoScriptを保存
     const { error: updateError } = await supabase
@@ -220,11 +219,15 @@ function enhanceMulmoScriptWithWorkflowData(
 
   // 音声設定を更新（ワークフローで設定された音声タイプを適用）
   if (baseScript.speechParams && baseScript.speechParams.speakers) {
+    console.log('[Voice Debug] characters:', JSON.stringify(characters, null, 2));
+    console.log('[Voice Debug] voiceSettings:', JSON.stringify(audioData?.voiceSettings, null, 2));
+    
     characters.forEach(char => {
       const voiceSettings = audioData?.voiceSettings?.[char.id];
       if (baseScript.speechParams.speakers[char.name]) {
-        baseScript.speechParams.speakers[char.name].voiceId =
-          voiceSettings?.voiceType || char.voiceType || baseScript.speechParams.speakers[char.name].voiceId;
+        const finalVoice = voiceSettings?.voiceType || char.voiceType || baseScript.speechParams.speakers[char.name].voiceId;
+        baseScript.speechParams.speakers[char.name].voiceId = finalVoice;
+        console.log(`[Voice Debug] Character "${char.name}" voice: ${finalVoice}`);
       }
     });
   }
@@ -233,6 +236,8 @@ function enhanceMulmoScriptWithWorkflowData(
   if (storyboard.audio_data) {
     // storyboardからStep6で保存されたBGM設定を取得
     const step6BgmData = storyboard.audio_data as any; // Step6Output形式のデータ
+    
+    console.log('[BGM Debug] audio_data:', JSON.stringify(step6BgmData, null, 2));
     
     if (step6BgmData.bgm) {
       // Step6から保存されたBGM設定を使用
@@ -245,6 +250,7 @@ function enhanceMulmoScriptWithWorkflowData(
           },
           bgmVolume: step6BgmData.bgm.volume || 0.5
         };
+        console.log('[BGM Debug] Applied BGM:', step6BgmData.bgm.selected, 'Volume:', step6BgmData.bgm.volume);
       }
       // customBgmがある場合は優先
       if (step6BgmData.bgm.customBgm) {
@@ -256,6 +262,7 @@ function enhanceMulmoScriptWithWorkflowData(
           },
           bgmVolume: step6BgmData.bgm.volume || 0.5
         };
+        console.log('[BGM Debug] Applied custom BGM:', step6BgmData.bgm.customBgm);
       }
     }
   }
@@ -320,6 +327,9 @@ function enhanceMulmoScriptWithWorkflowData(
     };
   }
 
+  console.log('[Final MulmoScript] audioParams:', JSON.stringify(baseScript.audioParams, null, 2));
+  console.log('[Final MulmoScript] speechParams.speakers:', JSON.stringify(baseScript.speechParams?.speakers, null, 2));
+  
   return baseScript as MulmoScript;
 }
 

@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import type { 
-  Step5Output, 
+import type {
+  Step5Output,
   Step6Input,
-  AudioData 
+  AudioData
 } from '@/types/workflow';
 
 // Supabase クライアント
@@ -46,16 +46,28 @@ export async function generateStep6Input(
     const updatedAudioData: AudioData = {
       voiceSettings: step5Output.userInput.voiceSettings,
       bgmSettings: {
-        defaultBgm: 'default',
-        bgmVolume: 0.3
+        defaultBgm: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3', // Rise and Shine
+        bgmVolume: 0.5
       }
     };
+
+    // キャラクターデータのvoiceTypeも更新
+    const charactersWithUpdatedVoice = storyboard.characters_data?.characters.map((char: any) => {
+      const voiceSetting = step5Output.userInput.voiceSettings[char.id];
+      return {
+        ...char,
+        voiceType: voiceSetting?.voiceType || char.voiceType || 'alloy'
+      };
+    }) || [];
 
     // storyboardを更新
     const { error: updateError } = await supabase
       .from('storyboards')
       .update({
         audio_data: updatedAudioData,
+        characters_data: {
+          characters: charactersWithUpdatedVoice
+        },
         updated_at: new Date().toISOString()
       })
       .eq('id', storyboardId);
@@ -99,45 +111,19 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   suggestedBgm: string;
   bgmOptions: string[];
 }> {
-  const prompt = `
-以下の物語情報からBGMを提案してください：
-
-## 作品情報
-タイトル: ${storyboard.title}
-ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
-概要: ${storyboard.summary_data?.description || ''}
-
-## 利用可能なBGMオプション
-- dramatic: ドラマチックで感動的な楽曲
-- peaceful: 平和で穏やかな楽曲
-- adventure: 冒険的でエキサイティングな楽曲
-- romantic: ロマンチックで美しい楽曲
-- mysterious: 神秘的で不思議な楽曲
-- comedic: コメディカルで楽しい楽曲
-- epic: 壮大で英雄的な楽曲
-- melancholic: 哀愁的で切ない楽曲
-
-## 生成要件
-物語の雰囲気に最も適したBGMを1つ選択し、
-関連するオプションも含めて提案してください。
-
-JSONフォーマットで出力してください：
-{
-  "suggestedBgm": "BGM名",
-  "bgmOptions": ["BGM1", "BGM2", "BGM3", "BGM4", "BGM5"]
-}
-`;
+  const systemPrompt = createBGMSystemPrompt();
+  const userPrompt = createBGMUserPrompt(storyboard);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4.1-mini',
     messages: [
       {
         role: 'system',
-        content: 'あなたは音楽の専門家です。物語に適したBGMを提案してください。'
+        content: systemPrompt
       },
       {
         role: 'user',
-        content: prompt
+        content: userPrompt
       }
     ],
     temperature: 0.3,
@@ -145,9 +131,29 @@ JSONフォーマットで出力してください：
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
-  
-  // 結果を検証・補完
-  // AudioSettings.tsxで定義されているBGM URLを使用
+
+  // 結果を検証
+  if (!result.suggestedType) {
+    throw new BGMGenerationError(
+      'AIがBGM提案を生成できませんでした。物語の内容を確認してください。',
+      'MISSING_BGM_SUGGESTION'
+    );
+  }
+
+  // BGMタイプとURLのマッピング（AudioSettings.tsxより）
+  const bgmTypeToUrl: Record<string, string> = {
+    'none': 'none',
+    'peaceful': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story001.mp3', // Whispered Melody
+    'inspiring': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3', // Rise and Shine
+    'emotional': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story003.mp3', // Chasing the Sunset
+    'mysterious': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story004.mp3', // Whispering Keys
+    'dramatic': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story005.mp3', // Whisper of Ivory
+    'heroic': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/theme001.mp3', // Rise of the Flame
+    'vibrant': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/vibe001.mp3', // Let It Vibe!
+    'modern': 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/voice001.mp3', // 声をつなげ、今ここで
+  };
+
+  // AudioSettings.tsxで定義されているBGM URLを使用（'none'を除く）
   const defaultBgmOptions = [
     'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story001.mp3',
     'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3',
@@ -156,16 +162,83 @@ JSONフォーマットで出力してください：
     'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story005.mp3',
     'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/theme001.mp3',
     'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/vibe001.mp3',
-    'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/voice001.mp3',
+    'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/voice001.mp3'
   ];
-  
-  // デフォルトは story002.mp3 (Rise and Shine)
-  const defaultSuggestedBgm = 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3';
-  
+
+  // AIの提案をURLにマッピング
+  const suggestedType = result.suggestedType;
+  const suggestedBgm = bgmTypeToUrl[suggestedType] || 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3'; // デフォルト: Rise and Shine
+
+  if (!suggestedBgm || suggestedBgm === 'none') {
+    // 'none'の場合もデフォルトを使用
+    return {
+      suggestedBgm: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3',
+      bgmOptions: defaultBgmOptions
+    };
+  }
+
   return {
-    suggestedBgm: result.suggestedBgm || defaultSuggestedBgm,
+    suggestedBgm: suggestedBgm,
     bgmOptions: defaultBgmOptions // 常にデフォルトのBGMリストを使用
   };
+}
+
+/**
+ * BGM提案用のシステムプロンプトを作成
+ */
+function createBGMSystemPrompt(): string {
+  return `
+あなたはシェイクスピア劇団の音楽監督であり、舞台音楽の魔術師です。
+グローブ座で奏でられた音楽が現代に蘇り、動画に命を吹き込む瞬間を創造してください。
+
+## 音楽選択の美学
+
+### シェイクスピア的音楽演出
+- **感情の潮流**: 物語の感情的な起伏を音楽で表現
+- **劇的対比**: 静と動、光と影を音楽で描く
+- **主題の象徴**: 作品の核心的メッセージを音楽で体現
+- **観客との共鳴**: 心の琴線に触れる音楽選択
+
+### 利用可能な音楽パレット
+- **none**: BGMなし - 無音、対話と効果音のみ
+- **peaceful**: Whispered Melody - 穏やかで優しい旋律、静かな始まりや内省的なシーン
+- **inspiring**: Rise and Shine - 前向きで躍動的、希望に満ちた物語の展開
+- **emotional**: Chasing the Sunset - 感動的でノスタルジック、クライマックスや別れのシーン
+- **mysterious**: Whispering Keys - 静謐で神秘的、緊張感が漂うシーン
+- **dramatic**: Whisper of Ivory - 荘厳で感情的、深い感情を表現する重要なシーン
+- **heroic**: Rise of the Flame - 壮大で感動的、英雄的な物語や勝利のシーン
+- **vibrant**: Let It Vibe! - エネルギッシュで楽しい、現代的で活気あるシーン
+- **modern**: 声をつなげ、今ここで - 現代的でエモーショナル、日本の青春シーン
+
+### 出力形式
+{
+  "suggestedType": "選択したBGMタイプ",
+  "musicalRationale": "この音楽を選んだ演出意図"
+}
+
+## 重要な指示
+- 物語の感情的クライマックスを音楽で支えること
+- 全体の流れを考慮した音楽選択
+- シェイクスピア的な普遍性と現代的な親しみやすさの融合
+- 観客の心を動かす音楽演出
+`;
+}
+
+/**
+ * BGM提案用のユーザープロンプトを作成
+ */
+function createBGMUserPrompt(storyboard: any): string {
+  return `## 作品情報
+タイトル: ${storyboard.title}
+ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
+概要: ${storyboard.summary_data?.description || ''}
+
+## 物語の幕場構成
+${storyboard.acts_data?.acts ? storyboard.acts_data.acts.map((act: any) =>
+    `第${act.actNumber}幕: ${act.actTitle} - ${act.description || '詳細不明'}`
+  ).join('\n') : '構成情報なし'}
+
+この物語に最も適したBGMをJSONフォーマットで選択してください。`;
 }
 
 /**

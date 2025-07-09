@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,64 @@ interface Step6BgmSubtitleProps {
   onUpdate: (canProceed: boolean) => void;
 }
 
+// BGMプリセット（AudioSettings.tsxと同じ）
+const BGM_PRESETS = [
+  {
+    value: 'none',
+    label: 'BGMなし',
+    description: '無音',
+    mood: 'なし'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story001.mp3',
+    label: 'Whispered Melody',
+    description: 'スムーズなピアノの優しい旋律。物語の静かな始まりや内省的なシーンに最適',
+    mood: '穏やか・優しい'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3',
+    label: 'Rise and Shine',
+    description: 'テクノとピアノが融合したインスピレーショナルな楽曲。希望に満ちた物語の展開に',
+    mood: '前向き・躍動的'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story003.mp3',
+    label: 'Chasing the Sunset',
+    description: 'ピアノが奏でる夕暮れの情景。感動的なクライマックスや別れのシーンに',
+    mood: '感動的・ノスタルジック'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story004.mp3',
+    label: 'Whispering Keys',
+    description: 'クラシカルでアンビエントなピアノ曲。静寂と緊張感が漂うシーンに',
+    mood: '静謐・神秘的'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story005.mp3',
+    label: 'Whisper of Ivory',
+    description: 'クラシカルなピアノソロ。深い感情を表現する重要なシーンに',
+    mood: '荘厳・感情的'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/theme001.mp3',
+    label: 'Rise of the Flame',
+    description: 'オリンピックテーマ風の壮大なオーケストラ。英雄的な物語や勝利のシーンに',
+    mood: '壮大・感動的'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/vibe001.mp3',
+    label: 'Let It Vibe!',
+    description: 'ラップとダンスが融合したエネルギッシュな楽曲。現代的で活気あるシーンに',
+    mood: 'エネルギッシュ・楽しい'
+  },
+  {
+    value: 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/voice001.mp3',
+    label: '声をつなげ、今ここで',
+    description: '2020年代のJ-POPスタイル。日本の現代的な物語や青春シーンに',
+    mood: '現代的・エモーショナル'
+  }
+];
+
 // BGM選択コンポーネント
 function BgmSelector({
   selectedBgm,
@@ -26,7 +84,8 @@ function BgmSelector({
   onVolumeChange,
   onPreview,
   isLoading,
-  isPreviewLoading
+  isPreviewLoading,
+  playingBgm
 }: {
   selectedBgm: string;
   bgmOptions: string[];
@@ -36,31 +95,41 @@ function BgmSelector({
   onPreview: (bgm: string) => void;
   isLoading: boolean;
   isPreviewLoading: boolean;
+  playingBgm: string | null;
 }) {
-  const bgmDisplayNames: { [key: string]: string } = {
-    'default-bgm-1': 'スタンダード',
-    'default-bgm-2': 'ドラマチック',
-    'default-bgm-3': 'ファンタジー',
-    'epic': 'エピック',
-    'emotional': 'エモーショナル',
-    'peaceful': 'ピースフル',
-  };
+
+  // 現在選択されているBGMの情報を取得
+  const selectedBgmPreset = BGM_PRESETS.find(preset => preset.value === selectedBgm) || BGM_PRESETS[2]; // デフォルトはRise and Shine
 
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-6">
         <h3 className="text-lg font-semibold mb-4">BGM設定</h3>
         
+        {/* 現在のBGM表示 */}
+        <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <div className="flex-1">
+              <h4 className="font-medium text-white">{selectedBgmPreset.label}</h4>
+              <p className="text-sm text-gray-400 mt-1">{selectedBgmPreset.description}</p>
+              <p className="text-xs text-purple-300 mt-2">ムード: {selectedBgmPreset.mood}</p>
+            </div>
+          </div>
+        </div>
+
         {/* BGM選択 */}
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-3">BGMを選択</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {bgmOptions.map((bgm) => (
+          <label className="block text-sm font-medium mb-3">BGMを変更</label>
+          <div className="grid grid-cols-1 gap-3">
+            {BGM_PRESETS.map((preset) => (
               <div
-                key={bgm}
+                key={preset.value}
                 className={`
-                  p-4 rounded-lg transition-all border
-                  ${selectedBgm === bgm
+                  p-4 rounded-lg transition-all border cursor-pointer
+                  ${selectedBgm === preset.value
                     ? 'bg-purple-600/20 border-purple-600'
                     : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                   }
@@ -68,24 +137,45 @@ function BgmSelector({
               >
                 <div className="flex items-center justify-between">
                   <button
-                    onClick={() => onBgmChange(bgm)}
+                    onClick={() => onBgmChange(preset.value)}
                     disabled={isLoading}
                     className="flex-1 text-left"
                   >
-                    <div className="font-medium text-white">
-                      {bgmDisplayNames[bgm] || bgm}
+                    <div className="flex items-start gap-3">
+                      {preset.value === 'none' ? (
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                        </svg>
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium text-white">
+                          {preset.label}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {preset.mood}
+                        </div>
+                      </div>
                     </div>
-                    {selectedBgm === bgm && (
-                      <div className="text-xs text-purple-300 mt-1">選択中</div>
-                    )}
                   </button>
-                  <button
-                    onClick={() => onPreview(bgm)}
-                    disabled={isLoading || isPreviewLoading}
-                    className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors"
-                  >
-                    {isPreviewLoading ? '読込中...' : '試聴'}
-                  </button>
+                  {preset.value !== 'none' && (
+                    <button
+                      onClick={() => onPreview(preset.value)}
+                      disabled={isLoading || (isPreviewLoading && playingBgm !== preset.value)}
+                      className={`ml-3 px-3 py-1 rounded text-sm transition-colors ${
+                        playingBgm === preset.value 
+                          ? 'bg-red-600 hover:bg-red-700' 
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
+                    >
+                      {isPreviewLoading && playingBgm === null ? '読込中...' : 
+                       playingBgm === preset.value ? '停止' : '試聴'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -324,7 +414,7 @@ export default function Step6BgmSubtitle({
   const [bgmSettings, setBgmSettings] = useState({
     selected: initialData?.stepOutput?.userInput?.bgm?.selected || 
              initialData?.stepInput?.suggestedBgm || 
-             'default-bgm-1',
+             'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3', // デフォルト: Rise and Shine
     customBgm: initialData?.stepOutput?.userInput?.bgm?.customBgm || undefined,
     volume: initialData?.stepOutput?.userInput?.bgm?.volume ?? 0.5,
   });
@@ -358,24 +448,82 @@ export default function Step6BgmSubtitle({
     onUpdate(true);
   }, [onUpdate]);
 
+  // 音声再生用のref
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingBgm, setPlayingBgm] = useState<string | null>(null);
+
+  // クリーンアップ: コンポーネントがアンマウントされたら音声を停止
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   // BGMプレビュー処理
   const handleBgmPreview = async (bgm: string) => {
+    // BGMなしの場合は何もしない
+    if (bgm === 'none') return;
+
+    // 同じBGMがクリックされた場合は再生/一時停止を切り替え
+    if (playingBgm === bgm && audioRef.current) {
+      if (audioRef.current.paused) {
+        try {
+          await audioRef.current.play();
+          setPlayingBgm(bgm);
+        } catch (error) {
+          console.error('Failed to play audio:', error);
+        }
+      } else {
+        audioRef.current.pause();
+        setPlayingBgm(null);
+      }
+      return;
+    }
+
+    // 別のBGMがクリックされた場合は、現在の再生を停止して新しいBGMを再生
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
     setIsPreviewLoading(true);
     try {
-      // TODO: 実際のBGMプレビューAPIを実装
-      success(`BGM「${bgm}」の試聴機能は準備中です`);
-      
-      // 実際の実装例:
-      // const response = await fetch(`/api/bgm/preview/${bgm}`);
-      // const audioBlob = await response.blob();
-      // const audioUrl = URL.createObjectURL(audioBlob);
-      // const audio = new Audio(audioUrl);
-      // await audio.play();
-      
+      const audio = new Audio(bgm);
+      audio.volume = bgmSettings.volume; // 現在の音量設定を使用
+      audioRef.current = audio;
+
+      // 音声の終了イベントを監視
+      audio.addEventListener('ended', () => {
+        setPlayingBgm(null);
+      });
+
+      // エラーハンドリング
+      audio.addEventListener('error', () => {
+        console.error('Failed to load audio');
+        setPlayingBgm(null);
+        setIsPreviewLoading(false);
+        error('BGMの読み込みに失敗しました');
+      });
+
+      // 読み込み完了後に再生
+      audio.addEventListener('canplay', async () => {
+        setIsPreviewLoading(false);
+        try {
+          await audio.play();
+          setPlayingBgm(bgm);
+        } catch (err) {
+          console.error('Failed to play audio:', err);
+          error('BGMの再生に失敗しました');
+        }
+      });
+
+      audio.load();
     } catch (err) {
       console.error('BGMプレビューエラー:', err);
       error('BGMの再生に失敗しました');
-    } finally {
       setIsPreviewLoading(false);
     }
   };
@@ -426,7 +574,10 @@ export default function Step6BgmSubtitle({
     }
   };
 
-  const bgmOptions = initialData?.stepInput?.bgmOptions || [];
+  // bgmOptionsはURLのリストなので、BGM_PRESETSから有効なオプションを作成
+  const validBgmOptions = BGM_PRESETS.filter(preset => 
+    preset.value === 'none' || initialData?.stepInput?.bgmOptions?.includes(preset.value)
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
@@ -441,13 +592,20 @@ export default function Step6BgmSubtitle({
       {/* BGM設定 */}
       <BgmSelector
         selectedBgm={bgmSettings.selected}
-        bgmOptions={bgmOptions}
+        bgmOptions={validBgmOptions.map(p => p.value)}
         volume={bgmSettings.volume}
         onBgmChange={(bgm) => setBgmSettings({ ...bgmSettings, selected: bgm })}
-        onVolumeChange={(volume) => setBgmSettings({ ...bgmSettings, volume })}
+        onVolumeChange={(volume) => {
+          setBgmSettings({ ...bgmSettings, volume });
+          // 再生中の音声の音量も更新
+          if (audioRef.current) {
+            audioRef.current.volume = volume;
+          }
+        }}
         onPreview={handleBgmPreview}
         isLoading={isLoading}
         isPreviewLoading={isPreviewLoading}
+        playingBgm={playingBgm}
       />
 
       {/* 字幕設定 */}

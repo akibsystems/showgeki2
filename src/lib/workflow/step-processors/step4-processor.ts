@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import type { 
-  Step4Output, 
+import type {
+  Step4Output,
   Step5Input,
   ScenesData,
   StyleData
@@ -73,6 +73,30 @@ export async function generateStep5Input(
       updatedScenesData.scenes
     );
 
+    // charactersデータにsuggestedVoiceを追加
+    const charactersWithVoice = storyboard.characters_data?.characters.map((char: any) => {
+      const voiceSetting = voiceSettings.characters.find(v => v.id === char.id);
+      return {
+        ...char,
+        voiceType: voiceSetting?.suggestedVoice || 'alloy'
+      };
+    }) || [];
+
+    // charactersデータも更新
+    const { error: charUpdateError } = await supabase
+      .from('storyboards')
+      .update({
+        characters_data: {
+          characters: charactersWithVoice
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', storyboardId);
+
+    if (charUpdateError) {
+      console.error('キャラクターデータの更新に失敗しました:', charUpdateError);
+    }
+
     // Step5Input を構築
     const step5Input: Step5Input = {
       characters: voiceSettings.characters,
@@ -109,46 +133,19 @@ async function generateVoiceSettings(
     }>;
   }>;
 }> {
-  const prompt = `
-以下のキャラクターに適切なOpenAI音声を割り当ててください：
-
-## 利用可能な音声
-- alloy: 中性的で落ち着いた声
-- echo: 男性的で深みのある声
-- fable: 若々しく明るい女性の声
-- nova: エネルギッシュな女性の声
-- onyx: 重厚で威厳のある男性の声
-- shimmer: 優しく柔らかな女性の声
-
-## キャラクター情報
-${characters.map(char => `- ${char.name}: ${char.role} (${char.personality})`).join('\n')}
-
-## 生成要件
-各キャラクターに最適な音声を選択してください。
-性格、年齢、役割を考慮して適切な音声を割り当てること。
-
-JSONフォーマットで出力してください：
-{
-  "voiceAssignments": [
-    {
-      "characterId": "character-1",
-      "characterName": "キャラクター名",
-      "suggestedVoice": "alloy"
-    }
-  ]
-}
-`;
+  const systemPrompt = createVoiceSystemPrompt();
+  const userPrompt = createVoiceUserPrompt(characters);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4.1-mini',
     messages: [
       {
         role: 'system',
-        content: 'あなたは音声キャスティングの専門家です。キャラクターの特徴に合った音声を選択してください。'
+        content: systemPrompt
       },
       {
         role: 'user',
-        content: prompt
+        content: userPrompt
       }
     ],
     temperature: 0.3,
@@ -156,16 +153,29 @@ JSONフォーマットで出力してください：
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
-  
-  // 結果を処理
-  const voiceAssignments = result.voiceAssignments || [];
-  
+
+  // 結果を検証
+  if (!result.voiceAssignments || !Array.isArray(result.voiceAssignments) || result.voiceAssignments.length === 0) {
+    throw new VoiceGenerationError(
+      'AIが音声キャスティングを生成できませんでした。キャラクター情報を確認してください。',
+      'MISSING_VOICE_ASSIGNMENTS'
+    );
+  }
+
+  const voiceAssignments = result.voiceAssignments;
+
   const processedCharacters = characters.map((char, index) => {
     const assignment = voiceAssignments.find((va: any) => va.characterId === char.id);
+    if (!assignment || !assignment.suggestedVoice) {
+      throw new VoiceGenerationError(
+        `キャラクター「${char.name}」の音声キャスティングが見つかりません。`,
+        'INCOMPLETE_VOICE_ASSIGNMENT'
+      );
+    }
     return {
       id: char.id,
       name: char.name,
-      suggestedVoice: assignment?.suggestedVoice || getDefaultVoice(char.role, index)
+      suggestedVoice: assignment.suggestedVoice
     };
   });
 
@@ -186,19 +196,60 @@ JSONフォーマットで出力してください：
 }
 
 /**
- * デフォルト音声を取得
+ * 音声キャスティング用のシステムプロンプトを作成
  */
-function getDefaultVoice(role: string, index: number): string {
-  const defaultVoices = ['alloy', 'echo', 'fable', 'nova', 'onyx', 'shimmer'];
-  
-  // 役割に基づいてデフォルト音声を選択
-  if (role.includes('主人公')) return 'nova';
-  if (role.includes('語り手')) return 'shimmer';
-  if (role.includes('悪役')) return 'onyx';
-  if (role.includes('相手役')) return 'fable';
-  
-  // フォールバック
-  return defaultVoices[index % defaultVoices.length];
+function createVoiceSystemPrompt(): string {
+  return `
+あなたはシェイクスピア劇団の音響監督であり、声の演技指導の達人です。
+グローブ座の舞台で響く声の魔術を、現代のAI音声技術で再現する使命を帯びています。
+
+## 音声キャスティングの哲学
+
+### シェイクスピア的声の演出
+- **声の個性**: 役柄の本質を声質で表現する技法
+- **感情の振幅**: 静謐から激情まで、豊かな感情表現を可能にする音域
+- **台詞の音楽性**: 韻律と抑揚で物語を語る声の選択
+- **キャラクターの声紋**: 観客の記憶に残る特徴的な声質
+
+### 利用可能な音声パレット
+- **alloy**: 中性的で落ち着いた声 - 語り手、賢者、観察者
+- **echo**: 男性的で深みのある声 - 威厳ある統治者、父性的存在
+- **fable**: 若々しく明るい女性の声 - 無垢な恋人、希望の象徴
+- **nova**: エネルギッシュな女性の声 - 情熱的な主人公、行動的な女性
+- **onyx**: 重厚で威厳のある男性の声 - 悪役、権力者、運命の宣告者
+- **shimmer**: 優しく柔らかな女性の声 - 慈母、癒し手、内なる声
+
+### 出力形式
+{
+  "voiceAssignments": [
+    {
+      "characterId": "character-1",
+      "characterName": "キャラクター名",
+      "suggestedVoice": "選択した音声ID",
+      "voiceRationale": "この声を選んだ演出意図"
+    }
+  ]
+}
+
+## 重要な指示
+- 各キャラクターの内面と役割を声で表現すること
+- 声の対比で劇的効果を生み出すこと
+- 物語全体の音響的バランスを考慮すること
+- 観客の感情に訴えかける声の配役
+`;
+}
+
+/**
+ * 音声キャスティング用のユーザープロンプトを作成
+ */
+function createVoiceUserPrompt(characters: any[]): string {
+  return `## キャラクター情報
+${characters.map(char => `### ${char.name}
+- 役割: ${char.role}
+- 性格: ${char.personality}
+- 外見: ${char.visualDescription || '詳細不明'}`).join('\n\n')}
+
+これらのキャラクターに最適な音声をJSONフォーマットで割り当ててください。`;
 }
 
 /**

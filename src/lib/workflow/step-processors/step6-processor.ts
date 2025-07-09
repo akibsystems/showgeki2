@@ -51,9 +51,15 @@ export async function generateStep7Input(
       styles: step6Output.userInput.caption.styles
     };
 
-    // 音声データを更新
+    // 音声データを更新（generate-script/route.tsが期待する形式に合わせる）
     const updatedAudioData: AudioData = {
       ...storyboard.audio_data,
+      bgm: {
+        selected: step6Output.userInput.bgm.selected,
+        customBgm: step6Output.userInput.bgm.customBgm,
+        volume: step6Output.userInput.bgm.volume
+      },
+      // 後方互換性のためbgmSettingsも保持
       bgmSettings: {
         defaultBgm: step6Output.userInput.bgm.selected,
         customBgm: step6Output.userInput.bgm.customBgm ? {
@@ -151,11 +157,11 @@ async function generateFinalMulmoScript(
       style: styleData.imageStyle || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
       images: generateImageReferences(storyboard.scenes_data?.scenes || [])
     },
-    audioParams: audioData.bgmSettings?.defaultBgm ? {
+    audioParams: audioData.bgmSettings?.defaultBgm && audioData.bgmSettings.defaultBgm !== 'none' ? {
       bgm: audioData.bgmSettings.customBgm ? 
         { kind: 'url', url: audioData.bgmSettings.customBgm.url } :
-        { kind: 'url', url: `bgm/${audioData.bgmSettings.defaultBgm}.mp3` },
-      bgmVolume: audioData.bgmSettings.bgmVolume || 0.3
+        { kind: 'url', url: audioData.bgmSettings.defaultBgm }, // defaultBgmは既に完全なURL
+      bgmVolume: audioData.bgmSettings.bgmVolume || 0.5
     } : undefined,
     captionParams: captionData.enabled ? {
       lang: captionData.language,

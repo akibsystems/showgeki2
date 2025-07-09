@@ -21,12 +21,13 @@ import {
 
 export { generateStep3Input, CharacterGenerationError };
 
-// Step 3: キャラクタ&画風設定 → 台本&静止画生成 (既存のstep3-generator.tsと統合)
+// Step 3: キャラクタ&画風設定 → 台本&静止画生成
 import { 
-  generateStep4Input as generateStep4InputFromStep3
-} from '../generators/step3-generator';
+  generateStep4Input,
+  SceneGenerationError
+} from './step3-processor';
 
-export { generateStep4InputFromStep3 };
+export { generateStep4Input, SceneGenerationError };
 
 // Step 4: 台本&静止画プレビュー → 音声生成準備
 import { 
@@ -100,6 +101,25 @@ export async function executeStepProcessor<T>(
   } catch (error) {
     console.error(`Step ${step} processor error:`, error);
     
+    // 特定のエラータイプをチェックして、適切なエラー情報を返す
+    if (error instanceof StoryboardGenerationError ||
+        error instanceof CharacterGenerationError ||
+        error instanceof SceneGenerationError ||
+        error instanceof VoiceGenerationError ||
+        error instanceof BGMGenerationError ||
+        error instanceof FinalGenerationError ||
+        error instanceof WorkflowCompletionError) {
+      return {
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          originalError: error
+        }
+      };
+    }
+    
+    // その他のエラーの場合
     return {
       success: false,
       error: {
@@ -145,7 +165,7 @@ export class WorkflowStepManager {
       
       case 3:
         return executeStepProcessor(
-          () => generateStep4InputFromStep3(this.workflowId, this.storyboardId, stepOutput),
+          () => generateStep4Input(this.workflowId, this.storyboardId, stepOutput),
           4,
           'STEP4_GENERATION_FAILED'
         );

@@ -42,7 +42,6 @@ export default function Step1StoryInput({
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
     if (initialData?.stepOutput?.userInput) {
-      console.log('[Step1StoryInput] Updating form with initialData.stepOutput.userInput:', initialData.stepOutput.userInput);
       setFormData({
         storyText: initialData.stepOutput.userInput.storyText || '',
         characters: initialData.stepOutput.userInput.characters || '',
@@ -70,7 +69,6 @@ export default function Step1StoryInput({
 
   // 保存処理
   const handleSave = async () => {
-    console.log("@@@ handleSave", isValid, user);
     if (!isValid || !user) {
       error('必須項目を入力してください');
       return;
@@ -102,7 +100,6 @@ export default function Step1StoryInput({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Step 1 save failed:', response.status, errorData);
         
         // エラーの詳細を表示
         if (errorData.error) {
