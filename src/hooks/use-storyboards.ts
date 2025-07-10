@@ -26,13 +26,16 @@ interface UseStoryboardsReturn {
  * Hook to fetch all storyboards with workflow and video status
  */
 export function useStoryboards(): UseStoryboardsReturn {
-  const { data: storyboards, error, isLoading, mutate } = useSWR<any[]>(
+  const { data: response, error, isLoading, mutate } = useSWR<any>(
     '/api/storyboards',
     {
       revalidateOnFocus: true,
       dedupingInterval: 5000,
     }
   );
+  
+  // APIレスポンスからstoryboardsを取得
+  const storyboards = response?.data?.storyboards || response;
 
   // ストーリーボードをコピー
   const copyStoryboard = async (id: string): Promise<{ storyboard: any; workflow: any }> => {

@@ -112,11 +112,12 @@ export function RecentWorkflows() {
   return (
     <div className="grid gap-4">
       {workflows.map((workflow) => {
-        const isCompleted = workflow.hasVideo; // 動画生成済みかどうか
+        // completedステータスのworkflowのみ無効化（動画生成済みかどうかは関係なく編集可能にする）
+        const isDisabled = workflow.status === 'completed';
         
         const CardComponent = (
           <Card key={workflow.id} className={`bg-gray-800/50 border-gray-700 transition-all ${
-            isCompleted 
+            isDisabled 
               ? 'opacity-60 cursor-not-allowed' 
               : 'hover:border-purple-500/50 cursor-pointer'
           }`}>
@@ -124,13 +125,14 @@ export function RecentWorkflows() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className={`font-semibold mb-1 ${
-                    isCompleted ? 'text-gray-400' : 'text-white'
+                    isDisabled ? 'text-gray-400' : 'text-white'
                   }`}>
                     {workflow.title}
                   </h3>
                   <div className="flex items-center gap-4 text-sm">
                     <span className={`${getStatusColor(workflow.status)}`}>
                       {getStatusLabel(workflow.status)}
+                      {workflow.hasVideo && ' 🎬'}
                     </span>
                     <span className="text-gray-400">
                       {getStepLabel(workflow.currentStep)} ({workflow.currentStep}/{workflow.totalSteps})
@@ -155,8 +157,8 @@ export function RecentWorkflows() {
           </Card>
         );
         
-        // 動画生成済みの場合はリンクを無効化
-        if (isCompleted) {
+        // completedステータスの場合のみリンクを無効化
+        if (isDisabled) {
           return CardComponent;
         }
         

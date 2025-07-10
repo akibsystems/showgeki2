@@ -54,12 +54,11 @@ const StoriesContent: React.FC = () => {
           false;
         // ワークフロー脚本のステータスマッピング
         let mappedStatus: StoryStatus = 'draft';
-        if (storyboard.hasVideo) {
-          mappedStatus = 'completed';
-        } else if (storyboard.workflow?.status === 'completed') {
-          mappedStatus = 'script_generated';
-        } else if (storyboard.workflow?.status === 'active') {
+        if (storyboard.workflow?.status === 'active') {
           mappedStatus = 'processing';
+        } else if (storyboard.workflow?.status === 'completed') {
+          // ワークフローが完了していても、動画がなければ脚本生成済み
+          mappedStatus = storyboard.hasVideo ? 'completed' : 'script_generated';
         }
         const matchesStatus = statusFilter === 'all' || mappedStatus === statusFilter;
         return matchesSearch && matchesStatus;
@@ -373,29 +372,30 @@ const StoriesContent: React.FC = () => {
               filteredStories.length > 0 ? filteredStories.map((storyboard: any) => {
                 // ステータスマッピング
                 let mappedStatus: StoryStatus = 'draft';
-                if (storyboard.hasVideo) {
-                  mappedStatus = 'completed';
-                } else if (storyboard.workflow?.status === 'completed') {
-                  mappedStatus = 'script_generated';
-                } else if (storyboard.workflow?.status === 'active') {
+                if (storyboard.workflow?.status === 'active') {
                   mappedStatus = 'processing';
+                } else if (storyboard.workflow?.status === 'completed') {
+                  // ワークフローが完了していても、動画がなければ脚本生成済み
+                  mappedStatus = storyboard.hasVideo ? 'completed' : 'script_generated';
                 }
                 
-                // 完了したストーリーボードはクリックできない
-                const isCompleted = mappedStatus === 'completed';
+                // ワークフローが完了したストーリーボードはクリックできない（動画生成済みでも編集可能）
+                const isDisabled = storyboard.workflow?.status === 'completed';
+                const hasVideo = storyboard.hasVideo;
                 
                 return (
                   <Card key={storyboard.id} className="h-full hover:shadow-lg transition-all duration-200 group">
                     <CardContent className="p-4 sm:p-6">
-                      <div className={isCompleted ? '' : 'cursor-pointer'} onClick={isCompleted ? undefined : () => storyboard.workflow && router.push(`/workflow/${storyboard.workflow.id}?step=7`)}>
+                      <div className={isDisabled ? '' : 'cursor-pointer'} onClick={isDisabled ? undefined : () => storyboard.workflow && router.push(`/workflow/${storyboard.workflow.id}?step=7`)}>
                         <div className="flex justify-between items-start mb-2 sm:mb-3">
                           <h3 className={`text-base sm:text-lg font-medium transition-colors line-clamp-2 mr-2 ${
-                            isCompleted ? 'text-gray-400' : 'text-gray-100 group-hover:text-purple-400'
+                            isDisabled ? 'text-gray-400' : 'text-gray-100 group-hover:text-purple-400'
                           }`}>
                             {storyboard.title || '無題のストーリー'}
                           </h3>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(mappedStatus)} flex-shrink-0`}>
                             {getStatusText(mappedStatus)}
+                            {hasVideo && ' 🎬'}
                           </span>
                         </div>
                         
@@ -412,12 +412,12 @@ const StoriesContent: React.FC = () => {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {isCompleted && (
+                          {(isDisabled || hasVideo) && (
                             <button
                               onClick={(e) => handleCopyStoryboard(e, storyboard.id)}
                               disabled={copyingStoryboardId === storyboard.id}
                               className="p-1.5 rounded-md text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="動画生成済みのストーリーボードをコピー"
+                              title={hasVideo ? "動画生成済みのストーリーボードをコピー" : "完了したストーリーボードをコピー"}
                             >
                               {copyingStoryboardId === storyboard.id ? (
                                 <Spinner size="sm" />
@@ -429,7 +429,7 @@ const StoriesContent: React.FC = () => {
                             </button>
                           )}
                           
-                          {storyboard.workflow && !isCompleted && (
+                          {storyboard.workflow && !isDisabled && (
                             <div className="p-1.5 text-gray-400">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

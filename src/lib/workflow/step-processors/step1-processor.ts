@@ -79,7 +79,7 @@ async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
     ],
     temperature: 0.7,
     response_format: { type: 'json_object' },
-    //max_tokens: 4000,
+    max_tokens: 32000,
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');

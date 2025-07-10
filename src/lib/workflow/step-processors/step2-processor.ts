@@ -110,7 +110,8 @@ async function generateDetailedCharacters(
       }
     ],
     temperature: 0.7,
-    response_format: { type: 'json_object' }
+    response_format: { type: 'json_object' },
+    max_tokens: 32000,
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
