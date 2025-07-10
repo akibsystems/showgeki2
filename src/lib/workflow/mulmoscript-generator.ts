@@ -139,11 +139,20 @@ export function generateMulmoScriptFromStoryboard(
     captionParams: captionData?.enabled ? {
       lang: captionData.language || 'ja',
       styles: captionData.styles || [
-        "font-size: 24px",
+        "font-family: Arial, sans-serif",
+        "font-size: 32px",
         "color: white",
-        "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
-        "font-family: 'Noto Sans JP', sans-serif",
-        "font-weight: bold"
+        "text-align: center",
+        "text-shadow: 0px 0px 20px rgba(0, 0, 0, 1.0)",
+        "position: absolute",
+        "bottom: 0px",
+        "width: 80%",
+        "padding-left: 10%",
+        "padding-right: 10%",
+        "padding-top: 4px",
+        "background: rgba(0, 0, 0, 0.4)",
+        "word-wrap: break-word",
+        "overflow-wrap: break-word"
       ]
     } : undefined
   };

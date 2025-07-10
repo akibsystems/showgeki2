@@ -8,7 +8,7 @@ import type {
   Workflow, Storyboard, StepResponse,
   SummaryData, ActsData, CharactersData
 } from '@/types/workflow';
-import { 
+import {
   generateStep2Input,
   generateStep3Input,
   generateStep4Input,
@@ -19,6 +19,7 @@ import {
   WorkflowStepManager
 } from '@/lib/workflow/step-processors';
 
+const DEFAULT_BGM = 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3';
 // SERVICE_ROLEキーを使用してSupabaseクライアントを作成
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -124,11 +125,11 @@ export async function GET(
     if (stepNumber === 4 && stepInput) {
       const stepOutColumnName = `step${stepNumber}_out` as keyof Workflow;
       const stepOutput = workflow[stepOutColumnName] as Step4Output | undefined;
-      
+
       if (stepOutput?.userInput?.scenes && Array.isArray(stepOutput.userInput.scenes)) {
         const step4Input = stepInput as Step4Input;
         const savedScenes = stepOutput.userInput.scenes;
-        
+
         // 保存されたプロンプトをマージ
         step4Input.scenes = step4Input.scenes.map((scene: any) => {
           const savedScene = savedScenes.find((s: any) => s.id === scene.id);
@@ -254,7 +255,7 @@ export async function POST(
     // LLMで次ステップ用のデータを生成し、storyboardsを更新
     let nextStepInput: StepInput | null = null;
     let storyboardUpdates: Partial<Storyboard> = {};
-    
+
     try {
       const result = await generateAndUpdateStoryboard(
         stepNumber,
@@ -266,11 +267,11 @@ export async function POST(
       storyboardUpdates = result.storyboardUpdates;
     } catch (error) {
       console.error('Storyboard generation error:', error);
-      
+
       // WorkflowGenerationErrorの場合は、わかりやすいエラーメッセージを返す
       if (error instanceof WorkflowGenerationError) {
         return NextResponse.json(
-          { 
+          {
             error: error.message,
             code: error.code,
             step: error.step,
@@ -279,10 +280,10 @@ export async function POST(
           { status: 500 }
         );
       }
-      
+
       // その他のエラー
       return NextResponse.json(
-        { 
+        {
           error: 'データ生成中に予期しないエラーが発生しました。',
           code: 'UNKNOWN_GENERATION_ERROR',
           step: stepNumber
@@ -408,8 +409,8 @@ async function generateStepInput(
     case 6:
       // Step6Input: audio_dataとcaption_dataから生成
       return {
-        suggestedBgm: storyboard.audio_data?.bgmSettings?.defaultBgm || 'default-bgm-1',
-        bgmOptions: ['default-bgm-1', 'default-bgm-2', 'default-bgm-3', 'epic', 'emotional', 'peaceful'],
+        suggestedBgm: storyboard.audio_data?.bgmSettings?.defaultBgm || DEFAULT_BGM,
+        bgmOptions: [DEFAULT_BGM],
         captionSettings: {
           enabled: storyboard.caption_data?.enabled ?? true,
           language: storyboard.caption_data?.language || 'ja'
@@ -465,12 +466,12 @@ async function generateAndUpdateStoryboard(
     case 1:
       // Step1完了時: AIでstoryboardを生成してStep2Inputを作成
       const step1Output = stepOutput as Step1Output;
-      
+
       try {
         // WorkflowStepManagerを使用してAI生成を実行
         const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
         const result = await manager.proceedToNextStep(1, step1Output);
-        
+
         if (result.success && result.data) {
           nextStepInput = result.data;
           // storyboardUpdatesは step1-processor内で既に更新されているため、ここでは空
@@ -485,12 +486,12 @@ async function generateAndUpdateStoryboard(
         }
       } catch (error) {
         console.error('Step1→Step2 生成エラー:', error);
-        
+
         // エラーを明確に返す
         if (error instanceof WorkflowGenerationError) {
           throw error;
         }
-        
+
         throw new WorkflowGenerationError(
           'AIによるストーリー構成の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
           'AI_GENERATION_ERROR',
@@ -507,7 +508,7 @@ async function generateAndUpdateStoryboard(
       try {
         const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
         const result = await manager.proceedToNextStep(2, step2Output);
-        
+
         if (result.success && result.data) {
           nextStepInput = result.data;
           // storyboardUpdatesはstep2-processor内で更新
@@ -522,11 +523,11 @@ async function generateAndUpdateStoryboard(
         }
       } catch (error) {
         console.error('Step2→Step3 生成エラー:', error);
-        
+
         if (error instanceof WorkflowGenerationError) {
           throw error;
         }
-        
+
         throw new WorkflowGenerationError(
           'AIによるキャラクター設定の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
           'AI_GENERATION_ERROR',
@@ -583,7 +584,7 @@ async function generateAndUpdateStoryboard(
       storyboardUpdates.scenes_data = {
         scenes: updatedScenes
       };
-      
+
       console.log('[Step4 Save] Updated scenes_data with edited prompts:', JSON.stringify(storyboardUpdates.scenes_data, null, 2));
 
       // Step5Input を生成（音声生成用）
@@ -612,15 +613,15 @@ async function generateAndUpdateStoryboard(
       storyboardUpdates.audio_data = {
         voiceSettings: step5Output.userInput.voiceSettings,
         bgmSettings: {
-          defaultBgm: 'default-bgm-1', // デフォルトBGM
+          defaultBgm: DEFAULT_BGM, // デフォルトBGM
           sceneBgm: {}
         }
       };
 
       // Step6Input を生成（BGM & 字幕設定用）
       nextStepInput = {
-        suggestedBgm: 'default-bgm-1',
-        bgmOptions: ['default-bgm-1', 'default-bgm-2', 'default-bgm-3', 'epic', 'emotional', 'peaceful'],
+        suggestedBgm: DEFAULT_BGM,
+        bgmOptions: [DEFAULT_BGM],
         captionSettings: {
           enabled: true,
           language: 'ja'
@@ -631,18 +632,18 @@ async function generateAndUpdateStoryboard(
     case 6:
       // Step6完了時: WorkflowStepManagerを使用してStep7Inputを生成
       const step6Output = stepOutput as Step6Output;
-      
+
       // WorkflowStepManagerを使用してgenerateStep7Inputを呼ぶ
       const stepManager = new WorkflowStepManager(workflowId, currentStoryboard.id);
       const step7InputResult = await stepManager.proceedToNextStep(6, step6Output);
-      
+
       if (!step7InputResult.success || !step7InputResult.data) {
         const errorMessage = step7InputResult.error?.message || 'Step7入力の生成に失敗しました';
         throw new WorkflowGenerationError(errorMessage, 'STEP7_GENERATION_FAILED', 6);
       }
-      
+
       nextStepInput = step7InputResult.data;
-      
+
       // storyboardの更新は generateStep7Input 内で行われているため、
       // ここでは追加の更新は不要（空のオブジェクトを返す）
       break;

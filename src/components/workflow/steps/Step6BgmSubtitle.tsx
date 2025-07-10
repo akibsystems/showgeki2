@@ -230,38 +230,71 @@ function CaptionSettings({
   // スタイルプリセット
   const stylePresets = {
     default: [
-      "font-size: 24px",
-      "color: white",
-      "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
-      "font-family: 'Noto Sans JP', sans-serif",
-      "font-weight: bold"
-    ],
-    withBackground: [
-      "font-size: 24px",
-      "color: white",
-      "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
-      "font-family: 'Noto Sans JP', sans-serif",
-      "font-weight: bold",
-      "background-color: rgba(0,0,0,0.5)",
-      "padding: 10px 20px",
-      "border-radius: 5px"
-    ],
-    large: [
+      "font-family: Arial, sans-serif",
       "font-size: 32px",
       "color: white",
-      "text-shadow: 3px 3px 6px rgba(0,0,0,0.9)",
-      "font-family: 'Noto Sans JP', sans-serif",
-      "font-weight: bold"
+      "text-align: center",
+      "text-shadow: 0px 0px 20px rgba(0, 0, 0, 1.0)",
+      "position: absolute",
+      "bottom: 0px",
+      "width: 80%",
+      "padding-left: 10%",
+      "padding-right: 10%",
+      "padding-top: 4px",
+      "background: rgba(0, 0, 0, 0.4)",
+      "word-wrap: break-word",
+      "overflow-wrap: break-word"
+    ],
+    withBackground: [
+      "font-family: Arial, sans-serif",
+      "font-size: 32px",
+      "color: white",
+      "text-align: center",
+      "text-shadow: 0px 0px 20px rgba(0, 0, 0, 1.0)",
+      "position: absolute",
+      "bottom: 0px",
+      "width: 80%",
+      "padding-left: 10%",
+      "padding-right: 10%",
+      "padding-top: 8px",
+      "padding-bottom: 8px",
+      "background: rgba(0, 0, 0, 0.7)",
+      "word-wrap: break-word",
+      "overflow-wrap: break-word"
+    ],
+    large: [
+      "font-family: Arial, sans-serif",
+      "font-size: 40px",
+      "color: white",
+      "text-align: center",
+      "text-shadow: 0px 0px 25px rgba(0, 0, 0, 1.0)",
+      "position: absolute",
+      "bottom: 0px",
+      "width: 80%",
+      "padding-left: 10%",
+      "padding-right: 10%",
+      "padding-top: 6px",
+      "background: rgba(0, 0, 0, 0.4)",
+      "word-wrap: break-word",
+      "overflow-wrap: break-word"
     ],
     minimal: [
-      "font-size: 20px",
+      "font-family: Arial, sans-serif",
+      "font-size: 24px",
       "color: white",
-      "text-shadow: 1px 1px 2px rgba(0,0,0,0.6)",
-      "font-family: 'Noto Sans JP', sans-serif"
+      "text-align: center",
+      "text-shadow: 0px 0px 15px rgba(0, 0, 0, 1.0)",
+      "position: absolute",
+      "bottom: 0px",
+      "width: 80%",
+      "padding-left: 10%",
+      "padding-right: 10%",
+      "word-wrap: break-word",
+      "overflow-wrap: break-word"
     ]
   };
 
-  const [selectedPreset, setSelectedPreset] = useState('withBackground');
+  const [selectedPreset, setSelectedPreset] = useState('default');
   const [customStyles, setCustomStyles] = useState(styles ? styles.join('\n') : '');
   return (
     <Card className="bg-gray-800 border-gray-700">
@@ -421,14 +454,20 @@ export default function Step6BgmSubtitle({
 
   // 字幕設定 - mulmocast形式のstyles配列をサポート
   const defaultStyles = [
-    "font-size: 24px",
+    "font-family: Arial, sans-serif",
+    "font-size: 32px",
     "color: white",
-    "text-shadow: 2px 2px 4px rgba(0,0,0,0.8)",
-    "font-family: 'Noto Sans JP', sans-serif",
-    "font-weight: bold",
-    "background-color: rgba(0,0,0,0.5)",
-    "padding: 10px 20px",
-    "border-radius: 5px"
+    "text-align: center",
+    "text-shadow: 0px 0px 20px rgba(0, 0, 0, 1.0)",
+    "position: absolute",
+    "bottom: 0px",
+    "width: 80%",
+    "padding-left: 10%",
+    "padding-right: 10%",
+    "padding-top: 4px",
+    "background: rgba(0, 0, 0, 0.4)",
+    "word-wrap: break-word",
+    "overflow-wrap: break-word"
   ];
   
   const [captionSettings, setCaptionSettings] = useState({
