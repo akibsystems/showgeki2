@@ -25,6 +25,16 @@ export default function Step1StoryInput({
   const { error } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  
+  // オプション項目に既存の値があるかチェック
+  const hasOptionalData = Boolean(
+    initialData?.stepOutput?.userInput?.dramaticTurningPoint ||
+    initialData?.stepOutput?.userInput?.futureVision ||
+    initialData?.stepOutput?.userInput?.learnings
+  );
+  
+  const [showOptionalFields, setShowOptionalFields] = useState(hasOptionalData);
+  
   // フォームの状態管理
   const [formData, setFormData] = useState({
     storyText: initialData?.stepOutput?.userInput?.storyText || '',
@@ -59,8 +69,7 @@ export default function Step1StoryInput({
 
   // フォームが有効かどうかをチェック
   const isValid =
-    formData.storyText.trim().length > 0 &&
-    formData.characters.trim().length > 0;
+    formData.storyText.trim().length > 0;
 
   // 初期状態で親コンポーネントに有効性を通知
   useEffect(() => {
@@ -70,7 +79,7 @@ export default function Step1StoryInput({
   // 保存処理
   const handleSave = async () => {
     if (!isValid || !user) {
-      error('必須項目を入力してください');
+      error('ストーリー本文を入力してください');
       return;
     }
 
@@ -136,8 +145,7 @@ export default function Step1StoryInput({
     // 有効性をチェックして親コンポーネントに通知
     const newData = { ...formData, [field]: value };
     const valid =
-      (typeof newData.storyText === 'string' && newData.storyText.trim().length > 0) &&
-      (typeof newData.characters === 'string' && newData.characters.trim().length > 0);
+      (typeof newData.storyText === 'string' && newData.storyText.trim().length > 0);
     onUpdate(valid);
   };
 
@@ -204,7 +212,7 @@ export default function Step1StoryInput({
           {/* 登場人物 */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              登場人物 <span className="text-red-500">*</span>
+              登場人物（任意）
             </label>
             <textarea
               value={formData.characters}
@@ -219,50 +227,75 @@ export default function Step1StoryInput({
             </p>
           </div>
 
-          {/* ドラマチックな転換点（オプション） */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              ドラマチックな転換点（任意）
-            </label>
-            <input
-              type="text"
-              value={formData.dramaticTurningPoint}
-              onChange={(e) => handleChange('dramaticTurningPoint', e.target.value)}
-              placeholder="物語の中で最も重要な転換点は？"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          {/* オプション項目トグル */}
+          <div className="border-t border-gray-700 pt-6">
+            <button
+              type="button"
+              onClick={() => setShowOptionalFields(!showOptionalFields)}
+              className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors"
               disabled={isSaving}
-            />
+            >
+              <svg 
+                className={`w-5 h-5 transition-transform duration-200 ${showOptionalFields ? 'rotate-90' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="font-medium">詳細設定（任意）</span>
+            </button>
           </div>
 
-          {/* 未来のビジョン（オプション） */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              未来のビジョン（任意）
-            </label>
-            <input
-              type="text"
-              value={formData.futureVision}
-              onChange={(e) => handleChange('futureVision', e.target.value)}
-              placeholder="物語に含まれる未来的な要素があれば..."
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              disabled={isSaving}
-            />
-          </div>
+          {/* オプション項目 */}
+          {showOptionalFields && (
+            <div className="space-y-6 mt-6">
+              {/* ドラマチックな転換点（オプション） */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  ドラマチックな転換点
+                </label>
+                <input
+                  type="text"
+                  value={formData.dramaticTurningPoint}
+                  onChange={(e) => handleChange('dramaticTurningPoint', e.target.value)}
+                  placeholder="物語の中で最も重要な転換点は？"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSaving}
+                />
+              </div>
 
-          {/* 学び（オプション） */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              学び（任意）
-            </label>
-            <input
-              type="text"
-              value={formData.learnings}
-              onChange={(e) => handleChange('learnings', e.target.value)}
-              placeholder="物語を通して伝えたいメッセージは？"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              disabled={isSaving}
-            />
-          </div>
+              {/* 未来のビジョン（オプション） */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  未来のビジョン
+                </label>
+                <input
+                  type="text"
+                  value={formData.futureVision}
+                  onChange={(e) => handleChange('futureVision', e.target.value)}
+                  placeholder="物語に含まれる未来的な要素があれば..."
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSaving}
+                />
+              </div>
+
+              {/* 学び（オプション） */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  学び
+                </label>
+                <input
+                  type="text"
+                  value={formData.learnings}
+                  onChange={(e) => handleChange('learnings', e.target.value)}
+                  placeholder="物語を通して伝えたいメッセージは？"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSaving}
+                />
+              </div>
+            </div>
+          )}
 
           {/* シーン数設定 */}
           <div className="mt-6">

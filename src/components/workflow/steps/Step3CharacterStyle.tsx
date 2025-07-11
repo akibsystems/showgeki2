@@ -48,15 +48,24 @@ export default function Step3CharacterStyle({
     name: string;
     description: string;
     faceReference?: string;
-  }>>(
-    initialData?.stepOutput?.userInput?.characters || 
-    initialData?.stepInput?.detailedCharacters?.map(char => ({
-      id: char.id,
-      name: char.name,
-      description: `${char.personality}\n${char.visualDescription}`,
-    })) || 
-    []
-  );
+  }>>(() => {
+    // charactersが配列であることを保証
+    const outputChars = initialData?.stepOutput?.userInput?.characters;
+    if (Array.isArray(outputChars)) {
+      return outputChars;
+    }
+    
+    const inputChars = initialData?.stepInput?.detailedCharacters;
+    if (Array.isArray(inputChars)) {
+      return inputChars.map(char => ({
+        id: char.id,
+        name: char.name,
+        description: `${char.personality}\n${char.visualDescription}`,
+      }));
+    }
+    
+    return [];
+  });
 
   // charactersステートの変更を監視
   useEffect(() => {
@@ -72,20 +81,26 @@ export default function Step3CharacterStyle({
   useEffect(() => {
     if (initialData?.stepOutput?.userInput) {
       console.log('[Step3CharacterStyle] Updating form with stepOutput.userInput');
-      setCharacters(initialData.stepOutput.userInput.characters || []);
+      const outputChars = initialData.stepOutput.userInput.characters;
+      setCharacters(Array.isArray(outputChars) ? outputChars : []);
       setImageStyle({
         preset: initialData.stepOutput.userInput.imageStyle?.preset || 'anime',
         customPrompt: initialData.stepOutput.userInput.imageStyle?.customPrompt || '',
       });
     } else if (initialData?.stepInput?.detailedCharacters) {
       console.log('[Step3CharacterStyle] Updating form with stepInput.detailedCharacters');
-      setCharacters(
-        initialData.stepInput.detailedCharacters.map(char => ({
-          id: char.id,
-          name: char.name,
-          description: `${char.personality}\n${char.visualDescription}`,
-        }))
-      );
+      const inputChars = initialData.stepInput.detailedCharacters;
+      if (Array.isArray(inputChars)) {
+        setCharacters(
+          inputChars.map(char => ({
+            id: char.id,
+            name: char.name,
+            description: `${char.personality}\n${char.visualDescription}`,
+          }))
+        );
+      } else {
+        setCharacters([]);
+      }
     }
   }, [initialData]);
 
@@ -262,7 +277,7 @@ export default function Step3CharacterStyle({
           </button>
         </div>
         
-        {characters.map((character) => (
+        {Array.isArray(characters) && characters.map((character) => (
           <Card key={character.id} className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="space-y-4">
