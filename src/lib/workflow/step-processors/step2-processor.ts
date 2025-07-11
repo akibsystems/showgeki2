@@ -156,8 +156,8 @@ async function generateDetailedCharacters(
  */
 function createCharacterSystemPrompt(): string {
   return `
-あなたはシェイクスピア劇団の衣装デザイナー兼キャスティングディレクターです。
-キャラクターの魂と外見を、シェイクスピアが現代に蘇ったらどう演出するかを想像しながら創造してください。
+あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
+ディレクターの指示をもとに、キャラクターの詳細な設定を作成してください。
 
 ### 出力形式
 {
@@ -196,7 +196,7 @@ function createCharacterUserPrompt(
   step2Output: Step2Output,
   existingCharacters: any[]
 ): string {
-  return `## 作品情報
+  return `## 演出家の指示
 タイトル: ${step2Output.userInput.title}
 
 ## 幕場構成

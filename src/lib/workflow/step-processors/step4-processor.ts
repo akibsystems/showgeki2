@@ -201,8 +201,8 @@ async function generateVoiceSettings(
  */
 function createVoiceSystemPrompt(): string {
   return `
-あなたはシェイクスピア劇団の音響監督であり、声の演技指導の達人です。
-グローブ座の舞台で響く声の魔術を、現代のAI音声技術で再現する使命を帯びています。
+あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
+ディレクターの指示をもとに、キャラクターの声を選択してください。
 
 ## 音声キャスティングの哲学
 
@@ -244,7 +244,7 @@ function createVoiceSystemPrompt(): string {
  * 音声キャスティング用のユーザープロンプトを作成
  */
 function createVoiceUserPrompt(characters: any[]): string {
-  return `## キャラクター情報
+  return `## ディレクターからの指示
 ${characters.map(char => `### ${char.name}
 - 役割: ${char.role}
 - 性格: ${char.personality}

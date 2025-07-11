@@ -189,8 +189,8 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
  */
 function createBGMSystemPrompt(): string {
   return `
-あなたはシェイクスピア劇団の音楽監督であり、舞台音楽の魔術師です。
-グローブ座で奏でられた音楽が現代に蘇り、動画に命を吹き込む瞬間を創造してください。
+あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
+ディレクターの指示をもとに、BGMを選択してください。
 
 ## 音楽選択の美学
 
@@ -229,7 +229,7 @@ function createBGMSystemPrompt(): string {
  * BGM提案用のユーザープロンプトを作成
  */
 function createBGMUserPrompt(storyboard: any): string {
-  return `## 作品情報
+  return `## ディレクターからの指示
 タイトル: ${storyboard.title}
 ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
 概要: ${storyboard.summary_data?.description || ''}

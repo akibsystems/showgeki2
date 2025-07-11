@@ -98,7 +98,7 @@ function createStoryboardSystemPrompt(step1Output: Step1Output): string {
 
   return `
 あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
-与えられた物語をシェイクスピアだったらどのような演出をするかを想像しながら、シーンを分割してください。
+ディラクターからの指示をもとににシェイクスピアだったらどのような演出をするかを想像しながら、シーンを分割してください。
 
 ## 創作指針
 - 物語をもとに、シェイクスピア風の５幕構成の悲喜劇として脚本を考えてください。
@@ -113,7 +113,7 @@ JSONフォーマットで以下の構造で出力してください：
 {
   "summary": {
     "title": "物語のタイトル",
-    "description": "物語の概要（200文字程度）",
+    "description": "物語の概要",
     "genre": "ジャンル（例：ドラマ、コメディ、冒険など）",
     "tags": ["タグ1", "タグ2", "タグ3"],
     "estimatedDuration": 120
@@ -160,7 +160,7 @@ JSONフォーマットで以下の構造で出力してください：
 function createStoryboardUserPrompt(step1Output: Step1Output): string {
   const { userInput } = step1Output;
 
-  return `## 入力情報
+  return `## ディレクターからの指示
 - ストーリー: ${userInput.storyText}
 - 登場人物: ${userInput.characters}
 - 劇的転換点: ${userInput.dramaticTurningPoint}
