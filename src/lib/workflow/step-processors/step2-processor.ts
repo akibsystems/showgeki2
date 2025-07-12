@@ -45,7 +45,8 @@ export async function generateStep3Input(
     // AIでキャラクターの詳細化
     const detailedCharacters = await generateDetailedCharacters(
       step2Output,
-      storyboard.characters_data?.characters || []
+      storyboard.characters_data?.characters || [],
+      storyboard.story_data // story_dataを渡す
     );
 
     // storyboardを更新
@@ -86,7 +87,8 @@ export async function generateStep3Input(
  */
 async function generateDetailedCharacters(
   step2Output: Step2Output,
-  existingCharacters: any[]
+  existingCharacters: any[],
+  storyData?: any
 ): Promise<Array<{
   id: string;
   name: string;
@@ -95,7 +97,7 @@ async function generateDetailedCharacters(
   visualDescription: string;
 }>> {
   const systemPrompt = createCharacterSystemPrompt();
-  const userPrompt = createCharacterUserPrompt(step2Output, existingCharacters);
+  const userPrompt = createCharacterUserPrompt(step2Output, existingCharacters, storyData);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
@@ -194,11 +196,26 @@ function createCharacterSystemPrompt(): string {
  */
 function createCharacterUserPrompt(
   step2Output: Step2Output,
-  existingCharacters: any[]
+  existingCharacters: any[],
+  storyData?: any
 ): string {
+  let originalStoryInfo = '';
+  
+  // story_dataが存在する場合、元のストーリー情報を含める
+  if (storyData) {
+    originalStoryInfo = `
+## 元のストーリー情報
+- ストーリー: ${storyData.originalText || ''}
+- 登場人物の情報: ${storyData.characters || ''}
+- 劇的転換点: ${storyData.dramaticTurningPoint || ''}
+- 未来のビジョン: ${storyData.futureVision || ''}
+- 学びや気づき: ${storyData.learnings || ''}
+`;
+  }
+
   return `## 演出家の指示
 タイトル: ${step2Output.userInput.title}
-
+${originalStoryInfo}
 ## 幕場構成
 ${JSON.stringify(step2Output.userInput.acts, null, 2)}
 

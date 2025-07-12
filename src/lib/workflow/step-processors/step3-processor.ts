@@ -73,7 +73,8 @@ export async function generateStep4Input(
     const scenesData = await generateScenesWithAI(
       storyboard,
       updatedCharactersData.characters,
-      updatedStyleData
+      updatedStyleData,
+      storyboard.story_data // story_dataを渡す
     );
 
     // フラットな形式からStep4Inputの形式に変換
@@ -173,10 +174,11 @@ export async function generateStep4Input(
 async function generateScenesWithAI(
   storyboard: Storyboard,
   characters: any[],
-  styleData: StyleData
+  styleData: StyleData,
+  storyData?: any
 ): Promise<ScenesData> {
   const systemPrompt = createSceneSystemPrompt();
-  const userPrompt = createSceneUserPrompt(storyboard, characters, styleData);
+  const userPrompt = createSceneUserPrompt(storyboard, characters, styleData, storyData);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
@@ -274,7 +276,8 @@ function createSceneSystemPrompt(): string {
 function createSceneUserPrompt(
   storyboard: Storyboard,
   characters: any[],
-  styleData: StyleData
+  styleData: StyleData,
+  storyData?: any
 ): string {
   // 幕場構成を整理して、シーンごとの情報を作成
   const actsStructure = storyboard.acts_data?.acts?.map((act: any) => 
@@ -297,11 +300,25 @@ ${act.scenes?.map((scene: any) =>
     });
   });
 
+  // 元のストーリー情報を追加
+  let originalStoryInfo = '';
+  if (storyData) {
+    originalStoryInfo = `
+## 元のストーリー情報
+- オリジナルストーリー: ${storyData.originalText || ''}
+- 登場人物の詳細: ${storyData.characters || ''}
+- 劇的転換点: ${storyData.dramaticTurningPoint || ''}
+- 未来のビジョン: ${storyData.futureVision || ''}
+- 学びや気づき: ${storyData.learnings || ''}
+- 総シーン数: ${storyData.totalScenes || ''}
+`;
+  }
+
   return `## 作品情報
 タイトル: ${storyboard.title}
 ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
 概要: ${storyboard.summary_data?.description || ''}
-
+${originalStoryInfo}
 ## 幕場構成
 ${actsStructure}
 

@@ -36,8 +36,8 @@ export async function generateStep2Input(
     // AIでstoryboardを生成
     const generatedStoryboard = await generateStoryboardWithAI(step1Output);
 
-    // storyboardを更新
-    await updateStoryboard(storyboardId, generatedStoryboard);
+    // storyboardを更新（story_dataも含めて保存）
+    await updateStoryboard(storyboardId, generatedStoryboard, step1Output);
 
     // Step2Input を構築
     const step2Input: Step2Input = {
@@ -288,8 +288,20 @@ async function updateStoryboard(
     summary: SummaryData;
     acts: ActsData;
     characters: CharactersData;
-  }
+  },
+  step1Output: Step1Output
 ): Promise<void> {
+  // story_dataに保存するユーザー入力データ
+  const storyData = {
+    originalText: step1Output.userInput.storyText,
+    characters: step1Output.userInput.characters,
+    dramaticTurningPoint: step1Output.userInput.dramaticTurningPoint,
+    futureVision: step1Output.userInput.futureVision,
+    learnings: step1Output.userInput.learnings,
+    totalScenes: step1Output.userInput.totalScenes,
+    settings: step1Output.userInput.settings
+  };
+
   const { error } = await supabase
     .from('storyboards')
     .update({
@@ -297,6 +309,7 @@ async function updateStoryboard(
       summary_data: data.summary,
       acts_data: data.acts,
       characters_data: data.characters,
+      story_data: storyData,
       updated_at: new Date().toISOString()
     })
     .eq('id', storyboardId);

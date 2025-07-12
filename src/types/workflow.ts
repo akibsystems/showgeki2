@@ -20,6 +20,7 @@ export interface Storyboard {
   status: 'draft' | 'completed' | 'archived';
   
   // カテゴリ別生成データ
+  story_data?: StoryData; // Step1で保存されるユーザー入力データ
   summary_data?: SummaryData;
   acts_data?: ActsData;
   characters_data?: CharactersData;
@@ -33,6 +34,20 @@ export interface Storyboard {
   
   created_at: string;
   updated_at: string;
+}
+
+// Step1で保存されるユーザー入力データ
+export interface StoryData {
+  originalText: string;
+  characters: string;
+  dramaticTurningPoint: string;
+  futureVision: string;
+  learnings: string;
+  totalScenes: number;
+  settings: {
+    style: string;
+    language: string;
+  };
 }
 
 // カテゴリ別データ型定義
