@@ -3,7 +3,12 @@
 export interface InstantModeInput {
   storyText: string;
   title?: string;
-  style?: 'anime' | 'realistic' | 'watercolor';
+  // UI Design Requirements
+  genre?: 'tragedy' | 'comedy' | 'romance' | 'action' | 'mystery' | 'horror';
+  style?: 'short' | 'lengthy' | 'detailed' | 'concise';
+  mood?: 'fantasy' | 'realistic' | 'dramatic' | 'light' | 'dark' | 'mysterious';
+  // Legacy fields for backward compatibility
+  visualStyle?: 'anime' | 'realistic' | 'watercolor';
   duration?: 'short' | 'medium' | 'long';
 }
 
@@ -50,3 +55,29 @@ export const INSTANT_STEPS: Record<InstantStep, string> = {
   finalizing: '最終調整中...',
   generating: '動画を生成中...'
 };
+
+// UI Option Definitions
+export const GENRE_OPTIONS = [
+  { value: 'tragedy', label: 'Tragedy', emoji: '😢' },
+  { value: 'comedy', label: 'Comedy', emoji: '😄' },
+  { value: 'romance', label: 'Romance', emoji: '💕' },
+  { value: 'action', label: 'Action', emoji: '⚡' },
+  { value: 'mystery', label: 'Mystery', emoji: '🔍' },
+  { value: 'horror', label: 'Horror', emoji: '👻' },
+] as const;
+
+export const STYLE_OPTIONS = [
+  { value: 'short', label: 'Short', emoji: '📝' },
+  { value: 'lengthy', label: 'Lengthy', emoji: '📚' },
+  { value: 'detailed', label: 'Detailed', emoji: '🔬' },
+  { value: 'concise', label: 'Concise', emoji: '✨' },
+] as const;
+
+export const MOOD_OPTIONS = [
+  { value: 'fantasy', label: 'Fantasy', emoji: '🧙‍♂️' },
+  { value: 'realistic', label: 'Realistic', emoji: '🌍' },
+  { value: 'dramatic', label: 'Dramatic', emoji: '🎭' },
+  { value: 'light', label: 'Light', emoji: '☀️' },
+  { value: 'dark', label: 'Dark', emoji: '🌙' },
+  { value: 'mysterious', label: 'Mysterious', emoji: '🌫️' },
+] as const;

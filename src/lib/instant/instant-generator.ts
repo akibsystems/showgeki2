@@ -95,9 +95,9 @@ export async function processInstantMode({
     await status.update('characters', undefined, 35);
 
     // Step 3→4: 台本生成
-    // 画風設定を追加
-    const imageStyle = input.style || 'anime';
-    const styleConfig = getImageStyleConfig(imageStyle);
+    // 画風設定を追加（visualStyleフィールドを使用）
+    const imageStyle = input.visualStyle || 'anime';
+    const styleConfig = getImageStyleConfig(imageStyle as 'anime' | 'realistic' | 'watercolor');
     const step3Output: Step3Output = {
       userInput: {
         characters: step3Result.data.detailedCharacters.map((char: any) => ({

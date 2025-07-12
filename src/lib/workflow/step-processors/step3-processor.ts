@@ -137,6 +137,7 @@ async function generateScenesWithAI(
 ): Promise<ScenesData> {
   const systemPrompt = createSceneSystemPrompt();
   const userPrompt = createSceneUserPrompt(storyboard, characters, styleData);
+  console.log("userPrompt", userPrompt);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
@@ -205,7 +206,7 @@ function createSceneSystemPrompt(): string {
       "actNumber": 幕番号,
       "sceneNumber": 場番号,
       "title": "シーンの詩的タイトル",
-      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）、登場人物全員の性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見をそのままコピーしてください",
+      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。画像が指定されていないキャラクターの場合のみ、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見を含めてください。画像が指定されているキャラクターは役割、性格のみ反映してください",
       "dialogue": [
         {
           "speaker": "話者名",
@@ -218,10 +219,11 @@ function createSceneSystemPrompt(): string {
 }
 
 ## 技術使用
-- 1場を1シーンとする
-- 1シーンでの会話は1名1台詞のみ
+- dialogue配列は１要素のみ、つまり1シーンでの会話は1名1台詞のみ。1名の人物が喋るのみなので要注意！他のキャラはしゃべらない。
 - すべての要素がJSONフォーマットで出力されること
 - 指定していないキャラクターは絶対に使用しない
+- 「(画像指定済み)」と記載されているキャラクターは、画像プロンプトに外見の詳細は含めず、役割・性格・性別・年齢のみ反映する
+- 画像が指定されていないキャラクターは、すべての外見情報を画像プロンプトに含める
 `;
 }
 
@@ -241,9 +243,26 @@ function createSceneUserPrompt(
 ## 幕場構成
 ${JSON.stringify(storyboard.acts_data?.acts, null, 2)}
 
+## 全体のシーン数（守ってください）
+1つの幕場で喋るのは1名1台詞のみです。注意してください
+${storyboard.acts_data?.acts?.reduce((total, act) => total + (act.scenes?.length || 0), 0) || 0}
+
 ## 登場人物
-${characters.map(char => `### ${char.name}
-- 役割: ${char.role || char.description}
+${characters.map(char => {
+    console.log("char", char);
+    const hasImage = char.faceReference;
+    console.log("hasImage", hasImage);
+
+    if (hasImage) {
+      // 画像が指定されている場合：役割、性格のみ
+      return `### ${char.name} (画像指定済み)
+- 役割: ${char.role || ''}
+- 性格: ${char.personality || ''}
+- 外見: 画像指定済み`;
+    } else {
+      // 画像が指定されていない場合：従来通りすべての外見情報を含める
+      return `### ${char.name}
+- 役割: ${char.role || ''}
 - 性格: ${char.personality || ''}
 - 性別: ${char.sex || ''}
 - 年齢: ${char.age || ''}
@@ -254,7 +273,9 @@ ${characters.map(char => `### ${char.name}
 - 瞳の色: ${char.eyeColor || ''}
 - 髪の色: ${char.hairColor || ''}
 - 体型: ${char.bodyType || ''}
-- 外見: ${char.visualDescription || char.description || ''}`).join('\n\n')}
+- 外見: ${char.visualDescription || ''}`;
+    }
+  }).join('\n\n')}
 
 ## 画風設定
 スタイル: ${styleData.imageStyle}
