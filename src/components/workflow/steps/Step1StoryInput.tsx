@@ -25,16 +25,16 @@ export default function Step1StoryInput({
   const { error } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // オプション項目に既存の値があるかチェック
   const hasOptionalData = Boolean(
     initialData?.stepOutput?.userInput?.dramaticTurningPoint ||
     initialData?.stepOutput?.userInput?.futureVision ||
     initialData?.stepOutput?.userInput?.learnings
   );
-  
+
   const [showOptionalFields, setShowOptionalFields] = useState(hasOptionalData);
-  
+
   // フォームの状態管理
   const [formData, setFormData] = useState({
     storyText: initialData?.stepOutput?.userInput?.storyText || '',
@@ -109,7 +109,7 @@ export default function Step1StoryInput({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        
+
         // エラーの詳細を表示
         if (errorData.error) {
           error(errorData.error);
@@ -119,7 +119,7 @@ export default function Step1StoryInput({
         } else {
           error('保存に失敗しました。時間をおいて再度お試しください。');
         }
-        
+
         setIsSaving(false);
         return;
       }
@@ -235,10 +235,10 @@ export default function Step1StoryInput({
               className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors"
               disabled={isSaving}
             >
-              <svg 
-                className={`w-5 h-5 transition-transform duration-200 ${showOptionalFields ? 'rotate-90' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-5 h-5 transition-transform duration-200 ${showOptionalFields ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

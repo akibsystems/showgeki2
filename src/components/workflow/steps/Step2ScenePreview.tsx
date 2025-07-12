@@ -29,15 +29,15 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // ドラッグ可能な幕コンポーネント
-function SortableAct({ 
-  act, 
-  actIndex, 
-  children, 
+function SortableAct({
+  act,
+  actIndex,
+  children,
   onDeleteAct,
-  isLoading 
-}: { 
-  act: any; 
-  actIndex: number; 
+  isLoading
+}: {
+  act: any;
+  actIndex: number;
   children: React.ReactNode;
   onDeleteAct: (index: number) => void;
   isLoading: boolean;
@@ -63,8 +63,8 @@ function SortableAct({
         <CardContent className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div 
-                {...listeners} 
+              <div
+                {...listeners}
                 className="cursor-move p-1 hover:bg-gray-700 rounded"
                 title="ドラッグして並び替え"
               >
@@ -93,17 +93,17 @@ function SortableAct({
 }
 
 // ドラッグ可能な場コンポーネント
-function SortableScene({ 
-  scene, 
-  actIndex, 
+function SortableScene({
+  scene,
+  actIndex,
   sceneIndex,
   onTitleChange,
   onSummaryChange,
   onDeleteScene,
-  isLoading 
-}: { 
-  scene: any; 
-  actIndex: number; 
+  isLoading
+}: {
+  scene: any;
+  actIndex: number;
   sceneIndex: number;
   onTitleChange: (value: string) => void;
   onSummaryChange: (value: string) => void;
@@ -126,15 +126,15 @@ function SortableScene({
   };
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
+    <div
+      ref={setNodeRef}
+      style={style}
       {...attributes}
       className="bg-gray-700 p-4 rounded-md space-y-2"
     >
       <div className="flex items-start gap-2">
-        <div 
-          {...listeners} 
+        <div
+          {...listeners}
           className="cursor-move p-1 hover:bg-gray-600 rounded flex-shrink-0 mt-1"
           title="ドラッグして並び替え"
         >
@@ -195,24 +195,24 @@ export default function Step2ScenePreview({
   const { success, error } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // デバッグ: データの内容を確認
   console.log('[Step2ScenePreview] initialData:', initialData);
-  
+
   // フォームの状態管理
   const [title, setTitle] = useState(
-    initialData?.stepOutput?.userInput?.title || 
-    initialData?.stepInput?.suggestedTitle || 
+    initialData?.stepOutput?.userInput?.title ||
+    initialData?.stepInput?.suggestedTitle ||
     ''
   );
   const [acts, setActs] = useState(
-    initialData?.stepOutput?.userInput?.acts || 
-    initialData?.stepInput?.acts || 
+    initialData?.stepOutput?.userInput?.acts ||
+    initialData?.stepInput?.acts ||
     []
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDragType, setActiveDragType] = useState<'act' | 'scene' | null>(null);
-  
+
   // ドラッグ＆ドロップのセンサー設定
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -269,7 +269,7 @@ export default function Step2ScenePreview({
     };
     setActs(newActs);
   };
-  
+
   // 幕を追加
   const handleAddAct = () => {
     const newAct = {
@@ -279,7 +279,7 @@ export default function Step2ScenePreview({
     };
     setActs([...acts, newAct]);
   };
-  
+
   // 幕を削除
   const handleDeleteAct = (actIndex: number) => {
     if (acts.length <= 1) {
@@ -293,7 +293,7 @@ export default function Step2ScenePreview({
     });
     setActs(newActs);
   };
-  
+
   // 場を追加
   const handleAddScene = (actIndex: number) => {
     const newActs = [...acts];
@@ -306,7 +306,7 @@ export default function Step2ScenePreview({
     act.scenes.push(newScene);
     setActs(newActs);
   };
-  
+
   // 場を削除
   const handleDeleteScene = (actIndex: number, sceneIndex: number) => {
     const newActs = [...acts];
@@ -323,7 +323,7 @@ export default function Step2ScenePreview({
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveId(active.id as string);
-    
+
     if (active.id.toString().startsWith('act-')) {
       setActiveDragType('act');
     } else if (active.id.toString().startsWith('scene-')) {
@@ -334,7 +334,7 @@ export default function Step2ScenePreview({
   // ドラッグ終了
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (!over) {
       setActiveId(null);
       setActiveDragType(null);
@@ -344,7 +344,7 @@ export default function Step2ScenePreview({
     if (activeDragType === 'act') {
       const activeIndex = acts.findIndex(act => `act-${act.actNumber}` === active.id);
       const overIndex = acts.findIndex(act => `act-${act.actNumber}` === over.id);
-      
+
       if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         const newActs = arrayMove(acts, activeIndex, overIndex);
         // 幕番号を再割り当て
@@ -357,13 +357,13 @@ export default function Step2ScenePreview({
       // シーンのドラッグ処理
       const activeIdParts = active.id.toString().split('-');
       const overIdParts = over.id.toString().split('-');
-      
+
       if (activeIdParts[0] === 'scene' && overIdParts[0] === 'scene') {
         const activeActIndex = parseInt(activeIdParts[1], 10);
         const activeSceneIndex = parseInt(activeIdParts[2], 10);
         const overActIndex = parseInt(overIdParts[1], 10);
         const overSceneIndex = parseInt(overIdParts[2], 10);
-        
+
         if (activeActIndex === overActIndex) {
           // 同じ幕内での移動
           const newActs = [...acts];
@@ -381,7 +381,7 @@ export default function Step2ScenePreview({
           const targetAct = newActs[overActIndex];
           const [movedScene] = sourceAct.scenes.splice(activeSceneIndex, 1);
           targetAct.scenes.splice(overSceneIndex, 0, movedScene);
-          
+
           // 場番号を再割り当て
           sourceAct.scenes.forEach((scene, index) => {
             scene.sceneNumber = index + 1;
@@ -389,12 +389,12 @@ export default function Step2ScenePreview({
           targetAct.scenes.forEach((scene, index) => {
             scene.sceneNumber = index + 1;
           });
-          
+
           setActs(newActs);
         }
       }
     }
-    
+
     setActiveId(null);
     setActiveDragType(null);
   };
@@ -410,7 +410,7 @@ export default function Step2ScenePreview({
     try {
       // 空の幕を除外
       const filteredActs = acts.filter(act => act.scenes.length > 0);
-      
+
       if (filteredActs.length === 0) {
         error('少なくとも1つの場が必要です');
         return;
@@ -518,7 +518,7 @@ export default function Step2ScenePreview({
                     className="w-full mb-4 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     disabled={isLoading}
                   />
-                  
+
                   <SortableContext
                     items={act.scenes.map((_, sceneIndex) => `scene-${actIndex}-${sceneIndex}`)}
                     strategy={verticalListSortingStrategy}
@@ -538,7 +538,7 @@ export default function Step2ScenePreview({
                       ))}
                     </div>
                   </SortableContext>
-                  
+
                   <button
                     onClick={() => handleAddScene(actIndex)}
                     className="mt-4 w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition-colors"
@@ -550,7 +550,7 @@ export default function Step2ScenePreview({
               ))}
             </div>
           </SortableContext>
-          
+
           <DragOverlay>
             {activeId && activeDragType === 'act' && (
               <div className="bg-gray-800 border border-purple-500 rounded-lg p-4 opacity-80">

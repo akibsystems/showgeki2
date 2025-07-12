@@ -21,8 +21,8 @@ interface Step4ScriptPreviewProps {
 }
 
 // シーンカードコンポーネント
-function SceneCard({ 
-  scene, 
+function SceneCard({
+  scene,
   actNumber,
   actTitle,
   onImagePromptChange,
@@ -61,179 +61,179 @@ function SceneCard({
   return (
     <>
       <Card className="bg-gray-800 border-gray-700 mb-6">
-      <CardContent className="p-6">
-        {/* シーンヘッダー */}
-        <div className="mb-4">
-          <div className="text-xs text-gray-500 mb-1">
-            第{actNumber}幕「{actTitle}」
-          </div>
-          <h3 className="text-lg font-semibold text-gray-100">
-            第{scene.sceneNumber}場：{scene.title}
-          </h3>
-        </div>
-
-        {/* 画像プロンプトと画像プレビュー */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-300">
-              画像プロンプト
-            </label>
-            <button
-              onClick={() => onGeneratePreview(beatIndex, scene.imagePrompt)}
-              className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading || isRegenerating || isBulkGenerating}
-            >
-              {isRegenerating ? '再生成中...' : previewImage ? '再生成' : '画像生成'}
-            </button>
-          </div>
-          
-          {/* レスポンシブレイアウト: PC (横並び) / モバイル (縦並び) */}
-          <div className="flex flex-col lg:flex-row lg:gap-4">
-            {/* PC: 左側に画像、モバイル: 最後に画像 */}
-            <div className="lg:w-1/3 lg:order-1 order-2">
-              {isRegenerating || (isBulkGenerating && !previewImage) ? (
-                <div className="bg-gray-700 rounded-md h-32 lg:h-40 flex items-center justify-center">
-                  <div className="text-center">
-                    <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-xs text-gray-400">{isRegenerating ? '再生成中...' : '生成中...'}</p>
-                  </div>
-                </div>
-              ) : previewImage ? (
-                <div 
-                  className="bg-gray-700 rounded-md overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setIsModalOpen(true)}
-                  title="クリックして拡大"
-                >
-                  <img
-                    src={`${previewImage.url}?t=${Date.now()}`}
-                    alt={`Scene ${scene.sceneNumber} preview`}
-                    className="w-full h-32 lg:h-40 object-cover"
-                    onError={(e) => {
-                      console.error('Failed to load preview image:', previewImage.url)
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="bg-gray-700 rounded-md h-32 lg:h-40 flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <svg className="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-xs">プレビュー画像</p>
-                  </div>
-                </div>
-              )}
+        <CardContent className="p-6">
+          {/* シーンヘッダー */}
+          <div className="mb-4">
+            <div className="text-xs text-gray-500 mb-1">
+              第{actNumber}幕「{actTitle}」
             </div>
-            
-            {/* プロンプトテキスト */}
-            <div className="lg:w-2/3 lg:order-2 order-1 mb-4 lg:mb-0">
-              <textarea
-                value={scene.imagePrompt}
-                onChange={(e) => onImagePromptChange(e.target.value)}
-                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                rows={3}
-                disabled={isLoading}
-                placeholder="このシーンの画像をどのように描写するか入力してください..."
-              />
-            </div>
+            <h3 className="text-lg font-semibold text-gray-100">
+              第{scene.sceneNumber}場：{scene.title}
+            </h3>
           </div>
-        </div>
 
-        {/* 台詞 - 最初の1つのみ表示 */}
-        {scene.dialogue.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-3">台詞</h4>
-            <div className="bg-gray-700 rounded-md p-3">
-              {isEditingDialogue === 0 ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={scene.dialogue[0].speaker}
-                    onChange={(e) => onDialogueChange(0, 'speaker', e.target.value)}
-                    placeholder="話者"
-                    className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={isLoading}
-                  />
-                  <textarea
-                    value={scene.dialogue[0].text}
-                    onChange={(e) => onDialogueChange(0, 'text', e.target.value)}
-                    placeholder="セリフ"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                    rows={2}
-                    disabled={isLoading}
-                  />
-                  <button
-                    onClick={() => setIsEditingDialogue(null)}
-                    className="text-sm text-purple-400 hover:text-purple-300"
+          {/* 画像プロンプトと画像プレビュー */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-300">
+                画像プロンプト
+              </label>
+              <button
+                onClick={() => onGeneratePreview(beatIndex, scene.imagePrompt)}
+                className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || isRegenerating || isBulkGenerating}
+              >
+                {isRegenerating ? '再生成中...' : previewImage ? '再生成' : '画像生成'}
+              </button>
+            </div>
+
+            {/* レスポンシブレイアウト: PC (横並び) / モバイル (縦並び) */}
+            <div className="flex flex-col lg:flex-row lg:gap-4">
+              {/* PC: 左側に画像、モバイル: 最後に画像 */}
+              <div className="lg:w-1/3 lg:order-1 order-2">
+                {isRegenerating || (isBulkGenerating && !previewImage) ? (
+                  <div className="bg-gray-700 rounded-md h-32 lg:h-40 flex items-center justify-center">
+                    <div className="text-center">
+                      <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-xs text-gray-400">{isRegenerating ? '再生成中...' : '生成中...'}</p>
+                    </div>
+                  </div>
+                ) : previewImage ? (
+                  <div
+                    className="bg-gray-700 rounded-md overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setIsModalOpen(true)}
+                    title="クリックして拡大"
                   >
-                    完了
-                  </button>
-                </div>
-              ) : (
-                <div 
-                  className="cursor-pointer hover:bg-gray-600 transition-colors"
-                  onClick={() => setIsEditingDialogue(0)}
-                >
-                  <div className="font-medium text-purple-300 text-sm mb-1">
-                    {scene.dialogue[0].speaker}
+                    <img
+                      src={`${previewImage.url}?t=${Date.now()}`}
+                      alt={`Scene ${scene.sceneNumber} preview`}
+                      className="w-full h-32 lg:h-40 object-cover"
+                      onError={(e) => {
+                        console.error('Failed to load preview image:', previewImage.url)
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
                   </div>
-                  <div className="text-gray-200">
-                    {scene.dialogue[0].text}
+                ) : (
+                  <div className="bg-gray-700 rounded-md h-32 lg:h-40 flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <svg className="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs">プレビュー画像</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
+              {/* プロンプトテキスト */}
+              <div className="lg:w-2/3 lg:order-2 order-1 mb-4 lg:mb-0">
+                <textarea
+                  value={scene.imagePrompt}
+                  onChange={(e) => onImagePromptChange(e.target.value)}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows={3}
+                  disabled={isLoading}
+                  placeholder="このシーンの画像をどのように描写するか入力してください..."
+                />
+              </div>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* 台詞 - 最初の1つのみ表示 */}
+          {scene.dialogue.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">台詞</h4>
+              <div className="bg-gray-700 rounded-md p-3">
+                {isEditingDialogue === 0 ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={scene.dialogue[0].speaker}
+                      onChange={(e) => onDialogueChange(0, 'speaker', e.target.value)}
+                      placeholder="話者"
+                      className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={isLoading}
+                    />
+                    <textarea
+                      value={scene.dialogue[0].text}
+                      onChange={(e) => onDialogueChange(0, 'text', e.target.value)}
+                      placeholder="セリフ"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                      rows={2}
+                      disabled={isLoading}
+                    />
+                    <button
+                      onClick={() => setIsEditingDialogue(null)}
+                      className="text-sm text-purple-400 hover:text-purple-300"
+                    >
+                      完了
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="cursor-pointer hover:bg-gray-600 transition-colors"
+                    onClick={() => setIsEditingDialogue(0)}
+                  >
+                    <div className="font-medium text-purple-300 text-sm mb-1">
+                      {scene.dialogue[0].speaker}
+                    </div>
+                    <div className="text-gray-200">
+                      {scene.dialogue[0].text}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 画像拡大モーダル */}
       {isModalOpen && previewImage && (
-      <>
-        {/* オーバーレイ */}
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4"
-          onClick={() => setIsModalOpen(false)}
-        >
-          {/* モーダルコンテンツ */}
-          <div 
-            className="relative max-w-4xl max-h-[90vh] bg-gray-900 rounded-lg overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+        <>
+          {/* オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsModalOpen(false)}
           >
-            {/* 閉じるボタン */}
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 z-10 p-2 bg-gray-800 hover:bg-gray-700 rounded-full text-gray-300 hover:text-white transition-colors"
-              aria-label="閉じる"
+            {/* モーダルコンテンツ */}
+            <div
+              className="relative max-w-4xl max-h-[90vh] bg-gray-900 rounded-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            
-            {/* 画像 */}
-            <img
-              src={`${previewImage.url}?t=${Date.now()}`}
-              alt={`Scene ${scene.sceneNumber} preview (enlarged)`}
-              className="w-full h-full object-contain"
-              style={{ maxHeight: '85vh' }}
-            />
-            
-            {/* キャプション */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
-              <p className="text-sm text-gray-300">
-                第{scene.sceneNumber}場：{scene.title}
-              </p>
+              {/* 閉じるボタン */}
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4 right-4 z-10 p-2 bg-gray-800 hover:bg-gray-700 rounded-full text-gray-300 hover:text-white transition-colors"
+                aria-label="閉じる"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* 画像 */}
+              <img
+                src={`${previewImage.url}?t=${Date.now()}`}
+                alt={`Scene ${scene.sceneNumber} preview (enlarged)`}
+                className="w-full h-full object-contain"
+                style={{ maxHeight: '85vh' }}
+              />
+
+              {/* キャプション */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
+                <p className="text-sm text-gray-300">
+                  第{scene.sceneNumber}場：{scene.title}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </>
-    )}
+        </>
+      )}
     </>
   );
 }
@@ -249,20 +249,20 @@ export default function Step4ScriptPreview({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [regeneratingBeats, setRegeneratingBeats] = useState<Set<number>>(new Set());
-  
+
   // シーンデータの管理
   const [scenes, setScenes] = useState<any[]>([]);
-  
+
   // 幕の情報を管理
   const [acts, setActs] = useState<any[]>([]);
-  
+
   // データが読み込まれたかどうか
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   // データが生成中かどうか
   const [isGenerating, setIsGenerating] = useState(false);
   // ポーリング間隔
   const [pollingCount, setPollingCount] = useState(0);
-  
+
   // 画像プレビュー機能
   const imagePreview = useWorkflowImagePreview({
     workflowId,
@@ -271,25 +271,25 @@ export default function Step4ScriptPreview({
       console.log('Preview status changed:', status)
     }
   });
-  
+
   // 初回ロード時に既存の画像データを取得
   useEffect(() => {
     if (user?.id && workflowId && imagePreview.refreshStatus) {
       imagePreview.refreshStatus();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, workflowId]);
 
   // 初回ロード時にプレビューがない場合は自動生成
   const [hasInitiallyGenerated, setHasInitiallyGenerated] = useState(false);
   const hasInitiallyGeneratedRef = useRef(false); // useRefで永続化
-  
+
   useEffect(() => {
     if (
-      user?.id && 
-      workflowId && 
-      isDataLoaded && 
-      scenes.length > 0 && 
+      user?.id &&
+      workflowId &&
+      isDataLoaded &&
+      scenes.length > 0 &&
       !hasInitiallyGeneratedRef.current && // refを使用
       imagePreview.status === 'not_started' &&
       !imagePreview.previewData
@@ -297,29 +297,29 @@ export default function Step4ScriptPreview({
       console.log('[Step4ScriptPreview] Auto-starting preview generation');
       hasInitiallyGeneratedRef.current = true; // 即座にフラグを立てる
       setHasInitiallyGenerated(true);
-      
+
       // プロンプトを保存してから生成
       saveUpdatedPrompts().then(() => {
         imagePreview.generatePreview();
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, workflowId, isDataLoaded, scenes.length, imagePreview.status]);
 
   // initialDataが変更されたときにデータを更新
   useEffect(() => {
     console.log('[Step4ScriptPreview] initialData changed:', initialData);
-    
+
     if (initialData) {
       // シーンデータの設定（stepOutputがある場合は編集されたデータを優先）
       let newScenes = [];
-      
+
       // stepOutputに保存されたデータがある場合
       if (initialData.stepOutput?.userInput?.scenes && initialData.stepOutput.userInput.scenes.length > 0) {
         // 保存されたプロンプトとstepInputのシーンデータをマージ
         const savedScenes = initialData.stepOutput.userInput.scenes;
         const inputScenes = initialData.stepInput?.scenes || [];
-        
+
         newScenes = inputScenes.map((inputScene: any) => {
           const savedScene = savedScenes.find((s: any) => s.id === inputScene.id);
           return savedScene ? {
@@ -332,9 +332,9 @@ export default function Step4ScriptPreview({
         // 初回の場合はstepInputのデータを使用
         newScenes = initialData.stepInput?.scenes || [];
       }
-      
+
       console.log('[Step4ScriptPreview] Setting scenes:', newScenes);
-      
+
       // シーンデータがない場合は生成中
       if (newScenes.length === 0) {
         setIsGenerating(true);
@@ -342,12 +342,12 @@ export default function Step4ScriptPreview({
         setScenes(newScenes);
         setIsGenerating(false);
       }
-      
+
       // 幕データの設定
       const newActs = initialData.stepInput?.acts || [];
       console.log('[Step4ScriptPreview] Setting acts:', newActs);
       setActs(newActs);
-      
+
       // データ読み込み完了
       setIsDataLoaded(true);
     }
@@ -402,8 +402,8 @@ export default function Step4ScriptPreview({
 
   // 画像プロンプトの変更
   const handleImagePromptChange = (sceneId: string, newPrompt: string) => {
-    setScenes(scenes.map(scene => 
-      scene.id === sceneId 
+    setScenes(scenes.map(scene =>
+      scene.id === sceneId
         ? { ...scene, imagePrompt: newPrompt }
         : scene
     ));
@@ -411,20 +411,20 @@ export default function Step4ScriptPreview({
 
   // 対話の変更
   const handleDialogueChange = (
-    sceneId: string, 
-    dialogueIndex: number, 
-    field: 'speaker' | 'text', 
+    sceneId: string,
+    dialogueIndex: number,
+    field: 'speaker' | 'text',
     value: string
   ) => {
     setScenes(scenes.map(scene => {
       if (scene.id !== sceneId) return scene;
-      
+
       const newDialogue = [...scene.dialogue];
       newDialogue[dialogueIndex] = {
         ...newDialogue[dialogueIndex],
         [field]: value
       };
-      
+
       return { ...scene, dialogue: newDialogue };
     }));
   };
@@ -472,7 +472,7 @@ export default function Step4ScriptPreview({
       });
     }
   };
-  
+
   // プロンプトの変更を保存
   const saveUpdatedPrompts = async () => {
     if (!user) return;
@@ -506,17 +506,17 @@ export default function Step4ScriptPreview({
       console.error('Failed to save prompts:', err);
     }
   };
-  
+
   // ポーリングで画像の更新を監視
   const startPollingForUpdate = (beatIndex: number) => {
     let pollCount = 0;
     const maxPolls = 30; // 最大30回（60秒）
-    
+
     const pollInterval = setInterval(async () => {
       try {
         pollCount++;
         await imagePreview.refreshStatus();
-        
+
         // 処理が完了または失敗したらポーリングを停止
         if (imagePreview.status === 'completed' || imagePreview.status === 'failed' || pollCount >= maxPolls) {
           clearInterval(pollInterval);
@@ -526,7 +526,7 @@ export default function Step4ScriptPreview({
             newSet.delete(beatIndex);
             return newSet;
           });
-          
+
           if (imagePreview.status === 'failed') {
             error('画像の生成に失敗しました');
           }
@@ -605,7 +605,7 @@ export default function Step4ScriptPreview({
       </div>
     );
   }
-  
+
   // データ生成中の表示
   if (isGenerating) {
     return (
@@ -636,7 +636,7 @@ export default function Step4ScriptPreview({
       </div>
     );
   }
-  
+
   // データが読み込まれたが、シーンがない場合
   if (scenes.length === 0 && !isGenerating) {
     return (
@@ -685,7 +685,7 @@ export default function Step4ScriptPreview({
                   第{act.actNumber}幕：{act.actTitle}
                 </h3>
               </div>
-              
+
               {/* この幕のシーン */}
               {act.scenes.map((scene: any, sceneIndex: number) => {
                 // シーンに対応するプレビュー画像を取得（scene.sceneNumber - 1 でbeatIndexと合わせる）
@@ -693,7 +693,7 @@ export default function Step4ScriptPreview({
                 const scenePreviewImage = imagePreview.previewData?.images?.find(
                   (img) => img.beatIndex === beatIndex
                 )
-                
+
                 return (
                   <SceneCard
                     key={scene.id}
@@ -701,7 +701,7 @@ export default function Step4ScriptPreview({
                     actNumber={act.actNumber}
                     actTitle={act.actTitle}
                     onImagePromptChange={(value) => handleImagePromptChange(scene.id, value)}
-                    onDialogueChange={(index, field, value) => 
+                    onDialogueChange={(index, field, value) =>
                       handleDialogueChange(scene.id, index, field, value)
                     }
                     isLoading={isLoading}

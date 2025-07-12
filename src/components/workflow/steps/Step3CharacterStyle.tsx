@@ -54,7 +54,7 @@ export default function Step3CharacterStyle({
     if (Array.isArray(outputChars)) {
       return outputChars;
     }
-    
+
     const inputChars = initialData?.stepInput?.detailedCharacters;
     if (Array.isArray(inputChars)) {
       return inputChars.map(char => ({
@@ -63,7 +63,7 @@ export default function Step3CharacterStyle({
         description: `${char.personality}\n${char.visualDescription}`,
       }));
     }
-    
+
     return [];
   });
 
@@ -111,9 +111,9 @@ export default function Step3CharacterStyle({
 
   // キャラクターの説明を変更
   const handleCharacterDescriptionChange = (characterId: string, description: string) => {
-    setCharacters(prev => 
-      prev.map(char => 
-        char.id === characterId 
+    setCharacters(prev =>
+      prev.map(char =>
+        char.id === characterId
           ? { ...char, description }
           : char
       )
@@ -122,9 +122,9 @@ export default function Step3CharacterStyle({
 
   // キャラクターの名前を変更
   const handleCharacterNameChange = (characterId: string, name: string) => {
-    setCharacters(prev => 
-      prev.map(char => 
-        char.id === characterId 
+    setCharacters(prev =>
+      prev.map(char =>
+        char.id === characterId
           ? { ...char, name }
           : char
       )
@@ -155,8 +155,8 @@ export default function Step3CharacterStyle({
   const handleFaceReferenceUpdate = (characterId: string, url: string) => {
     console.log('[Step3CharacterStyle] Updating face reference for character:', characterId, 'with URL:', url);
     setCharacters(prev => {
-      const updated = prev.map(char => 
-        char.id === characterId 
+      const updated = prev.map(char =>
+        char.id === characterId
           ? { ...char, faceReference: url }
           : char
       );
@@ -191,9 +191,9 @@ export default function Step3CharacterStyle({
       }
     }
 
-    setCharacters(prev => 
-      prev.map(char => 
-        char.id === characterId 
+    setCharacters(prev =>
+      prev.map(char =>
+        char.id === characterId
           ? { ...char, faceReference: undefined }
           : char
       )
@@ -209,7 +209,7 @@ export default function Step3CharacterStyle({
     }
 
     setIsLoading(true);
-    
+
     try {
       // workflow-design.mdの仕様に従い、Step3Outputを送信
       const step3Output: Step3Output = {
@@ -218,7 +218,7 @@ export default function Step3CharacterStyle({
           imageStyle,
         },
       };
-      
+
       const response = await fetch(`/api/workflow/${workflowId}/step/3`, {
         method: 'POST',
         headers: {
@@ -231,7 +231,7 @@ export default function Step3CharacterStyle({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Step 3 save failed:', response.status, errorData);
-        
+
         if (errorData.error) {
           error(errorData.error);
         } else {
@@ -239,7 +239,7 @@ export default function Step3CharacterStyle({
         }
         return;
       }
-      
+
       // 保存成功後に次のステップへ
       onNext();
     } catch (err) {
@@ -276,7 +276,7 @@ export default function Step3CharacterStyle({
             キャラクターを追加
           </button>
         </div>
-        
+
         {Array.isArray(characters) && characters.map((character) => (
           <Card key={character.id} className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
@@ -361,8 +361,8 @@ export default function Step3CharacterStyle({
                   </div>
                   {character.faceReference ? (
                     <div className="relative bg-gray-700 rounded-lg overflow-hidden p-4" style={{ maxHeight: '300px' }}>
-                      <img 
-                        src={character.faceReference} 
+                      <img
+                        src={character.faceReference}
                         alt={`${character.name}の顔参照`}
                         className="w-full h-auto max-h-full object-contain rounded"
                         style={{ maxHeight: '250px' }}
@@ -396,7 +396,7 @@ export default function Step3CharacterStyle({
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-6">
           <h3 className="text-lg font-semibold mb-4">画風設定</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
