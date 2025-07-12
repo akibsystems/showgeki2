@@ -44,14 +44,20 @@ export async function generateStep5Input(
     }
 
     // シーンデータを更新
+    // step3-processorで既にactNumber, sceneNumber, titleが設定されているので、
+    // scenes_dataから既存の情報を取得して使用
+    const existingScenesData = storyboard.scenes_data?.scenes || [];
     const updatedScenesData: ScenesData = {
-      scenes: step4Output.userInput.scenes.map(scene => ({
-        ...scene,
-        imageUrl: scene.customImage, // アップロードされた画像があれば設定
-        actNumber: getActNumberForScene(scene.id, storyboard.acts_data?.acts || []),
-        sceneNumber: getSceneNumberForScene(scene.id, storyboard.acts_data?.acts || []),
-        title: getSceneTitleForScene(scene.id, storyboard.acts_data?.acts || [])
-      }))
+      scenes: step4Output.userInput.scenes.map((scene, index) => {
+        const existingScene = existingScenesData[index] || {};
+        return {
+          ...scene,
+          imageUrl: scene.customImage, // アップロードされた画像があれば設定
+          actNumber: existingScene.actNumber || getActNumberForScene(scene.id, storyboard.acts_data?.acts || []),
+          sceneNumber: existingScene.sceneNumber || getSceneNumberForScene(scene.id, storyboard.acts_data?.acts || []),
+          title: existingScene.title || getSceneTitleForScene(scene.id, storyboard.acts_data?.acts || [])
+        };
+      })
     };
 
     // storyboardを更新
@@ -165,7 +171,7 @@ async function generateVoiceSettings(
 
   const voiceAssignments = result.voiceAssignments;
 
-  const processedCharacters = characters.map((char, index) => {
+  const processedCharacters = characters.map((char) => {
     const assignment = voiceAssignments.find((va: any) => va.characterId === char.id);
     if (!assignment || !assignment.suggestedVoice) {
       throw new VoiceGenerationError(

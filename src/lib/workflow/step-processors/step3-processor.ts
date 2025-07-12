@@ -76,12 +76,49 @@ export async function generateStep4Input(
       updatedStyleData
     );
 
+    // フラットな形式からStep4Inputの形式に変換
+    const formattedScenes = scenesData.scenes.map((scene: any, index: number) => {
+      // どの幕・場に属するかを計算
+      let actNumber = 1;
+      let sceneNumber = 1;
+      let currentIndex = 0;
+      let title = '';
+      
+      // acts_dataから幕・場番号を取得
+      if (storyboard.acts_data?.acts) {
+        for (const act of storyboard.acts_data.acts) {
+          for (const actScene of act.scenes || []) {
+            currentIndex++;
+            if (currentIndex === index + 1) {
+              actNumber = act.actNumber;
+              sceneNumber = actScene.sceneNumber;
+              title = actScene.sceneTitle;
+              break;
+            }
+          }
+          if (currentIndex === index + 1) break;
+        }
+      }
+
+      return {
+        id: scene.id,
+        actNumber,
+        sceneNumber,
+        title: title || `シーン${index + 1}`,
+        imagePrompt: scene.imagePrompt,
+        dialogue: [{
+          speaker: scene.speaker,
+          text: scene.text
+        }]
+      };
+    });
+
     // 既存のStep4Outputがある場合、保存されたプロンプトをマージ
-    let mergedScenes = scenesData.scenes;
+    let mergedScenes = formattedScenes;
     if (existingStep4Output?.userInput?.scenes && Array.isArray(existingStep4Output.userInput.scenes)) {
       const savedScenes = existingStep4Output.userInput.scenes;
 
-      mergedScenes = scenesData.scenes.map((scene: any) => {
+      mergedScenes = formattedScenes.map((scene: any) => {
         const savedScene = savedScenes.find((s: any) => s.id === scene.id);
         if (savedScene && savedScene.imagePrompt) {
           // 保存されたプロンプトを優先
@@ -115,7 +152,10 @@ export async function generateStep4Input(
     // Step4Input を構築（マージされたシーンデータで）
     const step4Input: Step4Input = {
       title: storyboard.title || '',
-      acts: storyboard.acts_data?.acts || [],
+      acts: storyboard.acts_data?.acts?.map((act: any) => ({
+        actNumber: act.actNumber,
+        actTitle: act.actTitle
+      })) || [],
       scenes: mergedScenes
     };
 
@@ -137,7 +177,6 @@ async function generateScenesWithAI(
 ): Promise<ScenesData> {
   const systemPrompt = createSceneSystemPrompt();
   const userPrompt = createSceneUserPrompt(storyboard, characters, styleData);
-  console.log("userPrompt", userPrompt);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
@@ -166,18 +205,28 @@ async function generateScenesWithAI(
     );
   }
 
-  // シーンIDを確実に設定
+  // 各シーンを検証し、必要なフィールドを確保
   result.scenes = result.scenes.map((scene: any, index: number) => {
-    if (!scene.dialogue || !Array.isArray(scene.dialogue) || scene.dialogue.length === 0) {
+    // 必須フィールドの検証
+    if (!scene.speaker || !scene.text) {
       throw new SceneGenerationError(
-        `シーン${index + 1}の対話が生成されませんでした。`,
+        `シーン${index + 1}の話者または台詞が生成されませんでした。`,
         'MISSING_DIALOGUE_DATA'
       );
     }
 
+    if (!scene.imagePrompt) {
+      throw new SceneGenerationError(
+        `シーン${index + 1}の画像プロンプトが生成されませんでした。`,
+        'MISSING_IMAGE_PROMPT'
+      );
+    }
+
     return {
-      ...scene,
-      id: scene.id || `scene-${scene.actNumber}-${scene.sceneNumber}`
+      id: scene.id || String(index + 1),
+      imagePrompt: scene.imagePrompt,
+      speaker: scene.speaker,
+      text: scene.text
     };
   });
 
@@ -202,24 +251,16 @@ function createSceneSystemPrompt(): string {
 {
   "scenes": [
     {
-      "id": "scene-幕番号-場番号",
-      "actNumber": 幕番号,
-      "sceneNumber": 場番号,
-      "title": "シーンの詩的タイトル",
+      "id": "1から順番に番号をつける",
       "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。画像が指定されていないキャラクターの場合のみ、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見を含めてください。画像が指定されているキャラクターは役割、性格のみ反映してください",
-      "dialogue": [
-        {
-          "speaker": "話者名",
-          "text": "心に響く台詞(少しカジュアルな日本語)",
-          "emotion": "内なる感情（喜び、悲しみ、怒り、恐れ、愛、希望など）"
-        }
-      ]
+      "speaker": "話者名",
+      "text": "心に響く台詞(少しカジュアルな日本語)"
     }
   ]
 }
 
 ## 技術使用
-- dialogue配列は１要素のみ、つまり1シーンでの会話は1名1台詞のみ。1名の人物が喋るのみなので要注意！他のキャラはしゃべらない。
+- 1シーンにつき1人の話者が1つの台詞を話す（フラットな配列形式）
 - すべての要素がJSONフォーマットで出力されること
 - 指定していないキャラクターは絶対に使用しない
 - 「(画像指定済み)」と記載されているキャラクターは、画像プロンプトに外見の詳細は含めず、役割・性格・性別・年齢のみ反映する
@@ -235,23 +276,41 @@ function createSceneUserPrompt(
   characters: any[],
   styleData: StyleData
 ): string {
+  // 幕場構成を整理して、シーンごとの情報を作成
+  const actsStructure = storyboard.acts_data?.acts?.map((act: any) => 
+    `第${act.actNumber}幕「${act.actTitle}」
+${act.scenes?.map((scene: any) => 
+  `  - 第${scene.sceneNumber}場「${scene.sceneTitle}」: ${scene.summary}`
+).join('\n')}`
+  ).join('\n\n') || '';
+
+  // 全シーンのリストを作成
+  const allScenes: any[] = [];
+  storyboard.acts_data?.acts?.forEach((act: any) => {
+    act.scenes?.forEach((scene: any) => {
+      allScenes.push({
+        actNumber: act.actNumber,
+        sceneNumber: scene.sceneNumber,
+        title: scene.sceneTitle,
+        summary: scene.summary
+      });
+    });
+  });
+
   return `## 作品情報
 タイトル: ${storyboard.title}
 ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
 概要: ${storyboard.summary_data?.description || ''}
 
 ## 幕場構成
-${JSON.stringify(storyboard.acts_data?.acts, null, 2)}
+${actsStructure}
 
-## 全体のシーン数（守ってください）
-1つの幕場で喋るのは1名1台詞のみです。注意してください
-${storyboard.acts_data?.acts?.reduce((total, act) => total + (act.scenes?.length || 0), 0) || 0}
+## 全体のシーン数
+${allScenes.length}シーン
 
 ## 登場人物
 ${characters.map(char => {
-    console.log("char", char);
     const hasImage = char.faceReference;
-    console.log("hasImage", hasImage);
 
     if (hasImage) {
       // 画像が指定されている場合：役割、性格のみ
@@ -281,7 +340,7 @@ ${characters.map(char => {
 スタイル: ${styleData.imageStyle}
 ${styleData.customPrompt ? `追加指示: ${styleData.customPrompt}` : ''}
 
-上記の情報を基に、各シーンの詳細な台本と画像プロンプトをJSONフォーマットで生成してください。`;
+上記の情報を基に、${allScenes.length}個のシーンそれぞれに対して、詳細な台本と画像プロンプトをJSONフォーマットで生成してください。`;
 }
 
 /**
