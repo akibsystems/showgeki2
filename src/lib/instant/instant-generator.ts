@@ -4,9 +4,9 @@ import { InstantStatus } from './instant-status';
 import { INSTANT_DEFAULTS, getSceneCountForDuration, getImageStyleConfig } from './instant-defaults';
 import { WorkflowStepManager } from '@/lib/workflow/step-processors';
 import { createAdminClient } from '@/lib/supabase/server';
+import { generateMulmoScriptFromStoryboard } from '@/lib/workflow/mulmoscript-generator';
 import type { InstantModeInput } from '@/types/instant';
-import type { Step1Output, Step3Output, Step6Output } from '@/types/workflow';
-import type { Mulmoscript } from '@/lib/schemas';
+import type { Step1Output, Step3Output, Step6Output, Storyboard } from '@/types/workflow';
 
 interface ProcessInstantModeParams {
   instantId: string;
@@ -243,25 +243,102 @@ function extractVoiceSettingsFromStep5(step5Data: any) {
 }
 
 /**
- * 動画生成を開始（workflowのgenerate-script APIを呼び出す）
+ * 動画生成を開始（直接データベースを操作）
  */
 async function startVideoGeneration(workflowId: string, uid: string): Promise<string | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/workflow/${workflowId}/generate-script`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-UID': uid,
-      },
-    });
+    const supabase = await createAdminClient();
+    
+    // ワークフローとストーリーボードを取得
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
+      .select(`
+        id,
+        storyboard_id,
+        uid,
+        step4_out,
+        storyboards (*)
+      `)
+      .eq('id', workflowId)
+      .eq('uid', uid)
+      .single();
 
-    if (!response.ok) {
-      console.error('[InstantGenerator] Failed to start video generation:', response.status);
+    if (workflowError || !workflow) {
+      console.error('[InstantGenerator] Failed to get workflow:', workflowError);
       return null;
     }
 
-    const data = await response.json();
-    return data.videoId || null;
+    const storyboard = workflow.storyboards as unknown as Storyboard;
+    
+    // MulmoScriptを生成
+    const mulmoScript = generateMulmoScriptFromStoryboard(storyboard, workflow.step4_out);
+
+    // ストーリーボードにMulmoScriptを保存
+    const { error: updateError } = await supabase
+      .from('storyboards')
+      .update({
+        mulmoscript: mulmoScript,
+        status: 'completed'
+      })
+      .eq('id', storyboard.id);
+
+    if (updateError) {
+      console.error('[InstantGenerator] Failed to save MulmoScript:', updateError);
+      return null;
+    }
+
+    // 新しいビデオエントリを作成
+    const { data: video, error: videoError } = await supabase
+      .from('videos')
+      .insert({
+        story_id: storyboard.id,
+        uid: uid,
+        status: 'queued',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (videoError || !video) {
+      console.error('[InstantGenerator] Failed to create video:', videoError);
+      return null;
+    }
+
+    // ワークフローのステータスを完了に更新
+    await supabase
+      .from('workflows')
+      .update({ status: 'completed' })
+      .eq('id', workflowId);
+
+    // Webhookを送信（非同期で実行し、レスポンスを待たない）
+    if (process.env.CLOUD_RUN_WEBHOOK_URL) {
+      const webhookPayload = {
+        type: 'video_generation',
+        payload: {
+          video_id: video.id,
+          story_id: storyboard.id,
+          uid: uid,
+          title: storyboard.title || '無題の作品',
+          text_raw: storyboard.summary_data?.description || '',
+          script_json: mulmoScript
+        }
+      };
+
+      // Webhookを非同期で送信（レスポンスを待たない）
+      fetch(process.env.CLOUD_RUN_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload),
+      }).then(() => {
+        console.log('[InstantGenerator] Webhook sent successfully');
+      }).catch(error => {
+        console.error('[InstantGenerator] Webhook send error:', error);
+      });
+    }
+
+    return video.id;
   } catch (error) {
     console.error('[InstantGenerator] Error starting video generation:', error);
     return null;
