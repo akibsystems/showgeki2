@@ -196,12 +196,27 @@ async function generateVoiceSettings(
 
   const processedCharacters = characters.map((char) => {
     const assignment = voiceAssignments.find((va: any) => va.characterId === char.id);
+    
+    // 音声割り当てが見つからない場合のログ出力
     if (!assignment || !assignment.suggestedVoice) {
-      throw new VoiceGenerationError(
-        `キャラクター「${char.name}」の音声キャスティングが見つかりません。`,
-        'INCOMPLETE_VOICE_ASSIGNMENT'
-      );
+      console.warn(`[step4-processor] Voice assignment not found for character "${char.name}" (ID: ${char.id})`);
+      console.warn(`[step4-processor] Available assignments:`, voiceAssignments.map((va: any) => ({
+        characterId: va.characterId,
+        characterName: va.characterName,
+        suggestedVoice: va.suggestedVoice
+      })));
+      
+      // デフォルトの音声を割り当て
+      const defaultVoice = char.role?.includes('女') || char.personality?.includes('女') ? 'nova' : 'echo';
+      console.warn(`[step4-processor] Assigning default voice "${defaultVoice}" to character "${char.name}"`);
+      
+      return {
+        id: char.id,
+        name: char.name,
+        suggestedVoice: defaultVoice
+      };
     }
+    
     return {
       id: char.id,
       name: char.name,
@@ -262,10 +277,12 @@ function createVoiceSystemPrompt(): string {
 }
 
 ## 重要な指示
+- **必須**: すべてのキャラクターに対して音声を割り当てること（キャラクターリストのすべてのキャラクターを含める）
 - 各キャラクターの内面と役割を声で表現すること
 - 声の対比で劇的効果を生み出すこと
 - 物語全体の音響的バランスを考慮すること
 - 観客の感情に訴えかける声の配役
+- voiceAssignmentsには必ず全キャラクター分の要素を含めること
 `;
 }
 
@@ -274,12 +291,16 @@ function createVoiceSystemPrompt(): string {
  */
 function createVoiceUserPrompt(characters: any[]): string {
   return `## ディレクターからの指示
-${characters.map(char => `### ${char.name}
-- 役割: ${char.role}
-- 性格: ${char.personality}
+
+### キャラクター一覧（全${characters.length}名）
+${characters.map((char, index) => `${index + 1}. ${char.name} (ID: ${char.id})
+   - 役割: ${char.role}
+   - 性格: ${char.personality}
 - 外見: ${char.visualDescription || '詳細不明'}`).join('\n\n')}
 
-これらのキャラクターに最適な音声をJSONフォーマットで割り当ててください。`;
+これらのキャラクターに最適な音声をJSONフォーマットで割り当ててください。
+
+**重要**: 上記の${characters.length}名のキャラクター全員に対して音声を割り当ててください。1人も欠けることなく、voiceAssignmentsに${characters.length}個の要素を含めてください。`;
 }
 
 /**
