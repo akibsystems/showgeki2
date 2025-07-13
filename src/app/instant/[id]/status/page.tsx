@@ -210,7 +210,7 @@ export default function InstantStatusPage({ params }: PageProps) {
 
         {/* ステップ一覧 */}
         <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">処理ステップ</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">処理フェーズ</h2>
           <div className="space-y-2">
             {Object.entries(INSTANT_STEPS).map(([key, label]) => {
               const isCompleted = getStepStatus(key, status.currentStep, status.status) === 'completed';
