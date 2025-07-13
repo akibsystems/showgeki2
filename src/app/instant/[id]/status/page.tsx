@@ -52,7 +52,7 @@ export default function InstantStatusPage({ params }: PageProps) {
         // 完了または失敗したらポーリングを停止
         if (data.status === 'completed' || data.status === 'failed') {
           clearInterval(interval);
-          
+
           // 完了したら動画ページへリダイレクト
           if (data.status === 'completed' && data.videoId) {
             setTimeout(() => {
@@ -96,9 +96,21 @@ export default function InstantStatusPage({ params }: PageProps) {
         <div className="text-center">
           <div className="text-red-500 mb-4">⚠️ エラー</div>
           <p className="text-gray-400 mb-4">{error}</p>
-          <a href="/instant/create" className="text-purple-400 hover:text-purple-300">
-            もう一度試す
-          </a>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => router.push('/instant/create')}
+              className="text-purple-400 hover:text-purple-300"
+            >
+              もう一度試す
+            </button>
+            <span className="text-gray-600">|</span>
+            <button
+              onClick={() => router.push('/videos')}
+              className="text-gray-400 hover:text-gray-300"
+            >
+              動画一覧に戻る
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -118,7 +130,18 @@ export default function InstantStatusPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-950 p-4">
       <div className="max-w-2xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-8">生成状況</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">生成状況</h1>
+          <button
+            onClick={() => router.push('/videos')}
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            動画一覧に戻る
+          </button>
+        </div>
 
         {/* 進捗バー */}
         <div className="mb-8">
@@ -127,7 +150,7 @@ export default function InstantStatusPage({ params }: PageProps) {
             <span>{status.progress}%</span>
           </div>
           <div className="w-full bg-gray-800 rounded-full h-3">
-            <div 
+            <div
               className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all duration-500"
               style={{ width: `${status.progress}%` }}
             />
@@ -167,12 +190,20 @@ export default function InstantStatusPage({ params }: PageProps) {
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-6">
               <div className="text-red-400 text-xl mb-2">❌ エラーが発生しました</div>
               <p className="text-gray-300 mb-4">{status.error || '生成中にエラーが発生しました'}</p>
-              <a 
-                href="/instant/create" 
-                className="inline-block px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                もう一度試す
-              </a>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push('/instant/create')}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  もう一度試す
+                </button>
+                <button
+                  onClick={() => router.push('/videos')}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  動画一覧に戻る
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -185,9 +216,9 @@ export default function InstantStatusPage({ params }: PageProps) {
               const isCompleted = getStepStatus(key, status.currentStep, status.status) === 'completed';
               const isCurrent = key === status.currentStep;
               const isPending = getStepStatus(key, status.currentStep, status.status) === 'pending';
-              
+
               return (
-                <div 
+                <div
                   key={key}
                   className={`
                     flex items-center p-3 rounded-lg border
@@ -220,18 +251,18 @@ export default function InstantStatusPage({ params }: PageProps) {
 
 // ステップの状態を判定
 function getStepStatus(
-  step: string, 
-  currentStep?: string, 
+  step: string,
+  currentStep?: string,
   overallStatus?: string
 ): 'completed' | 'current' | 'pending' {
   const steps = Object.keys(INSTANT_STEPS);
   const stepIndex = steps.indexOf(step);
   const currentIndex = currentStep ? steps.indexOf(currentStep) : -1;
-  
+
   if (overallStatus === 'completed') {
     return 'completed';
   }
-  
+
   if (stepIndex < currentIndex) {
     return 'completed';
   } else if (stepIndex === currentIndex) {

@@ -4,31 +4,34 @@ import { createAdminClient } from '@/lib/supabase/server';
 import type { InstantStep } from '@/types/instant';
 
 export class InstantStatus {
-  private instantId: string;
+  private workflowId: string;
 
-  constructor(instantId: string) {
-    this.instantId = instantId;
+  constructor(workflowId: string) {
+    this.workflowId = workflowId;
   }
 
   /**
    * ステップと進捗を更新
    */
   async update(step: InstantStep, message?: string, progress?: number): Promise<void> {
-    console.log(`[InstantStatus] Updating ${this.instantId}: ${step} - ${message}`);
+    console.log(`[InstantStatus] Updating ${this.workflowId}: ${step} - ${message}`);
     
     const supabase = await createAdminClient();
     const metadata = await this.getMetadata();
     metadata.progress = progress || this.calculateProgress(step);
+    if (message) {
+      metadata.message = message;
+    }
     
     const { error } = await supabase
-      .from('instant_generations')
+      .from('workflows')
       .update({
-        status: 'processing',
-        current_step: step,
-        metadata,
+        instant_step: step,
+        progress: metadata.progress,
+        instant_metadata: metadata,
         updated_at: new Date().toISOString()
       })
-      .eq('id', this.instantId);
+      .eq('id', this.workflowId);
 
     if (error) {
       console.error('[InstantStatus] Failed to update status:', error);
@@ -45,12 +48,13 @@ export class InstantStatus {
     metadata.progress = Math.min(100, Math.max(0, percent));
     
     const { error } = await supabase
-      .from('instant_generations')
+      .from('workflows')
       .update({
-        metadata,
+        progress: metadata.progress,
+        instant_metadata: metadata,
         updated_at: new Date().toISOString()
       })
-      .eq('id', this.instantId);
+      .eq('id', this.workflowId);
 
     if (error) {
       console.error('[InstantStatus] Failed to set progress:', error);
@@ -62,7 +66,7 @@ export class InstantStatus {
    * 完了状態に更新
    */
   async complete(videoId: string): Promise<void> {
-    console.log(`[InstantStatus] Completing ${this.instantId} with video ${videoId}`);
+    console.log(`[InstantStatus] Completing ${this.workflowId} with video ${videoId}`);
     
     const supabase = await createAdminClient();
     const metadata = await this.getMetadata();
@@ -70,14 +74,15 @@ export class InstantStatus {
     metadata.video_id = videoId;
     
     const { error } = await supabase
-      .from('instant_generations')
+      .from('workflows')
       .update({
         status: 'completed',
-        current_step: 'completed',
-        metadata,
+        instant_step: 'completed',
+        progress: 100,
+        instant_metadata: metadata,
         updated_at: new Date().toISOString()
       })
-      .eq('id', this.instantId);
+      .eq('id', this.workflowId);
 
     if (error) {
       console.error('[InstantStatus] Failed to complete:', error);
@@ -89,17 +94,17 @@ export class InstantStatus {
    * エラー状態に更新
    */
   async fail(errorMessage: string): Promise<void> {
-    console.error(`[InstantStatus] Failing ${this.instantId}: ${errorMessage}`);
+    console.error(`[InstantStatus] Failing ${this.workflowId}: ${errorMessage}`);
     
     const supabase = await createAdminClient();
     const { error } = await supabase
-      .from('instant_generations')
+      .from('workflows')
       .update({
-        status: 'failed',
+        status: 'archived',  // failedではなくarchivedを使用
         error_message: errorMessage,
         updated_at: new Date().toISOString()
       })
-      .eq('id', this.instantId);
+      .eq('id', this.workflowId);
 
     if (error) {
       console.error('[InstantStatus] Failed to update error status:', error);
@@ -113,9 +118,9 @@ export class InstantStatus {
   async getStatus() {
     const supabase = await createAdminClient();
     const { data, error } = await supabase
-      .from('instant_generations')
+      .from('workflows')
       .select('*')
-      .eq('id', this.instantId)
+      .eq('id', this.workflowId)
       .single();
 
     if (error) {
@@ -132,12 +137,12 @@ export class InstantStatus {
   private async getMetadata(): Promise<any> {
     const supabase = await createAdminClient();
     const { data } = await supabase
-      .from('instant_generations')
-      .select('metadata')
-      .eq('id', this.instantId)
+      .from('workflows')
+      .select('instant_metadata')
+      .eq('id', this.workflowId)
       .single();
 
-    return data?.metadata || {};
+    return data?.instant_metadata || {};
   }
 
   /**

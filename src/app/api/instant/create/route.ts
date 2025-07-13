@@ -65,32 +65,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. instant_generation レコードを作成
-    const { data: instantGeneration, error: instantError } = await supabase
-      .from('instant_generations')
+    // 3. workflow レコードを作成（インスタントモード用）
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
       .insert({
-        uid,
         storyboard_id: storyboard.id,
-        status: 'pending',
-        metadata: { 
-          input: body,
-          progress: 0
+        uid,
+        mode: 'instant',
+        status: 'active',
+        current_step: 1,
+        progress: 0,
+        instant_metadata: { 
+          input: body
         }
       })
       .select()
       .single();
 
-    if (instantError) {
-      console.error('Failed to create instant generation:', instantError);
+    if (workflowError) {
+      console.error('[InstantCreate] Failed to create workflow:', workflowError);
       return NextResponse.json(
         { error: 'Instant Mode の開始に失敗しました' },
         { status: 500 }
       );
     }
 
+    console.log('[InstantCreate] Created workflow:', {
+      id: workflow.id,
+      storyboard_id: workflow.storyboard_id,
+      uid: workflow.uid,
+      mode: workflow.mode
+    });
+
     // 4. バックグラウンドで処理を開始（非同期）
     processInstantMode({
-      instantId: instantGeneration.id,
+      workflowId: workflow.id,
       storyboardId: storyboard.id,
       uid,
       input: body
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     // 5. 即座にレスポンスを返す
     return NextResponse.json({
-      instantId: instantGeneration.id,
+      instantId: workflow.id,
       message: '動画生成を開始しました'
     });
 

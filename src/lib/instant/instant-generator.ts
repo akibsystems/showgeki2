@@ -9,7 +9,7 @@ import type { InstantModeInput } from '@/types/instant';
 import type { Step1Output, Step3Output, Step6Output, Storyboard } from '@/types/workflow';
 
 interface ProcessInstantModeParams {
-  instantId: string;
+  workflowId: string;
   storyboardId: string;
   uid: string;
   input: InstantModeInput;
@@ -20,33 +20,17 @@ interface ProcessInstantModeParams {
  * 全てのステップを順次実行し、動画を生成する
  */
 export async function processInstantMode({
-  instantId,
+  workflowId,
   storyboardId,
   uid,
   input
 }: ProcessInstantModeParams) {
-  const status = new InstantStatus(instantId);
+  const status = new InstantStatus(workflowId);
   const supabase = await createAdminClient();
   
-  // Create a real workflow for this instant mode
-  const { data: workflow, error: workflowError } = await supabase
-    .from('workflows')
-    .insert({
-      storyboard_id: storyboardId,
-      uid: uid,
-      current_step: 1,
-      status: 'active'
-    })
-    .select()
-    .single();
-    
-  if (workflowError || !workflow) {
-    throw new Error('ワークフローの作成に失敗しました');
-  }
+  const stepManager = new WorkflowStepManager(workflowId, storyboardId);
   
-  const stepManager = new WorkflowStepManager(workflow.id, storyboardId);
-  
-  console.log(`[InstantGenerator] Starting instant mode for ${instantId}`);
+  console.log(`[InstantGenerator] Starting instant mode for workflow ${workflowId}`);
 
   try {
     // Step 1→2: ストーリー解析と幕場構成生成
@@ -69,7 +53,7 @@ export async function processInstantMode({
     };
     
     // ワークフローのstep1_outに保存（既存のprocessorが期待するため）
-    await saveStepOutput(supabase, workflow.id, 1, step1Output);
+    await saveStepOutput(supabase, workflowId, 1, step1Output);
     
     // Step 1→2 の処理を実行
     const step2Result = await stepManager.proceedToNextStep(1, step1Output);
@@ -86,7 +70,7 @@ export async function processInstantMode({
         acts: step2Result.data.acts
       }
     };
-    await saveStepOutput(supabase, workflow.id, 2, step2Output);
+    await saveStepOutput(supabase, workflowId, 2, step2Output);
     
     const step3Result = await stepManager.proceedToNextStep(2, step2Output);
     if (!step3Result.success) {
@@ -112,7 +96,7 @@ export async function processInstantMode({
         }
       }
     };
-    await saveStepOutput(supabase, workflow.id, 3, step3Output);
+    await saveStepOutput(supabase, workflowId, 3, step3Output);
     
     const step4Result = await stepManager.proceedToNextStep(3, step3Output);
     if (!step4Result.success) {
@@ -127,7 +111,7 @@ export async function processInstantMode({
         scenes: step4Result.data.scenes
       }
     };
-    await saveStepOutput(supabase, workflow.id, 4, step4Output);
+    await saveStepOutput(supabase, workflowId, 4, step4Output);
     
     const step5Result = await stepManager.proceedToNextStep(4, step4Output);
     if (!step5Result.success) {
@@ -142,7 +126,7 @@ export async function processInstantMode({
         voiceSettings: extractVoiceSettingsFromStep5(step5Result.data)
       }
     };
-    await saveStepOutput(supabase, workflow.id, 5, step5Output);
+    await saveStepOutput(supabase, workflowId, 5, step5Output);
     
     const step6Result = await stepManager.proceedToNextStep(5, step5Output);
     if (!step6Result.success) {
@@ -165,7 +149,7 @@ export async function processInstantMode({
         }
       }
     };
-    await saveStepOutput(supabase, workflow.id, 6, step6Output);
+    await saveStepOutput(supabase, workflowId, 6, step6Output);
     
     await status.update('generating', undefined, 85);
     const step7Result = await stepManager.proceedToNextStep(6, step6Output);
@@ -190,7 +174,7 @@ export async function processInstantMode({
     
     // workflowと同じように、generate-scriptを呼び出して動画生成を開始
     await status.update('generating', undefined, 90);
-    const videoId = await startVideoGeneration(workflow.id, uid);
+    const videoId = await startVideoGeneration(workflowId, uid);
     
     if (!videoId) {
       throw new Error('動画の作成に失敗しました');
@@ -199,7 +183,7 @@ export async function processInstantMode({
     // 動画生成の完了を待つ
     const completedVideoId = await waitForVideoCompletion(videoId);
     await status.complete(completedVideoId);
-    console.log(`[InstantGenerator] Completed instant mode for ${instantId}`);
+    console.log(`[InstantGenerator] Completed instant mode for workflow ${workflowId}`);
 
   } catch (error) {
     console.error('[InstantGenerator] Error:', error);
