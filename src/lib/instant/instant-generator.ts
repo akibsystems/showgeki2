@@ -30,7 +30,12 @@ export async function processInstantMode({
   
   const stepManager = new WorkflowStepManager(workflowId, storyboardId);
   
-  console.log(`[InstantGenerator] Starting instant mode for workflow ${workflowId}`);
+  // 実行時間計測開始
+  const startTime = Date.now();
+  const stepTimings: Record<string, number> = {};
+  let lastStepTime = startTime;
+  
+  console.log(`[InstantGenerator] Starting instant mode for workflow ${workflowId} at ${new Date(startTime).toISOString()}`);
 
   try {
     // Step 1→2: ストーリー解析と幕場構成生成
@@ -61,6 +66,11 @@ export async function processInstantMode({
       throw new Error(step2Result.error?.message || 'Step2生成に失敗しました');
     }
     await status.update('structuring', undefined, 20);
+    
+    // Step 1→2 の実行時間を記録
+    stepTimings['step1-2'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 1→2 completed in ${stepTimings['step1-2']}ms`);
 
     // Step 2→3: キャラクター詳細生成
     // 既存のprocessorはユーザー入力を期待するので、デフォルト値を設定
@@ -77,6 +87,11 @@ export async function processInstantMode({
       throw new Error(step3Result.error?.message || 'Step3生成に失敗しました');
     }
     await status.update('characters', undefined, 35);
+    
+    // Step 2→3 の実行時間を記録
+    stepTimings['step2-3'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 2→3 completed in ${stepTimings['step2-3']}ms`);
 
     // Step 3→4: 台本生成
     // 画風設定を追加（visualStyleフィールドを使用）
@@ -103,6 +118,11 @@ export async function processInstantMode({
       throw new Error(step4Result.error?.message || 'Step4生成に失敗しました');
     }
     await status.update('script', undefined, 50);
+    
+    // Step 3→4 の実行時間を記録
+    stepTimings['step3-4'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 3→4 completed in ${stepTimings['step3-4']}ms`);
 
     // Step 4→5: 音声設定（デフォルト割り当て）
     // 編集なしでそのまま次へ
@@ -118,6 +138,11 @@ export async function processInstantMode({
       throw new Error(step5Result.error?.message || 'Step5生成に失敗しました');
     }
     await status.update('voices', undefined, 65);
+    
+    // Step 4→5 の実行時間を記録
+    stepTimings['step4-5'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 4→5 completed in ${stepTimings['step4-5']}ms`);
 
     // Step 5→6: BGM・字幕設定
     // デフォルトの音声割り当てをそのまま使用
@@ -133,6 +158,11 @@ export async function processInstantMode({
       throw new Error(step6Result.error?.message || 'Step6生成に失敗しました');
     }
     await status.update('finalizing', undefined, 80);
+    
+    // Step 5→6 の実行時間を記録
+    stepTimings['step5-6'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 5→6 completed in ${stepTimings['step5-6']}ms`);
 
     // Step 6→7: 動画生成開始
     // デフォルトのBGM/字幕設定を使用
@@ -180,9 +210,31 @@ export async function processInstantMode({
       throw new Error('動画の作成に失敗しました');
     }
     
+    // 動画生成開始までの時間を記録
+    stepTimings['step6-7'] = Date.now() - lastStepTime;
+    lastStepTime = Date.now();
+    console.log(`[InstantGenerator] Step 6→7 completed in ${stepTimings['step6-7']}ms`);
+    
     // 動画生成の完了を待つ
     const completedVideoId = await waitForVideoCompletion(videoId);
-    await status.complete(completedVideoId);
+    
+    // 動画生成時間を記録
+    stepTimings['video-generation'] = Date.now() - lastStepTime;
+    const totalTime = Date.now() - startTime;
+    
+    // 実行時間の詳細をログ出力
+    console.log(`[InstantGenerator] ===== Execution Time Summary for workflow ${workflowId} =====`);
+    console.log(`[InstantGenerator] Step 1→2 (Story Analysis): ${stepTimings['step1-2']}ms`);
+    console.log(`[InstantGenerator] Step 2→3 (Character Generation): ${stepTimings['step2-3']}ms`);
+    console.log(`[InstantGenerator] Step 3→4 (Script Generation): ${stepTimings['step3-4']}ms`);
+    console.log(`[InstantGenerator] Step 4→5 (Voice Assignment): ${stepTimings['step4-5']}ms`);
+    console.log(`[InstantGenerator] Step 5→6 (BGM/Caption): ${stepTimings['step5-6']}ms`);
+    console.log(`[InstantGenerator] Step 6→7 (Finalization): ${stepTimings['step6-7']}ms`);
+    console.log(`[InstantGenerator] Video Generation: ${stepTimings['video-generation']}ms`);
+    console.log(`[InstantGenerator] Total Time: ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
+    console.log(`[InstantGenerator] ================================================`);
+    
+    await status.complete(completedVideoId, stepTimings);
     console.log(`[InstantGenerator] Completed instant mode for workflow ${workflowId}`);
 
   } catch (error) {

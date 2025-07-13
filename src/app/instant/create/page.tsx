@@ -147,7 +147,7 @@ export default function InstantCreatePage() {
       type="button"
       onClick={onClick}
       className={`
-        flex items-center justify-center px-4 py-3 rounded-xl border transition-all duration-200
+        flex items-center justify-center px-3 py-2 rounded-lg border transition-all duration-200 text-sm
         ${isSelected 
           ? 'border-blue-500 bg-blue-50 text-blue-600' 
           : 'border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900'
@@ -183,10 +183,10 @@ export default function InstantCreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between px-4 py-4">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={handleBack}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
@@ -207,16 +207,17 @@ export default function InstantCreatePage() {
       </div>
 
       {/* Content */}
-      <div className="px-4 py-6">
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-8">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-3">
           {/* Story Input */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <textarea
               value={formData.storyText}
               onChange={(e) => setFormData({ ...formData, storyText: e.target.value })}
               placeholder="今日、久しぶりに実家に帰りました。母が作ってくれた手料理を食べながら、家族みんなで昔話に花を咲かせました。"
-              rows={6}
-              className="w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              className="w-full px-3 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+              style={{ fontSize: '18px' }}
               required
             />
             <p className="text-xs text-gray-500 text-right">
@@ -225,11 +226,11 @@ export default function InstantCreatePage() {
           </div>
 
           {/* Genre Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700">
               ジャンル
             </h3>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {GENRE_OPTIONS.map((option) => (
                 <OptionButton
                   key={option.value}
@@ -245,11 +246,11 @@ export default function InstantCreatePage() {
           </div>
 
           {/* Style Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700">
               スタイル
             </h3>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {STYLE_OPTIONS.map((option) => (
                 <OptionButton
                   key={option.value}
@@ -265,11 +266,11 @@ export default function InstantCreatePage() {
           </div>
 
           {/* Cast Image Upload */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700">
               キャスト
             </h3>
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               <input
                 type="file"
                 id="cast-image"
@@ -278,7 +279,7 @@ export default function InstantCreatePage() {
                 className="hidden"
               />
               {imagePreview ? (
-                <div className="relative w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="relative w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
                   <img 
                     src={imagePreview} 
                     alt="Cast preview" 
@@ -287,7 +288,7 @@ export default function InstantCreatePage() {
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-1 right-1 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white text-xs hover:bg-black/70 transition-colors"
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white text-xs hover:bg-black/70 transition-colors"
                   >
                     ✕
                   </button>
@@ -295,26 +296,26 @@ export default function InstantCreatePage() {
               ) : (
                 <label 
                   htmlFor="cast-image"
-                  className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors flex-shrink-0"
+                  className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors flex-shrink-0"
                 >
-                  <svg className="w-8 h-8 text-gray-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  <span className="text-xs text-gray-600">アップロード</span>
+                  <span className="text-xs text-gray-600 mt-1">追加</span>
                 </label>
               )}
-              <p className="text-sm text-gray-600 pt-2">
-                キャラクターの顔画像をアップロードすると、その人物を登場人物として使用できます。
+              <p className="text-xs text-gray-600 pt-1">
+                顔画像をアップロードして登場人物として使用
               </p>
             </div>
           </div>
 
           {/* Generate Button */}
-          <div className="pt-8">
+          <div className="pt-6">
             <button
               type="submit"
               disabled={!formData.storyText.trim() || isSubmitting}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center">

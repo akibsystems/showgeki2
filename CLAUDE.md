@@ -61,6 +61,12 @@ node scripts/test-local.js               # Test local webhook server
 
 # Data export
 node scripts/export-stories-excel.js    # Export stories data
+
+# Instant Mode monitoring and analysis
+node scripts/monitor-instant-mode.js     # Real-time monitor for active instant mode workflows
+node scripts/monitor-instant-mode.js --interval 5  # Update every 5 seconds
+node scripts/analyze-instant-times.js    # Analyze execution times for completed workflows
+node scripts/analyze-instant-times.js --days 7 --export  # Export 7 days of data to Excel
 ```
 
 ### Manual Video Upload
@@ -126,6 +132,8 @@ node scripts/test-webhook-concurrent.js
 - **`check-failed-videos.js`**: Monitor and analyze failed video generation attempts
 - **`test-webhook-concurrent.js`**: Test webhook endpoint with concurrent requests
 - **`test-webhook-curl.sh`**: Simple webhook health check using curl
+- **`monitor-instant-mode.js`**: Real-time monitoring of active instant mode workflows
+- **`analyze-instant-times.js`**: Analyze execution times for completed instant mode workflows
 
 ### Frontend Pages
 - **`/`**: Homepage and service introduction

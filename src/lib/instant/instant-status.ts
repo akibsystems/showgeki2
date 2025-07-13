@@ -65,13 +65,19 @@ export class InstantStatus {
   /**
    * 完了状態に更新
    */
-  async complete(videoId: string): Promise<void> {
+  async complete(videoId: string, timings?: Record<string, number>): Promise<void> {
     console.log(`[InstantStatus] Completing ${this.workflowId} with video ${videoId}`);
     
     const supabase = await createAdminClient();
     const metadata = await this.getMetadata();
     metadata.progress = 100;
     metadata.video_id = videoId;
+    
+    // 実行時間情報を保存
+    if (timings) {
+      metadata.execution_timings = timings;
+      metadata.total_execution_time_ms = Object.values(timings).reduce((sum, time) => sum + time, 0);
+    }
     
     const { error } = await supabase
       .from('workflows')
