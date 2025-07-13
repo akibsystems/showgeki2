@@ -202,11 +202,11 @@ Generate the mulmocast script:`,
 };
 
 /**
- * Base template for story-to-mulmoscript conversion (Japanese version) - デフォルト
+ * Base template for story-to-mulmoscript conversion (Japanese version) - シェイクスピア演出家
  */
-const BASE_MULMOSCRIPT_TEMPLATE_JP: PromptTemplate = {
-  id: 'base_mulmoscript_jp_v1',
-  name: 'ベース Mulmoscript ジェネレーター (日本語)',
+const BASE_MULMOSCRIPT_TEMPLATE_JP_SHAKESPEARE: PromptTemplate = {
+  id: 'base_mulmoscript_jp_shakespeare_v1',
+  name: 'シェイクスピア演出家 Mulmoscript ジェネレーター (日本語)',
   description: '物語を詳細なビートとキャラクター開発を含む公式mulmocastフォーマットに変換します',
   version: 'v2.0',
   content: `あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
@@ -342,11 +342,138 @@ mulmocastスクリプトを生成してください:`,
 };
 
 /**
+ * Base template for story-to-mulmoscript conversion (Japanese version) - 一般脚本家
+ */
+const BASE_MULMOSCRIPT_TEMPLATE_JP_GENERAL: PromptTemplate = {
+  id: 'base_mulmoscript_jp_general_v1',
+  name: '一般脚本家 Mulmoscript ジェネレーター (日本語)',
+  description: '物語を詳細なビートとキャラクター開発を含む公式mulmocastフォーマットに変換します',
+  version: 'v1.0',
+  content: `あなたは経験豊富な脚本家であり、魅力的な短編動画コンテンツの制作を専門としています。
+  与えられた物語を効果的に演出し、視聴者の心に響くmulmocastスクリプトに変換してください。
+
+## 物語分析
+- タイトル: "{{story_title}}"
+- 内容: {{story_text}}
+- 希望スタイル: {{style_preference}}
+- 対象言語: {{language}}
+
+## 創作指針
+この物語をもとに、起承転結のある構成で脚本を考えてください
+台詞には自然で親しみやすい日本語を使う。
+台詞の数が脚本全体で{{beats}}個となるようにカウントする。
+内容は簡潔にまとめ、各台詞の長さは１〜３文程度にする
+元の物語の本質を大切にしながら、現代的な視点で演出を行う
+{{enableCaptions}}
+
+{{scenesTitles}}
+
+## 検証の重要事項
+⚠️ 生成前に必ず確認：
+1. speechParams.speakersで定義したキャラクター名のリストを作成
+2. 各beatのspeakerがこのリストに含まれることを確認
+3. 定義していないキャラクター名は絶対に使用しない
+
+## 技術仕様
+- 正確に{{beats}} beatsで構成する
+- 総時間: 約{{target_duration}}秒
+- 各beatは5-10秒の長さを目安に
+
+## 応答フォーマット
+JSONのmulmocastスクリプトのみで応答してください（追加テキストなし）。
+
+以下は構造の例です。実際のキャラクターとbeatsは物語に基づいて動的に生成してください:
+
+\`\`\`json
+{
+  "$mulmocast": {
+    "version": "1.0"
+  },
+  "title": "{{story_title}}",
+  "lang": "{{language}}",
+  "speechParams": {
+    "provider": "openai",
+    "speakers": {
+      // 物語に基づいて必要なキャラクターを動的に定義
+      // 例: "Narrator", "MainCharacter", "Friend" など
+      // 各キャラクターに適切なvoiceIdとdisplayNameを設定
+      "[CharacterName]": {
+        "voiceId": "[alloy|echo|fable|nova|onyx|shimmer から選択]",
+        "displayName": {
+          "en": "[English Name]",
+          "ja": "[日本語名]"
+        }
+      }
+    }
+  },
+  "imageParams": {
+    "style": "アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明",
+    "model": "gpt-image-1"
+  },
+  "beats": [
+    // {{beats}}個のbeatsを物語の流れに沿って動的に生成
+    // 各beatで適切なspeakerを選択し、わかりやすいテキストと画像プロンプトを作成
+    // 注意: speakerは必ずspeechParams.speakersで定義した名前を使用すること！
+    {
+      "speaker": "[speechParams.speakersに定義したキャラクター名のみ]",
+      "text": "[そのシーンに適した台詞やナレーション]",
+      "imagePrompt": "[シーンを視覚的に表現する詳細な画像プロンプト - 必ず日本語で記述]"
+    }
+  ]
+}
+\`\`\`
+
+## 重要なガイドライン
+1. **動的生成の原則**
+   - 物語の内容に基づいてキャラクターを動的に作成する
+   - 固定のキャラクター名（Narrator, Character等）に縛られない
+   - 物語に最適な話者構成を考える
+
+2. **キャラクター作成**
+   - 必要最小限のキャラクターで効果的な演出を行う
+   - 各キャラクターには明確な役割と個性を与える
+   - displayNameは日本語と英語の両方を適切に設定
+
+3. **音声選択**
+   - 利用可能なvoiceId: alloy, echo, fable, nova, onyx, shimmer
+   - キャラクターの性格に合った音声を選択:
+     - alloy: 中性的、フレンドリー
+     - echo: 男性的、落ち着いた
+     - fable: 男性的、物語調
+     - nova: 女性的、エネルギッシュ
+     - onyx: 男性的、深みのある
+     - shimmer: 女性的、柔らかい
+
+4. **beats構成**
+   - 正確に{{beats}}個のbeatsを作成
+   - 各beatには親しみやすいテキストと明確な画像プロンプト
+   - 物語の流れを大切にした構成
+   - **重要**: beatのspeakerは必ずspeechParams.speakersに定義した名前のみを使用すること
+   - **重要**: imagePromptは必ず日本語で記述すること（英語は使用しない）
+
+5. **その他の要件**
+   - 【重要】視聴者にとってわかりやすく親しみやすい内容にする
+   - mulmocastスキーマに正確に従う
+   - JSONは有効で解析可能である必要がある
+   - コメント（//）は実際のJSONには含めない
+
+mulmocastスクリプトを生成してください:`,
+  variables: ['story_title', 'story_text', 'target_duration', 'style_preference', 'language', 'voice_count', 'beats'],
+  metadata: {
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-12-26T00:00:00Z',
+    usage_count: 0,
+    success_rate: 0
+  }
+};
+
+/**
  * Template registry
  */
 const TEMPLATE_REGISTRY: Record<string, PromptTemplate> = {
   [BASE_MULMOSCRIPT_TEMPLATE.id]: BASE_MULMOSCRIPT_TEMPLATE,
-  [BASE_MULMOSCRIPT_TEMPLATE_JP.id]: BASE_MULMOSCRIPT_TEMPLATE_JP,
+  [BASE_MULMOSCRIPT_TEMPLATE_JP_SHAKESPEARE.id]: BASE_MULMOSCRIPT_TEMPLATE_JP_SHAKESPEARE,
+  [BASE_MULMOSCRIPT_TEMPLATE_JP_GENERAL.id]: BASE_MULMOSCRIPT_TEMPLATE_JP_GENERAL,
 };
 
 // ================================================================
@@ -371,7 +498,13 @@ export function getTemplate(templateId: string): PromptTemplate | null {
  * Get the default template for mulmoscript generation
  */
 export function getDefaultTemplate(): PromptTemplate {
-  return BASE_MULMOSCRIPT_TEMPLATE_JP;
+  const writerType = process.env.SCRIPT_WRITER_TYPE || 'shakespeare';
+  
+  if (writerType === 'general') {
+    return BASE_MULMOSCRIPT_TEMPLATE_JP_GENERAL;
+  }
+  
+  return BASE_MULMOSCRIPT_TEMPLATE_JP_SHAKESPEARE;
 }
 
 /**
@@ -533,12 +666,21 @@ export function generatePrompt(
  */
 export function generateOpenAIPrompt(story: Story, options: Parameters<typeof generatePrompt>[1] = {}) {
   const result = generatePrompt(story, options);
+  const writerType = process.env.SCRIPT_WRITER_TYPE || 'shakespeare';
+  
+  let systemMessage = 'You are an expert storyteller and video script writer. You specialize in converting user stories into structured mulmoscript format for video generation. Always respond with valid JSON only.';
+  
+  if (writerType === 'shakespeare') {
+    systemMessage = 'You are the reincarnation of Shakespeare, now working as an expert storyteller and video script writer. You specialize in converting user stories into dramatic, theatrical mulmoscript format for video generation. Always respond with valid JSON only.';
+  } else if (writerType === 'general') {
+    systemMessage = 'You are an experienced professional screenwriter specializing in creating engaging short-form video content. You excel at converting user stories into accessible, emotionally resonant mulmoscript format for video generation. Always respond with valid JSON only.';
+  }
 
   return {
     messages: [
       {
         role: 'system' as const,
-        content: 'You are an expert storyteller and video script writer. You specialize in converting user stories into structured mulmoscript format for video generation. Always respond with valid JSON only.'
+        content: systemMessage
       },
       {
         role: 'user' as const,

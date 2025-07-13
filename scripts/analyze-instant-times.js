@@ -56,6 +56,7 @@ async function analyzeInstantTimes() {
       'step4-5': { total: 0, count: 0 },
       'step5-6': { total: 0, count: 0 },
       'step6-7': { total: 0, count: 0 },
+      'direct-generation': { total: 0, count: 0 },
       'video-generation': { total: 0, count: 0 }
     };
 
@@ -100,6 +101,7 @@ async function analyzeInstantTimes() {
       'step4-5': '音声割り当て',
       'step5-6': 'BGM・字幕設定',
       'step6-7': '最終処理',
+      'direct-generation': 'ダイレクトMulmoScript生成',
       'video-generation': '動画生成'
     };
 

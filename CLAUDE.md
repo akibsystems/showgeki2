@@ -193,6 +193,14 @@ A comprehensive, mobile-friendly visual editor for MulmoScript structure that se
 - **`INSTANT_MODE_SCENE_COUNT`**: Number of scenes/images to generate in instant mode (1-20)
   - Default: 5 (medium duration)
   - Overrides duration-based scene count settings
+- **`INSTANT_MODE_DIRECT_GENERATION`**: Skip workflow phases 1-6 and generate MulmoScript directly
+  - Default: `false` (use normal workflow phases)
+  - Set to `true` for faster generation using direct OpenAI API call
+  - Direct mode bypasses character analysis, scene structuring etc.
+- **`SCRIPT_WRITER_TYPE`**: Choose between Shakespeare-style or general scriptwriter prompts
+  - Options: `shakespeare` (default) or `general`
+  - `shakespeare`: Uses dramatic, theatrical Shakespeare-inspired prompts
+  - `general`: Uses modern, accessible scriptwriting approach
 
 ### Cloud Run Secrets
 Environment variables are stored in Google Cloud Secret Manager:
@@ -270,7 +278,9 @@ This optimization:
   - **重要**: gpt-4oは古いモデルなので使用しないでください
   - gpt-4.1の方が性能が良く、料金も安いです
 - **Format**: JSON with dynamic beats (1-20 scenes), characters, dialogue, image prompts
-- **Style**: Shakespeare-style Japanese dialogue with anime visuals
+- **Style**: 
+  - Shakespeare mode (`SCRIPT_WRITER_TYPE=shakespeare`): Dramatic 5-act structure with theatrical dialogue
+  - General mode (`SCRIPT_WRITER_TYPE=general`): Modern storytelling with accessible narrative structure
 - **Voices**: Dynamic assignment from OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
 - **Scene Count (Instant Mode)**:
   - Default: 5 scenes (medium duration)
@@ -278,6 +288,15 @@ This optimization:
   - Examples:
     - `INSTANT_MODE_SCENE_COUNT=3` for quick stories
     - `INSTANT_MODE_SCENE_COUNT=10` for detailed narratives
+- **Instant Mode Generation Methods**:
+  - **Normal Mode** (`INSTANT_MODE_DIRECT_GENERATION=false`):
+    - Uses full workflow phases 1-6
+    - Detailed character analysis and scene structuring
+    - Higher quality but slower (2-3 minutes)
+  - **Direct Mode** (`INSTANT_MODE_DIRECT_GENERATION=true`):
+    - Bypasses phases 1-6, generates MulmoScript directly
+    - Single OpenAI API call
+    - Faster generation (30-60 seconds) but less structured
 
 ### Video Output
 - **Duration**: Typically 30-60 seconds (automatically detected from video file)
