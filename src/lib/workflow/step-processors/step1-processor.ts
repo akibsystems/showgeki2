@@ -46,10 +46,13 @@ export async function generateStep2Input(
       charactersList: generatedStoryboard.characters.characters
     };
 
+    console.log(`[step1-processor] Step2Input built:`, JSON.stringify(step2Input, null, 2));
     return step2Input;
 
   } catch (error) {
-    console.error('Step2入力生成エラー:', error);
+    console.error('[step1-processor] Step2入力生成エラー:', error);
+    console.error('[step1-processor] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[step1-processor] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     throw error;
   }
 }
@@ -62,8 +65,10 @@ async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
   acts: ActsData;
   characters: CharactersData;
 }> {
+  console.log(`[step1-processor] generateStoryboardWithAI called`);
   const systemPrompt = createStoryboardSystemPrompt(step1Output);
   const userPrompt = createStoryboardUserPrompt(step1Output);
+  console.log(`[step1-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',

@@ -30,8 +30,12 @@ export async function generateStep6Input(
   storyboardId: string,
   step5Output: Step5Output
 ): Promise<Step6Input> {
+  console.log(`[step5-processor] generateStep6Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  console.log(`[step5-processor] Step5 output received:`, JSON.stringify(step5Output, null, 2));
+  
   try {
     // storyboardから既存のデータを取得
+    console.log(`[step5-processor] Fetching storyboard data from database...`);
     const { data: storyboard, error } = await supabase
       .from('storyboards')
       .select('*')
@@ -39,10 +43,13 @@ export async function generateStep6Input(
       .single();
 
     if (error || !storyboard) {
+      console.error(`[step5-processor] Error fetching storyboard:`, error);
       throw new Error('ストーリーボードの取得に失敗しました');
     }
+    console.log(`[step5-processor] Storyboard fetched successfully`);
 
     // 音声データを更新
+    console.log(`[step5-processor] Updating audio data...`);
     const updatedAudioData: AudioData = {
       voiceSettings: step5Output.userInput.voiceSettings,
       bgmSettings: {
@@ -50,8 +57,10 @@ export async function generateStep6Input(
         bgmVolume: 0.5
       }
     };
+    console.log(`[step5-processor] Updated audio data:`, JSON.stringify(updatedAudioData, null, 2));
 
     // キャラクターデータのvoiceTypeも更新
+    console.log(`[step5-processor] Updating character voice types...`);
     const charactersWithUpdatedVoice = storyboard.characters_data?.characters.map((char: any) => {
       const voiceSetting = step5Output.userInput.voiceSettings[char.id];
       return {
@@ -59,8 +68,10 @@ export async function generateStep6Input(
         voiceType: voiceSetting?.voiceType || char.voiceType || 'alloy'
       };
     }) || [];
+    console.log(`[step5-processor] Characters with updated voice:`, JSON.stringify(charactersWithUpdatedVoice, null, 2));
 
     // storyboardを更新
+    console.log(`[step5-processor] Updating storyboard in database...`);
     const { error: updateError } = await supabase
       .from('storyboards')
       .update({
@@ -73,13 +84,18 @@ export async function generateStep6Input(
       .eq('id', storyboardId);
 
     if (updateError) {
+      console.error(`[step5-processor] Error updating storyboard:`, updateError);
       throw new Error('ストーリーボードの更新に失敗しました');
     }
+    console.log(`[step5-processor] Storyboard updated successfully`);
 
     // AIでBGM提案を生成
+    console.log(`[step5-processor] Generating BGM suggestion with AI...`);
     const bgmSuggestion = await generateBGMSuggestion(storyboard);
+    console.log(`[step5-processor] BGM suggestion generated:`, JSON.stringify(bgmSuggestion, null, 2));
 
     // Step6Input を構築
+    console.log(`[step5-processor] Building Step6Input...`);
     const step6Input: Step6Input = {
       suggestedBgm: bgmSuggestion.suggestedBgm,
       bgmOptions: bgmSuggestion.bgmOptions,
@@ -95,11 +111,13 @@ export async function generateStep6Input(
         ]
       }
     };
+    console.log(`[step5-processor] Step6Input built:`, JSON.stringify(step6Input, null, 2));
 
     return step6Input;
 
   } catch (error) {
-    console.error('Step6入力生成エラー:', error);
+    console.error(`[step5-processor] Error in generateStep6Input:`, error);
+    console.error(`[step5-processor] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
     throw error;
   }
 }
@@ -111,8 +129,10 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   suggestedBgm: string;
   bgmOptions: string[];
 }> {
+  console.log(`[step5-processor] generateBGMSuggestion called`);
   const systemPrompt = createBGMSystemPrompt();
   const userPrompt = createBGMUserPrompt(storyboard);
+  console.log(`[step5-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
@@ -132,9 +152,11 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   });
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
+  console.log(`[step5-processor] OpenAI response received:`, JSON.stringify(result, null, 2));
 
   // 結果を検証
   if (!result.suggestedType) {
+    console.error(`[step5-processor] BGM suggestion missing suggestedType`);
     throw new BGMGenerationError(
       'AIがBGM提案を生成できませんでした。物語の内容を確認してください。',
       'MISSING_BGM_SUGGESTION'
@@ -169,6 +191,7 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   // AIの提案をURLにマッピング
   const suggestedType = result.suggestedType;
   const suggestedBgm = bgmTypeToUrl[suggestedType] || 'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3'; // デフォルト: Rise and Shine
+  console.log(`[step5-processor] Mapped BGM type '${suggestedType}' to URL:`, suggestedBgm);
 
   if (!suggestedBgm || suggestedBgm === 'none') {
     // 'none'の場合もデフォルトを使用

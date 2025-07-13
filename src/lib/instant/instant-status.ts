@@ -15,28 +15,36 @@ export class InstantStatus {
    */
   async update(step: InstantStep, message?: string, progress?: number): Promise<void> {
     console.log(`[InstantStatus] Updating ${this.workflowId}: ${step} - ${message}`);
+    console.log(`[InstantStatus] Progress: ${progress || 'auto-calculated'}`);
     
     const supabase = await createAdminClient();
     const metadata = await this.getMetadata();
+    console.log(`[InstantStatus] Current metadata:`, JSON.stringify(metadata, null, 2));
+    
     metadata.progress = progress || this.calculateProgress(step);
     if (message) {
       metadata.message = message;
     }
     
+    const updateData = {
+      instant_step: step,
+      progress: metadata.progress,
+      instant_metadata: metadata,
+      updated_at: new Date().toISOString()
+    };
+    console.log(`[InstantStatus] Update data:`, JSON.stringify(updateData, null, 2));
+    
     const { error } = await supabase
       .from('workflows')
-      .update({
-        instant_step: step,
-        progress: metadata.progress,
-        instant_metadata: metadata,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', this.workflowId);
 
     if (error) {
       console.error('[InstantStatus] Failed to update status:', error);
+      console.error('[InstantStatus] Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
+    console.log(`[InstantStatus] Status updated successfully`);
   }
 
   /**

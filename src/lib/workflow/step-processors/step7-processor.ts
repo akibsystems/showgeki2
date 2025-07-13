@@ -28,8 +28,12 @@ export async function processStep7Output(
   storyboardId: string,
   step7Output: Step7Output
 ): Promise<void> {
+  console.log(`[step7-processor] processStep7Output called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  console.log(`[step7-processor] Step7 output received:`, JSON.stringify(step7Output, null, 2));
+  
   try {
     // storyboardから既存のデータを取得
+    console.log(`[step7-processor] Fetching storyboard data from database...`);
     const { data: storyboard, error } = await supabase
       .from('storyboards')
       .select('*')
@@ -37,10 +41,13 @@ export async function processStep7Output(
       .single();
 
     if (error || !storyboard) {
+      console.error(`[step7-processor] Failed to fetch storyboard:`, error);
       throw new Error('ストーリーボードの取得に失敗しました');
     }
+    console.log(`[step7-processor] Storyboard fetched successfully`);
 
     // 最終的なメタデータを更新
+    console.log(`[step7-processor] Updating final metadata...`);
     const updatedSummaryData = {
       ...storyboard.summary_data,
       title: step7Output.userInput.title,
@@ -95,12 +102,14 @@ async function onWorkflowComplete(
   storyboardId: string,
   step7Output: Step7Output
 ): Promise<void> {
+  console.log(`[step7-processor] onWorkflowComplete called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  
   try {
     // ログの記録
-    console.log(`ワークフロー完了: ${workflowId}`);
-    console.log(`ストーリーボード: ${storyboardId}`);
-    console.log(`タイトル: ${step7Output.userInput.title}`);
-    console.log(`タグ: ${step7Output.userInput.tags.join(', ')}`);
+    console.log(`[step7-processor] ワークフロー完了: ${workflowId}`);
+    console.log(`[step7-processor] ストーリーボード: ${storyboardId}`);
+    console.log(`[step7-processor] タイトル: ${step7Output.userInput.title}`);
+    console.log(`[step7-processor] タグ: ${step7Output.userInput.tags.join(', ')}`);
 
     // 統計情報の更新や通知の送信など、必要に応じて実装
     await updateWorkflowStatistics(workflowId, storyboardId);
@@ -145,10 +154,11 @@ async function queueVideoGeneration(storyboardId: string): Promise<void> {
     if (error) {
       console.error('動画生成キューへの追加エラー:', error);
     } else {
-      console.log(`動画生成キューに追加: ${storyboardId}`);
+      console.log(`[step7-processor] 動画生成キューに追加: ${storyboardId}`);
     }
   } catch (error) {
-    console.error('動画生成キュー処理エラー:', error);
+    console.error('[step7-processor] 動画生成キュー処理エラー:', error);
+    console.error('[step7-processor] Error type:', error instanceof Error ? error.constructor.name : typeof error);
   }
 }
 
@@ -175,6 +185,8 @@ export async function getWorkflowProgress(workflowId: string): Promise<{
   completedSteps: number[];
   progress: number;
 }> {
+  console.log(`[step7-processor] getWorkflowProgress called for workflow ${workflowId}`);
+  
   try {
     const { data: workflow, error } = await supabase
       .from('workflows')
@@ -183,6 +195,7 @@ export async function getWorkflowProgress(workflowId: string): Promise<{
       .single();
 
     if (error || !workflow) {
+      console.error(`[step7-processor] Failed to fetch workflow:`, error);
       throw new Error('ワークフローが見つかりません');
     }
 

@@ -32,8 +32,12 @@ export async function generateStep4Input(
   storyboardId: string,
   step3Output: Step3Output
 ): Promise<Step4Input> {
+  console.log(`[step3-processor] generateStep4Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  console.log(`[step3-processor] Step3 output received:`, JSON.stringify(step3Output, null, 2));
+  
   try {
     // storyboardから既存のデータを取得
+    console.log(`[step3-processor] Fetching storyboard data from database...`);
     const { data: storyboard, error } = await supabase
       .from('storyboards')
       .select('*')
@@ -41,10 +45,13 @@ export async function generateStep4Input(
       .single();
 
     if (error || !storyboard) {
+      console.error(`[step3-processor] Failed to fetch storyboard:`, error);
       throw new Error('ストーリーボードの取得に失敗しました');
     }
+    console.log(`[step3-processor] Storyboard fetched successfully`);
 
     // workflowから既存のStep4Outputを取得（保存されたプロンプトがあるか確認）
+    console.log(`[step3-processor] Checking for existing Step4 output...`);
     const { data: workflow } = await supabase
       .from('workflows')
       .select('step4_out')
@@ -70,14 +77,17 @@ export async function generateStep4Input(
     };
 
     // AIでシーンごとの台本と画像プロンプトを生成
+    console.log(`[step3-processor] Generating scenes with AI...`);
     const scenesData = await generateScenesWithAI(
       storyboard,
       updatedCharactersData.characters,
       updatedStyleData,
       storyboard.story_data // story_dataを渡す
     );
+    console.log(`[step3-processor] Scenes generated:`, JSON.stringify(scenesData, null, 2));
 
     // フラットな形式からStep4Inputの形式に変換
+    console.log(`[step3-processor] Formatting scenes to Step4Input format...`);
     const formattedScenes = scenesData.scenes.map((scene: any, index: number) => {
       // どの幕・場に属するかを計算
       let actNumber = 1;
@@ -177,8 +187,13 @@ async function generateScenesWithAI(
   styleData: StyleData,
   storyData?: any
 ): Promise<ScenesData> {
+  console.log(`[step3-processor] generateScenesWithAI called`);
+  console.log(`[step3-processor] Characters count:`, characters.length);
+  console.log(`[step3-processor] Style data:`, JSON.stringify(styleData, null, 2));
+  
   const systemPrompt = createSceneSystemPrompt();
   const userPrompt = createSceneUserPrompt(storyboard, characters, styleData, storyData);
+  console.log(`[step3-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',

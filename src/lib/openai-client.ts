@@ -98,6 +98,12 @@ export async function generateMulmoscriptWithOpenAI(
   story: Story,
   options: ScriptGenerationOptions = {}
 ): Promise<GenerationResult> {
+  console.log('[generateMulmoscriptWithOpenAI] ===== START =====');
+  console.log('[generateMulmoscriptWithOpenAI] Story ID:', story.id);
+  console.log('[generateMulmoscriptWithOpenAI] Story title:', story.title);
+  console.log('[generateMulmoscriptWithOpenAI] Story beats:', story.beats);
+  console.log('[generateMulmoscriptWithOpenAI] Options:', JSON.stringify(options, null, 2));
+  
   const startTime = Date.now();
   let retryCount = 0;
   const maxRetries = options.retryCount || 2;
@@ -108,11 +114,13 @@ export async function generateMulmoscriptWithOpenAI(
     maxTokens: 32000,
     temperature: 0.7, // Balanced creativity and consistency
   };
+  console.log('[generateMulmoscriptWithOpenAI] Using config:', config);
 
   try {
     const client = getOpenAIClient();
 
     // Generate prompt using template system
+    console.log('[generateMulmoscriptWithOpenAI] Generating prompt using template system...');
     const promptData = generateOpenAIPrompt(story, {
       templateId: options.templateId,
       targetDuration: options.targetDuration,
@@ -123,13 +131,18 @@ export async function generateMulmoscriptWithOpenAI(
       captionStyles: options.captionStyles,
       scenes: options.scenes,
     });
+    console.log('[generateMulmoscriptWithOpenAI] Prompt template ID:', promptData.metadata.template_id);
+    console.log('[generateMulmoscriptWithOpenAI] System prompt length:', promptData.messages[0].content.length);
+    console.log('[generateMulmoscriptWithOpenAI] User prompt length:', promptData.messages[1].content.length);
 
     const promptHash = createPromptHash(promptData.messages[1].content);
+    console.log('[generateMulmoscriptWithOpenAI] Prompt hash:', promptHash);
 
     // Retry logic for handling API failures
     while (retryCount <= maxRetries) {
       try {
-        console.log(`[OpenAI] Generating script for story ${story.id} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        console.log(`[generateMulmoscriptWithOpenAI] Generating script for story ${story.id} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        console.log(`[generateMulmoscriptWithOpenAI] Calling OpenAI API...`);
 
         // Call OpenAI API
         const completion = await client.chat.completions.create({
@@ -139,6 +152,7 @@ export async function generateMulmoscriptWithOpenAI(
           temperature: config.temperature,
           response_format: { type: "json_object" }, // Ensure JSON response
         });
+        console.log(`[generateMulmoscriptWithOpenAI] OpenAI API call completed`);
 
         const responseTime = Date.now() - startTime;
         const choice = completion.choices[0];
@@ -149,27 +163,44 @@ export async function generateMulmoscriptWithOpenAI(
 
         // Extract and validate JSON
         const rawContent = choice.message.content;
+        console.log(`[generateMulmoscriptWithOpenAI] Response content length:`, rawContent.length);
+        
         let scriptData: any;
 
         try {
+          console.log(`[generateMulmoscriptWithOpenAI] Extracting JSON from response...`);
           scriptData = extractJSONFromResponse(rawContent);
+          console.log(`[generateMulmoscriptWithOpenAI] JSON extracted successfully`);
         } catch (parseError) {
+          console.error(`[generateMulmoscriptWithOpenAI] JSON parsing failed:`, parseError);
           throw new Error(`JSON parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         }
 
         // Validate generated script structure
+        console.log(`[generateMulmoscriptWithOpenAI] Validating generated script structure...`);
         const validation = validateGeneratedScript(scriptData);
         if (!validation.valid) {
+          console.error(`[generateMulmoscriptWithOpenAI] Script validation failed:`, validation.errors);
           throw new Error(`Generated script validation failed: ${validation.errors.join(', ')}`);
         }
+        console.log(`[generateMulmoscriptWithOpenAI] Script structure validation passed`);
 
         // Final Zod validation
+        console.log(`[generateMulmoscriptWithOpenAI] Running Zod schema validation...`);
         const zodValidation = validateSchema(MulmoscriptSchema, validation.script);
         if (!zodValidation.success) {
+          console.error(`[generateMulmoscriptWithOpenAI] Zod validation failed:`, zodValidation.errors);
           throw new Error(`Zod validation failed: ${zodValidation.errors?.map(e => e.message).join(', ')}`);
         }
+        console.log(`[generateMulmoscriptWithOpenAI] Zod validation passed`);
 
         // Log successful generation
+        console.log(`[generateMulmoscriptWithOpenAI] Script generation successful`);
+        console.log(`[generateMulmoscriptWithOpenAI] Response time: ${responseTime}ms`);
+        console.log(`[generateMulmoscriptWithOpenAI] Input tokens: ${completion.usage?.prompt_tokens || 0}`);
+        console.log(`[generateMulmoscriptWithOpenAI] Output tokens: ${completion.usage?.completion_tokens || 0}`);
+        console.log(`[generateMulmoscriptWithOpenAI] Total tokens: ${(completion.usage?.prompt_tokens || 0) + (completion.usage?.completion_tokens || 0)}`);
+        
         const performanceLog: PromptPerformanceLog = {
           template_id: promptData.metadata.template_id,
           prompt_hash: promptHash,
@@ -183,7 +214,8 @@ export async function generateMulmoscriptWithOpenAI(
 
         logPromptPerformance(performanceLog);
 
-        console.log(`[OpenAI] Successfully generated script for story ${story.id} in ${responseTime}ms`);
+        console.log(`[generateMulmoscriptWithOpenAI] Successfully generated script for story ${story.id} in ${responseTime}ms`);
+        console.log(`[generateMulmoscriptWithOpenAI] ===== END (SUCCESS) =====`);
 
         return {
           success: true,
@@ -203,9 +235,13 @@ export async function generateMulmoscriptWithOpenAI(
         retryCount++;
         const errorMessage = attemptError instanceof Error ? attemptError.message : 'Unknown error';
 
-        console.warn(`[OpenAI] Attempt ${retryCount} failed for story ${story.id}: ${errorMessage}`);
+        console.error(`[generateMulmoscriptWithOpenAI] Attempt ${retryCount} failed for story ${story.id}: ${errorMessage}`);
+        console.error(`[generateMulmoscriptWithOpenAI] Error type:`, attemptError instanceof Error ? attemptError.constructor.name : typeof attemptError);
+        console.error(`[generateMulmoscriptWithOpenAI] Error details:`, attemptError);
 
         if (retryCount > maxRetries) {
+          console.error(`[generateMulmoscriptWithOpenAI] Maximum retries (${maxRetries}) exceeded`);
+          
           // Log failed generation
           const performanceLog: PromptPerformanceLog = {
             template_id: promptData.metadata.template_id,
@@ -225,7 +261,9 @@ export async function generateMulmoscriptWithOpenAI(
         }
 
         // Wait before retry (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        const waitTime = Math.pow(2, retryCount) * 1000;
+        console.log(`[generateMulmoscriptWithOpenAI] Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
 
@@ -234,8 +272,14 @@ export async function generateMulmoscriptWithOpenAI(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error during script generation';
     const responseTime = Date.now() - startTime;
+    
+    console.error(`[generateMulmoscriptWithOpenAI] Unhandled error occurred`);
+    console.error(`[generateMulmoscriptWithOpenAI] Error type:`, error instanceof Error ? error.constructor.name : typeof error);
+    console.error(`[generateMulmoscriptWithOpenAI] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
 
-    console.error(`[OpenAI] Failed to generate script for story ${story.id}: ${errorMessage}`);
+    console.error(`[generateMulmoscriptWithOpenAI] Failed to generate script for story ${story.id}: ${errorMessage}`);
+    console.error(`[generateMulmoscriptWithOpenAI] Total time elapsed: ${responseTime}ms`);
+    console.error(`[generateMulmoscriptWithOpenAI] ===== END (FAILURE) =====`);
 
     return {
       success: false,

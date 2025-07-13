@@ -31,8 +31,12 @@ export async function generateStep5Input(
   storyboardId: string,
   step4Output: Step4Output
 ): Promise<Step5Input> {
+  console.log(`[step4-processor] generateStep5Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  console.log(`[step4-processor] Step4 output received:`, JSON.stringify(step4Output, null, 2));
+  
   try {
     // storyboardから既存のデータを取得
+    console.log(`[step4-processor] Fetching storyboard data from database...`);
     const { data: storyboard, error } = await supabase
       .from('storyboards')
       .select('*')
@@ -40,10 +44,13 @@ export async function generateStep5Input(
       .single();
 
     if (error || !storyboard) {
+      console.error(`[step4-processor] Failed to fetch storyboard:`, error);
       throw new Error('ストーリーボードの取得に失敗しました');
     }
+    console.log(`[step4-processor] Storyboard fetched successfully`);
 
     // シーンデータを更新
+    console.log(`[step4-processor] Updating scene data...`);
     // step3-processorで既にactNumber, sceneNumber, titleが設定されているので、
     // scenes_dataから既存の情報を取得して使用
     const existingScenesData = storyboard.scenes_data?.scenes || [];
@@ -70,16 +77,21 @@ export async function generateStep5Input(
       .eq('id', storyboardId);
 
     if (updateError) {
+      console.error(`[step4-processor] Failed to update storyboard:`, updateError);
       throw new Error('ストーリーボードの更新に失敗しました');
     }
+    console.log(`[step4-processor] Storyboard updated successfully`);
 
     // AIで音声設定を生成
+    console.log(`[step4-processor] Generating voice settings with AI...`);
     const voiceSettings = await generateVoiceSettings(
       storyboard.characters_data?.characters || [],
       updatedScenesData.scenes
     );
+    console.log(`[step4-processor] Voice settings generated:`, JSON.stringify(voiceSettings, null, 2));
 
     // charactersデータにsuggestedVoiceを追加
+    console.log(`[step4-processor] Adding suggested voices to characters...`);
     const charactersWithVoice = storyboard.characters_data?.characters.map((char: any) => {
       const voiceSetting = voiceSettings.characters.find(v => v.id === char.id);
       return {
@@ -100,19 +112,25 @@ export async function generateStep5Input(
       .eq('id', storyboardId);
 
     if (charUpdateError) {
-      console.error('キャラクターデータの更新に失敗しました:', charUpdateError);
+      console.error('[step4-processor] キャラクターデータの更新に失敗しました:', charUpdateError);
+    } else {
+      console.log(`[step4-processor] Character data updated successfully`);
     }
 
     // Step5Input を構築
+    console.log(`[step4-processor] Building Step5Input...`);
     const step5Input: Step5Input = {
       characters: voiceSettings.characters,
       scenes: voiceSettings.scenes
     };
 
+    console.log(`[step4-processor] Step5Input built:`, JSON.stringify(step5Input, null, 2));
     return step5Input;
 
   } catch (error) {
-    console.error('Step5入力生成エラー:', error);
+    console.error('[step4-processor] Step5入力生成エラー:', error);
+    console.error('[step4-processor] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[step4-processor] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     throw error;
   }
 }
@@ -139,8 +157,13 @@ async function generateVoiceSettings(
     }>;
   }>;
 }> {
+  console.log(`[step4-processor] generateVoiceSettings called`);
+  console.log(`[step4-processor] Characters count:`, characters.length);
+  console.log(`[step4-processor] Scenes count:`, scenes.length);
+  
   const systemPrompt = createVoiceSystemPrompt();
   const userPrompt = createVoiceUserPrompt(characters);
+  console.log(`[step4-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',

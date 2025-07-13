@@ -30,8 +30,12 @@ export async function generateStep3Input(
   storyboardId: string,
   step2Output: Step2Output
 ): Promise<Step3Input> {
+  console.log(`[step2-processor] generateStep3Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
+  console.log(`[step2-processor] Step2 output received:`, JSON.stringify(step2Output, null, 2));
+  
   try {
     // storyboardから既存のデータを取得
+    console.log(`[step2-processor] Fetching storyboard data from database...`);
     const { data: storyboard, error } = await supabase
       .from('storyboards')
       .select('*')
@@ -39,15 +43,19 @@ export async function generateStep3Input(
       .single();
 
     if (error || !storyboard) {
+      console.error(`[step2-processor] Failed to fetch storyboard:`, error);
       throw new Error('ストーリーボードの取得に失敗しました');
     }
+    console.log(`[step2-processor] Storyboard fetched successfully`);
 
     // AIでキャラクターの詳細化
+    console.log(`[step2-processor] Generating detailed characters with AI...`);
     const detailedCharacters = await generateDetailedCharacters(
       step2Output,
       storyboard.characters_data?.characters || [],
       storyboard.story_data // story_dataを渡す
     );
+    console.log(`[step2-processor] Detailed characters generated:`, JSON.stringify(detailedCharacters, null, 2));
 
     // storyboardを更新
     const updatedCharactersData: CharactersData = {
@@ -65,19 +73,25 @@ export async function generateStep3Input(
       .eq('id', storyboardId);
 
     if (updateError) {
+      console.error(`[step2-processor] Failed to update storyboard:`, updateError);
       throw new Error('ストーリーボードの更新に失敗しました');
     }
+    console.log(`[step2-processor] Storyboard updated successfully`);
 
     // Step3Input を構築
+    console.log(`[step2-processor] Building Step3Input...`);
     const step3Input: Step3Input = {
       title: step2Output.userInput.title,
       detailedCharacters
     };
 
+    console.log(`[step2-processor] Step3Input built:`, JSON.stringify(step3Input, null, 2));
     return step3Input;
 
   } catch (error) {
-    console.error('Step3入力生成エラー:', error);
+    console.error('[step2-processor] Step3入力生成エラー:', error);
+    console.error('[step2-processor] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[step2-processor] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     throw error;
   }
 }
@@ -96,8 +110,12 @@ async function generateDetailedCharacters(
   personality: string;
   visualDescription: string;
 }>> {
+  console.log(`[step2-processor] generateDetailedCharacters called`);
+  console.log(`[step2-processor] Existing characters count:`, existingCharacters.length);
+  
   const systemPrompt = createCharacterSystemPrompt();
   const userPrompt = createCharacterUserPrompt(step2Output, existingCharacters, storyData);
+  console.log(`[step2-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',

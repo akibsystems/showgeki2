@@ -92,14 +92,22 @@ export async function executeStepProcessor<T>(
   step: number,
   errorCode: string
 ): Promise<StepProcessorResult<T>> {
+  console.log(`[executeStepProcessor] Starting execution for step ${step} with error code ${errorCode}`);
+  const startTime = Date.now();
+  
   try {
     const data = await processorFn();
+    const executionTime = Date.now() - startTime;
+    console.log(`[executeStepProcessor] Step ${step} completed successfully in ${executionTime}ms`);
     return {
       success: true,
       data
     };
   } catch (error) {
-    console.error(`Step ${step} processor error:`, error);
+    const executionTime = Date.now() - startTime;
+    console.error(`[executeStepProcessor] Step ${step} processor error after ${executionTime}ms:`, error);
+    console.error(`[executeStepProcessor] Error type:`, error instanceof Error ? error.constructor.name : typeof error);
+    console.error(`[executeStepProcessor] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
     
     // 特定のエラータイプをチェックして、適切なエラー情報を返す
     if (error instanceof StoryboardGenerationError ||
@@ -148,8 +156,13 @@ export class WorkflowStepManager {
     currentStep: number,
     stepOutput: any
   ): Promise<StepProcessorResult<any>> {
+    console.log(`[WorkflowStepManager] proceedToNextStep called for workflow ${this.workflowId}`);
+    console.log(`[WorkflowStepManager] Current step: ${currentStep}`);
+    console.log(`[WorkflowStepManager] Step output:`, JSON.stringify(stepOutput, null, 2));
+    
     switch (currentStep) {
       case 1:
+        console.log(`[WorkflowStepManager] Processing Step 1 → 2`);
         return executeStepProcessor(
           () => generateStep2Input(this.workflowId, this.storyboardId, stepOutput),
           2,
@@ -157,6 +170,7 @@ export class WorkflowStepManager {
         );
       
       case 2:
+        console.log(`[WorkflowStepManager] Processing Step 2 → 3`);
         return executeStepProcessor(
           () => generateStep3Input(this.workflowId, this.storyboardId, stepOutput),
           3,
@@ -164,6 +178,7 @@ export class WorkflowStepManager {
         );
       
       case 3:
+        console.log(`[WorkflowStepManager] Processing Step 3 → 4`);
         return executeStepProcessor(
           () => generateStep4Input(this.workflowId, this.storyboardId, stepOutput),
           4,
@@ -199,6 +214,7 @@ export class WorkflowStepManager {
         );
       
       default:
+        console.error(`[WorkflowStepManager] Invalid step number: ${currentStep}`);
         return {
           success: false,
           error: {

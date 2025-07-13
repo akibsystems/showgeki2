@@ -45,12 +45,21 @@ export async function processInstantMode({
   try {
 
     if (isDirectMode) {
+      console.log(`[InstantGenerator] ===== DIRECT MODE STARTED =====`);
       console.log(`[InstantGenerator] Using direct MulmoScript generation mode`);
+      console.log(`[InstantGenerator] Workflow ID: ${workflowId}`);
+      console.log(`[InstantGenerator] Storyboard ID: ${storyboardId}`);
+      console.log(`[InstantGenerator] User ID: ${uid}`);
+      console.log(`[InstantGenerator] Input data:`, JSON.stringify(input, null, 2));
+      console.log(`[InstantGenerator] Scene count (beats): ${getSceneCountForDuration(input.duration || 'medium')}`);
+      console.log(`[InstantGenerator] Script writer type: ${process.env.SCRIPT_WRITER_TYPE || 'shakespeare'}`);
 
       // ダイレクトモードの処理
       await status.update('generating', 'MulmoScriptを直接生成中...', 10);
+      console.log(`[InstantGenerator] Status updated to 'generating'`);
 
       // ストーリーボードからStoryオブジェクトを作成
+      console.log(`[InstantGenerator] Fetching storyboard from database...`);
       const { data: storyboard } = await supabase
         .from('storyboards')
         .select('*')
@@ -58,10 +67,13 @@ export async function processInstantMode({
         .single();
 
       if (!storyboard) {
+        console.error(`[InstantGenerator] Storyboard not found for ID: ${storyboardId}`);
         throw new Error('ストーリーボードが見つかりません');
       }
+      console.log(`[InstantGenerator] Storyboard fetched successfully`);
 
       // Story型に合わせたオブジェクトを作成
+      console.log(`[InstantGenerator] Creating Story object...`);
       const story: Story = {
         id: storyboard.id,
         workspace_id: workflowId, // 仮のworkspace_id
@@ -75,11 +87,20 @@ export async function processInstantMode({
         updated_at: new Date().toISOString()
       };
 
-      console.log("@@@@@@@@@@@@@@@@@@@@@");
-      console.log("story", story);
-      console.log("@@@@@@@@@@@@@@@@@@@@@");
+      console.log("[InstantGenerator] Story object created:", JSON.stringify(story, null, 2));
 
       // 直接MulmoScriptを生成
+      console.log(`[InstantGenerator] Calling generateMulmoscriptWithOpenAI...`);
+      const generationOptions = {
+        beats: story.beats,
+        language: 'ja',
+        stylePreference: input.genre === 'comedy' ? 'comedic' : 'dramatic',
+        targetDuration: input.duration === 'short' ? 30 : input.duration === 'long' ? 90 : 60,
+        enableCaptions: true,
+        captionStyles: [`font-size: ${INSTANT_DEFAULTS.caption.fontSize}px`]
+      };
+      console.log(`[InstantGenerator] Generation options:`, JSON.stringify(generationOptions, null, 2));
+      
       const generationResult = await generateMulmoscriptWithOpenAI(story, {
         beats: story.beats,
         language: 'ja',
@@ -90,8 +111,11 @@ export async function processInstantMode({
       });
 
       if (!generationResult.success || !generationResult.script) {
+        console.error(`[InstantGenerator] MulmoScript generation failed`);
+        console.error(`[InstantGenerator] Generation result:`, JSON.stringify(generationResult, null, 2));
         throw new Error('MulmoScript生成に失敗しました');
       }
+      console.log(`[InstantGenerator] MulmoScript generated successfully`);
 
       const generatedScript = generationResult.script;
 
@@ -100,17 +124,29 @@ export async function processInstantMode({
       lastStepTime = Date.now();
       console.log(`[InstantGenerator] Direct MulmoScript generation completed in ${stepTimings['direct-generation']}ms`);
 
-      console.log("generationResult.script", JSON.stringify(generatedScript, null, 2));
-      console.log("@@@@@@@@@@@@@@@@@@@@@");
-      console.log("Script structure check:");
-      console.log("- Has $mulmocast:", !!generatedScript.$mulmocast);
-      console.log("- Has beats:", !!generatedScript.beats);
-      console.log("- Beats count:", generatedScript.beats?.length);
-      console.log("- Has speechParams:", !!generatedScript.speechParams);
-      console.log("@@@@@@@@@@@@@@@@@@@@@");
+      console.log("[InstantGenerator] Script structure validation:");
+      console.log("[InstantGenerator] - Has $mulmocast:", !!generatedScript.$mulmocast);
+      console.log("[InstantGenerator] - Has beats:", !!generatedScript.beats);
+      console.log("[InstantGenerator] - Beats count:", generatedScript.beats?.length);
+      console.log("[InstantGenerator] - Has speechParams:", !!generatedScript.speechParams);
+      console.log("[InstantGenerator] - Has imageParams:", !!generatedScript.imageParams);
+      console.log("[InstantGenerator] - Has captionParams:", !!generatedScript.captionParams);
+      
+      // 各beatの詳細も確認
+      if (generatedScript.beats) {
+        console.log("[InstantGenerator] Beat details:");
+        generatedScript.beats.forEach((beat: any, index: number) => {
+          console.log(`[InstantGenerator]   Beat ${index + 1}:`);
+          console.log(`[InstantGenerator]     - Speaker: ${beat.speaker}`);
+          console.log(`[InstantGenerator]     - Text length: ${beat.text?.length || 0} chars`);
+          console.log(`[InstantGenerator]     - Has imagePrompt: ${!!beat.imagePrompt}`);
+        });
+      }
 
 
       // MulmoScriptをストーリーボードに保存
+      console.log(`[InstantGenerator] Saving MulmoScript to storyboard...`);
+      console.log(`[InstantGenerator] Script size: ${JSON.stringify(generatedScript).length} bytes`);
       const { error: updateError } = await supabase
         .from('storyboards')
         .update({
@@ -121,16 +157,23 @@ export async function processInstantMode({
         .eq('id', storyboardId);
 
       if (updateError) {
+        console.error(`[InstantGenerator] Failed to save MulmoScript:`, updateError);
+        console.error(`[InstantGenerator] Update error details:`, JSON.stringify(updateError, null, 2));
         throw new Error('MulmoScriptの保存に失敗しました');
       }
+      console.log(`[InstantGenerator] MulmoScript saved successfully`);
+      console.log(`[InstantGenerator] ===== DIRECT MODE MULMOSCRIPT GENERATION COMPLETED =====`);
 
       await status.update('generating', '動画生成を開始中...', 90);
 
     } else {
       // 通常モード: Step 1→2 から開始
+      console.log(`[InstantGenerator] Starting phase processing mode for workflow ${workflowId}`);
       await status.update('analyzing');
+      console.log(`[InstantGenerator] Status updated to 'analyzing'`);
 
       // Step1Output を準備
+      console.log(`[InstantGenerator] Preparing Step1Output...`);
       const step1Output: Step1Output = {
         userInput: {
           storyText: input.storyText,
@@ -145,16 +188,24 @@ export async function processInstantMode({
           }
         }
       };
+      console.log(`[InstantGenerator] Step1Output prepared:`, JSON.stringify(step1Output, null, 2));
 
       // ワークフローのstep1_outに保存（既存のprocessorが期待するため）
+      console.log(`[InstantGenerator] Saving Step1 output to database...`);
       await saveStepOutput(supabase, workflowId, 1, step1Output);
+      console.log(`[InstantGenerator] Step1 output saved successfully`);
 
       // Step 1→2 の処理を実行
+      console.log(`[InstantGenerator] Starting Step 1→2 processing...`);
       const step2Result = await stepManager.proceedToNextStep(1, step1Output);
+      console.log(`[InstantGenerator] Step2 result:`, { success: step2Result.success, hasData: !!step2Result.data, error: step2Result.error });
       if (!step2Result.success) {
+        console.error(`[InstantGenerator] Step2 failed:`, step2Result.error);
         throw new Error(step2Result.error?.message || 'Step2生成に失敗しました');
       }
+      console.log(`[InstantGenerator] Step2 data received:`, JSON.stringify(step2Result.data, null, 2));
       await status.update('structuring', undefined, 20);
+      console.log(`[InstantGenerator] Status updated to 'structuring'`);
 
       // Step 1→2 の実行時間を記録
       stepTimings['step1-2'] = Date.now() - lastStepTime;
@@ -163,19 +214,28 @@ export async function processInstantMode({
 
       // Step 2→3: キャラクター詳細生成
       // 既存のprocessorはユーザー入力を期待するので、デフォルト値を設定
+      console.log(`[InstantGenerator] Preparing Step2Output...`);
       const step2Output = {
         userInput: {
           title: input.title || step2Result.data.suggestedTitle,
           acts: step2Result.data.acts
         }
       };
+      console.log(`[InstantGenerator] Step2Output prepared:`, JSON.stringify(step2Output, null, 2));
+      console.log(`[InstantGenerator] Saving Step2 output to database...`);
       await saveStepOutput(supabase, workflowId, 2, step2Output);
+      console.log(`[InstantGenerator] Step2 output saved successfully`);
 
+      console.log(`[InstantGenerator] Starting Step 2→3 processing...`);
       const step3Result = await stepManager.proceedToNextStep(2, step2Output);
+      console.log(`[InstantGenerator] Step3 result:`, { success: step3Result.success, hasData: !!step3Result.data, error: step3Result.error });
       if (!step3Result.success) {
+        console.error(`[InstantGenerator] Step3 failed:`, step3Result.error);
         throw new Error(step3Result.error?.message || 'Step3生成に失敗しました');
       }
+      console.log(`[InstantGenerator] Step3 data received:`, JSON.stringify(step3Result.data, null, 2));
       await status.update('characters', undefined, 35);
+      console.log(`[InstantGenerator] Status updated to 'characters'`);
 
       // Step 2→3 の実行時間を記録
       stepTimings['step2-3'] = Date.now() - lastStepTime;
@@ -184,8 +244,10 @@ export async function processInstantMode({
 
       // Step 3→4: 台本生成
       // 画風設定を追加（visualStyleフィールドを使用）
+      console.log(`[InstantGenerator] Preparing Step3Output...`);
       const imageStyle = input.visualStyle || 'anime';
       const styleConfig = getImageStyleConfig(imageStyle as 'anime' | 'realistic' | 'watercolor');
+      console.log(`[InstantGenerator] Image style config:`, { imageStyle, styleConfig });
       const step3Output: Step3Output = {
         userInput: {
           characters: step3Result.data.detailedCharacters.map((char: any) => ({
@@ -200,13 +262,21 @@ export async function processInstantMode({
           }
         }
       };
+      console.log(`[InstantGenerator] Step3Output prepared:`, JSON.stringify(step3Output, null, 2));
+      console.log(`[InstantGenerator] Saving Step3 output to database...`);
       await saveStepOutput(supabase, workflowId, 3, step3Output);
+      console.log(`[InstantGenerator] Step3 output saved successfully`);
 
+      console.log(`[InstantGenerator] Starting Step 3→4 processing...`);
       const step4Result = await stepManager.proceedToNextStep(3, step3Output);
+      console.log(`[InstantGenerator] Step4 result:`, { success: step4Result.success, hasData: !!step4Result.data, error: step4Result.error });
       if (!step4Result.success) {
+        console.error(`[InstantGenerator] Step4 failed:`, step4Result.error);
         throw new Error(step4Result.error?.message || 'Step4生成に失敗しました');
       }
+      console.log(`[InstantGenerator] Step4 data received:`, JSON.stringify(step4Result.data, null, 2));
       await status.update('script', undefined, 50);
+      console.log(`[InstantGenerator] Status updated to 'script'`);
 
       // Step 3→4 の実行時間を記録
       stepTimings['step3-4'] = Date.now() - lastStepTime;
@@ -332,7 +402,13 @@ export async function processInstantMode({
     console.log(`[InstantGenerator] Completed instant mode for workflow ${workflowId}`);
 
   } catch (error) {
-    console.error('[InstantGenerator] Error:', error);
+    console.error('[InstantGenerator] ===== ERROR OCCURRED =====');
+    console.error('[InstantGenerator] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[InstantGenerator] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[InstantGenerator] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[InstantGenerator] Current workflow ID:', workflowId);
+    console.error('[InstantGenerator] Current storyboard ID:', storyboardId);
+    console.error('[InstantGenerator] ==========================');
     const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました';
     await status.fail(errorMessage);
     throw error;
@@ -342,18 +418,27 @@ export async function processInstantMode({
 
 // ヘルパー関数: ステップ出力を保存
 async function saveStepOutput(supabase: any, workflowId: string, step: number, output: any) {
+  console.log(`[saveStepOutput] Saving step ${step} output for workflow ${workflowId}`);
+  console.log(`[saveStepOutput] Output size: ${JSON.stringify(output).length} bytes`);
+  
+  const updateData = {
+    [`step${step}_out`]: output,
+    current_step: step + 1
+  };
+  console.log(`[saveStepOutput] Updating workflow with current_step: ${step + 1}`);
+  
   const { error } = await supabase
     .from('workflows')
-    .update({
-      [`step${step}_out`]: output,
-      current_step: step + 1
-    })
+    .update(updateData)
     .eq('id', workflowId);
 
   if (error) {
-    console.error(`Failed to save step ${step} output:`, error);
-    throw new Error(`ステップ${step}の出力保存に失敗しました`);
+    console.error(`[saveStepOutput] Failed to save step ${step} output:`, error);
+    console.error(`[saveStepOutput] Error details:`, JSON.stringify(error, null, 2));
+    throw new Error(`ステップ${step}の出力保存に失敗しました: ${error.message}`);
   }
+  
+  console.log(`[saveStepOutput] Successfully saved step ${step} output`);
 }
 
 // ヘルパー関数: Step5の結果からvoiceSettingsを抽出
