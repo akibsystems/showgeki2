@@ -10,40 +10,25 @@ const ArrowLeftIcon = ({ className }: { className?: string }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
   </svg>
 );
-import type { InstantModeInput } from '@/types/instant';
 
 // New UI form data interface
 interface NewStoryFormData {
   storyText: string;
-  genre?: 'tragedy' | 'comedy' | 'romance' | 'action' | 'mystery' | 'horror';
-  style?: 'short' | 'lengthy' | 'detailed' | 'concise';
-  mood?: 'fantasy' | 'realistic' | 'dramatic' | 'light' | 'dark' | 'mysterious';
+  genre?: 'tragedy' | 'comedy';
+  style?: 'anime' | 'realistic' | 'watercolor';
+  castImage?: File;
 }
 
 // UI Option Definitions
 const GENRE_OPTIONS = [
-  { value: 'tragedy', label: 'Tragedy', emoji: '😢' },
-  { value: 'comedy', label: 'Comedy', emoji: '😄' },
-  { value: 'romance', label: 'Romance', emoji: '💕' },
-  { value: 'action', label: 'Action', emoji: '⚡' },
-  { value: 'mystery', label: 'Mystery', emoji: '🔍' },
-  { value: 'horror', label: 'Horror', emoji: '👻' },
+  { value: 'tragedy', label: '悲劇' },
+  { value: 'comedy', label: '喜劇' },
 ] as const;
 
 const STYLE_OPTIONS = [
-  { value: 'short', label: 'Short', emoji: '📝' },
-  { value: 'lengthy', label: 'Lengthy', emoji: '📚' },
-  { value: 'detailed', label: 'Detailed', emoji: '🔬' },
-  { value: 'concise', label: 'Concise', emoji: '✨' },
-] as const;
-
-const MOOD_OPTIONS = [
-  { value: 'fantasy', label: 'Fantasy', emoji: '🧙‍♂️' },
-  { value: 'realistic', label: 'Realistic', emoji: '🌍' },
-  { value: 'dramatic', label: 'Dramatic', emoji: '🎭' },
-  { value: 'light', label: 'Light', emoji: '☀️' },
-  { value: 'dark', label: 'Dark', emoji: '🌙' },
-  { value: 'mysterious', label: 'Mysterious', emoji: '🌫️' },
+  { value: 'anime', label: 'アニメ' },
+  { value: 'realistic', label: '実写' },
+  { value: 'watercolor', label: '水彩画' },
 ] as const;
 
 export default function InstantCreatePage() {
@@ -55,9 +40,10 @@ export default function InstantCreatePage() {
     storyText: '',
     genre: undefined,
     style: undefined,
-    mood: undefined,
+    castImage: undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Handle navigation
   const handleBack = () => {
@@ -66,6 +52,26 @@ export default function InstantCreatePage() {
 
   const handleCancel = () => {
     router.push('/');
+  };
+
+  // Handle image upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, castImage: file });
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData({ ...formData, castImage: undefined });
+    setImagePreview(null);
   };
 
   // Handle form submission
@@ -91,17 +97,18 @@ export default function InstantCreatePage() {
     setIsSubmitting(true);
 
     try {
-      // Convert new UI data to legacy API format with type assertion
+      // Convert new UI data to API format
       const apiData: any = {
         storyText: formData.storyText,
         title: '', // Will be auto-generated
-        visualStyle: 'anime', // Default visual style (use visualStyle for legacy compatibility)
+        visualStyle: formData.style || 'anime', // Use selected style or default to anime
         duration: 'medium', // Default duration
-        // Include new fields for future processing
+        // Include genre for future processing
         ...(formData.genre && { genre: formData.genre }),
-        ...(formData.style && { narrativeStyle: formData.style }),
-        ...(formData.mood && { mood: formData.mood }),
       };
+
+      // TODO: Handle cast image upload
+      // If castImage exists, upload it first and include reference in apiData
 
       const response = await fetch('/api/instant/create', {
         method: 'POST',
@@ -130,7 +137,7 @@ export default function InstantCreatePage() {
 
   // Option Button Component
   interface OptionButtonProps {
-    option: { value: string; label: string; emoji: string };
+    option: { value: string; label: string };
     isSelected: boolean;
     onClick: () => void;
   }
@@ -140,14 +147,13 @@ export default function InstantCreatePage() {
       type="button"
       onClick={onClick}
       className={`
-        flex items-center justify-center px-4 py-3 rounded-xl border-2 transition-all duration-200
+        flex items-center justify-center px-4 py-3 rounded-xl border transition-all duration-200
         ${isSelected 
-          ? 'border-purple-500 bg-purple-500/10 text-purple-400' 
-          : 'border-gray-700 hover:border-gray-600 bg-gray-800/50 text-gray-300 hover:text-white'
+          ? 'border-blue-500 bg-blue-50 text-blue-600' 
+          : 'border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900'
         }
       `}
     >
-      <span className="text-lg mr-2">{option.emoji}</span>
       <span className="font-medium">{option.label}</span>
     </button>
   );
@@ -155,10 +161,10 @@ export default function InstantCreatePage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Verifying authentication...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">認証確認中...</p>
         </div>
       </div>
     );
@@ -168,34 +174,34 @@ export default function InstantCreatePage() {
   if (!user) {
     router.push('/auth/login');
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400">Redirecting to login...</p>
+          <p className="text-gray-600">ログインページへ移動中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gray-950/80 backdrop-blur-md border-b border-gray-800">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between px-4 py-4">
           <button
             onClick={handleBack}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
-            aria-label="Go back"
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="戻る"
           >
-            <ArrowLeftIcon className="w-5 h-5 text-gray-300" />
+            <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
           </button>
           
-          <h1 className="text-lg font-semibold text-white">New Story</h1>
+          <h1 className="text-lg font-semibold text-gray-900">新しいストーリー</h1>
           
           <button
             onClick={handleCancel}
-            className="px-3 py-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
-            Cancel
+            キャンセル
           </button>
         </div>
       </div>
@@ -208,22 +214,22 @@ export default function InstantCreatePage() {
             <textarea
               value={formData.storyText}
               onChange={(e) => setFormData({ ...formData, storyText: e.target.value })}
-              placeholder="A story about a teenager seeking revenge"
+              placeholder="今日、久しぶりに実家に帰りました。母が作ってくれた手料理を食べながら、家族みんなで昔話に花を咲かせました。"
               rows={6}
-              className="w-full px-4 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
             <p className="text-xs text-gray-500 text-right">
-              {formData.storyText.length} characters
+              {formData.storyText.length} 文字
             </p>
           </div>
 
           {/* Genre Selection */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Genre
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700">
+              ジャンル
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex gap-3">
               {GENRE_OPTIONS.map((option) => (
                 <OptionButton
                   key={option.value}
@@ -239,11 +245,11 @@ export default function InstantCreatePage() {
           </div>
 
           {/* Style Selection */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Style
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700">
+              スタイル
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex gap-3">
               {STYLE_OPTIONS.map((option) => (
                 <OptionButton
                   key={option.value}
@@ -258,23 +264,48 @@ export default function InstantCreatePage() {
             </div>
           </div>
 
-          {/* Mood Selection */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Mood
+          {/* Cast Image Upload */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700">
+              キャスト
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {MOOD_OPTIONS.map((option) => (
-                <OptionButton
-                  key={option.value}
-                  option={option}
-                  isSelected={formData.mood === option.value}
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    mood: formData.mood === option.value ? undefined : option.value as any
-                  })}
-                />
-              ))}
+            <div className="flex items-start gap-4">
+              <input
+                type="file"
+                id="cast-image"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
+                  <img 
+                    src={imagePreview} 
+                    alt="Cast preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white text-xs hover:bg-black/70 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <label 
+                  htmlFor="cast-image"
+                  className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors flex-shrink-0"
+                >
+                  <svg className="w-8 h-8 text-gray-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-xs text-gray-600">アップロード</span>
+                </label>
+              )}
+              <p className="text-sm text-gray-600 pt-2">
+                キャラクターの顔画像をアップロードすると、その人物を登場人物として使用できます。
+              </p>
             </div>
           </div>
 
@@ -283,7 +314,7 @@ export default function InstantCreatePage() {
             <button
               type="submit"
               disabled={!formData.storyText.trim() || isSubmitting}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-700 disabled:to-gray-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center">
@@ -291,25 +322,12 @@ export default function InstantCreatePage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Generating...
+                  生成中...
                 </span>
               ) : (
-                'Generate'
+                '生成する'
               )}
             </button>
-          </div>
-
-          {/* Alternative Mode Link */}
-          <div className="text-center pt-4">
-            <p className="text-sm text-gray-500">
-              Need more control?{' '}
-              <a 
-                href="/workflow/create" 
-                className="text-purple-400 hover:text-purple-300 font-medium"
-              >
-                Try Advanced Mode
-              </a>
-            </p>
           </div>
         </form>
       </div>
