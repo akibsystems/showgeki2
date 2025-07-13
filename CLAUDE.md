@@ -190,6 +190,9 @@ A comprehensive, mobile-friendly visual editor for MulmoScript structure that se
 - **`OPENAI_IMAGE_QUALITY_DEFAULT`**: OpenAI image quality (`high`/`medium`/`low`)
   - Production: `medium` (balanced quality/cost)
   - Development: `low` (cost optimization)
+- **`INSTANT_MODE_SCENE_COUNT`**: Number of scenes/images to generate in instant mode (1-20)
+  - Default: 5 (medium duration)
+  - Overrides duration-based scene count settings
 
 ### Cloud Run Secrets
 Environment variables are stored in Google Cloud Secret Manager:
@@ -269,6 +272,12 @@ This optimization:
 - **Format**: JSON with dynamic beats (1-20 scenes), characters, dialogue, image prompts
 - **Style**: Shakespeare-style Japanese dialogue with anime visuals
 - **Voices**: Dynamic assignment from OpenAI TTS voices (alloy, echo, fable, nova, onyx, shimmer)
+- **Scene Count (Instant Mode)**:
+  - Default: 5 scenes (medium duration)
+  - Configurable via `INSTANT_MODE_SCENE_COUNT` environment variable (1-20)
+  - Examples:
+    - `INSTANT_MODE_SCENE_COUNT=3` for quick stories
+    - `INSTANT_MODE_SCENE_COUNT=10` for detailed narratives
 
 ### Video Output
 - **Duration**: Typically 30-60 seconds (automatically detected from video file)

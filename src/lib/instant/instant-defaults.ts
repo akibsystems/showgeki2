@@ -96,6 +96,17 @@ export const INSTANT_DEFAULTS = {
 
 // ヘルパー関数
 export function getSceneCountForDuration(duration: 'short' | 'medium' | 'long'): number {
+  // 環境変数から生成枚数を取得（設定されていればそれを優先）
+  const envSceneCount = process.env.INSTANT_MODE_SCENE_COUNT;
+  if (envSceneCount) {
+    const count = parseInt(envSceneCount, 10);
+    if (!isNaN(count) && count > 0 && count <= 20) {
+      console.log(`[InstantDefaults] Using scene count from env: ${count}`);
+      return count;
+    }
+  }
+  
+  // 環境変数が設定されていない、または無効な値の場合はデフォルトを使用
   return INSTANT_DEFAULTS.duration[duration].scenes;
 }
 
