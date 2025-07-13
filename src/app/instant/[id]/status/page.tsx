@@ -81,10 +81,10 @@ export default function InstantStatusPage({ params }: PageProps) {
   // 認証情報ロード中の表示
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">認証情報を確認中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">認証情報を確認中...</p>
         </div>
       </div>
     );
@@ -92,21 +92,21 @@ export default function InstantStatusPage({ params }: PageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-red-500 mb-4">⚠️ エラー</div>
-          <p className="text-gray-400 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{error}</p>
           <div className="flex gap-4 justify-center">
             <button
               onClick={() => router.push('/instant/create')}
-              className="text-purple-400 hover:text-purple-300"
+              className="text-blue-600 hover:text-blue-700"
             >
               もう一度試す
             </button>
-            <span className="text-gray-600">|</span>
+            <span className="text-gray-400">|</span>
             <button
               onClick={() => router.push('/videos')}
-              className="text-gray-400 hover:text-gray-300"
+              className="text-gray-600 hover:text-gray-700"
             >
               動画一覧に戻る
             </button>
@@ -118,23 +118,23 @@ export default function InstantStatusPage({ params }: PageProps) {
 
   if (!status) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">読み込み中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 p-4">
+    <div className="min-h-screen bg-white p-4">
       <div className="max-w-2xl mx-auto py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">生成状況</h1>
+          <h1 className="text-3xl font-bold text-gray-800">生成状況</h1>
           <button
             onClick={() => router.push('/videos')}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -145,13 +145,13 @@ export default function InstantStatusPage({ params }: PageProps) {
 
         {/* 進捗バー */}
         <div className="mb-8">
-          <div className="flex justify-between text-sm text-gray-400 mb-2">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>進捗</span>
             <span>{status.progress}%</span>
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-3">
+          <div className="w-full bg-gray-200 rounded-full h-3">
             <div
-              className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
               style={{ width: `${status.progress}%` }}
             />
           </div>
@@ -161,10 +161,10 @@ export default function InstantStatusPage({ params }: PageProps) {
         <div className="space-y-4">
           {/* 現在のステップ */}
           {status.currentStep && (
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <div className="flex items-center">
-                <div className="animate-pulse w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span className="text-lg">
+                <div className="animate-pulse w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-lg text-gray-800">
                   {INSTANT_STEPS[status.currentStep as keyof typeof INSTANT_STEPS] || status.currentStep}
                 </span>
               </div>
@@ -173,33 +173,33 @@ export default function InstantStatusPage({ params }: PageProps) {
 
           {/* ステータスメッセージ */}
           {status.message && (
-            <p className="text-gray-400">{status.message}</p>
+            <p className="text-gray-600">{status.message}</p>
           )}
 
           {/* 完了時 */}
           {status.status === 'completed' && (
-            <div className="bg-green-900/20 border border-green-700 rounded-lg p-6 text-center">
-              <div className="text-green-400 text-2xl mb-2">✅ 完成しました！</div>
-              <p className="text-gray-300 mb-4">動画の生成が完了しました</p>
-              <p className="text-sm text-gray-400">まもなく動画ページへ移動します...</p>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <div className="text-green-600 text-2xl mb-2">✅ 完成しました！</div>
+              <p className="text-gray-700 mb-4">動画の生成が完了しました</p>
+              <p className="text-sm text-gray-500">まもなく動画ページへ移動します...</p>
             </div>
           )}
 
           {/* エラー時 */}
           {status.status === 'failed' && (
-            <div className="bg-red-900/20 border border-red-700 rounded-lg p-6">
-              <div className="text-red-400 text-xl mb-2">❌ エラーが発生しました</div>
-              <p className="text-gray-300 mb-4">{status.error || '生成中にエラーが発生しました'}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="text-red-600 text-xl mb-2">❌ エラーが発生しました</div>
+              <p className="text-gray-700 mb-4">{status.error || '生成中にエラーが発生しました'}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => router.push('/instant/create')}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
                 >
                   もう一度試す
                 </button>
                 <button
                   onClick={() => router.push('/videos')}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg transition-colors"
                 >
                   動画一覧に戻る
                 </button>
@@ -210,7 +210,7 @@ export default function InstantStatusPage({ params }: PageProps) {
 
         {/* ステップ一覧 */}
         <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4">処理ステップ</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">処理ステップ</h2>
           <div className="space-y-2">
             {Object.entries(INSTANT_STEPS).map(([key, label]) => {
               const isCompleted = getStepStatus(key, status.currentStep, status.status) === 'completed';
@@ -222,20 +222,20 @@ export default function InstantStatusPage({ params }: PageProps) {
                   key={key}
                   className={`
                     flex items-center p-3 rounded-lg border
-                    ${isCompleted ? 'bg-green-900/10 border-green-800' : ''}
-                    ${isCurrent ? 'bg-purple-900/20 border-purple-700' : ''}
-                    ${isPending ? 'bg-gray-800 border-gray-700' : ''}
+                    ${isCompleted ? 'bg-green-50 border-green-200' : ''}
+                    ${isCurrent ? 'bg-blue-50 border-blue-300' : ''}
+                    ${isPending ? 'bg-gray-50 border-gray-200' : ''}
                   `}
                 >
                   <div className="mr-3">
-                    {isCompleted && <span className="text-green-400">✓</span>}
-                    {isCurrent && <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />}
-                    {isPending && <span className="text-gray-500">○</span>}
+                    {isCompleted && <span className="text-green-600">✓</span>}
+                    {isCurrent && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
+                    {isPending && <span className="text-gray-400">○</span>}
                   </div>
                   <span className={`
-                    ${isCompleted ? 'text-green-300' : ''}
-                    ${isCurrent ? 'text-white' : ''}
-                    ${isPending ? 'text-gray-500' : ''}
+                    ${isCompleted ? 'text-green-600' : ''}
+                    ${isCurrent ? 'text-gray-800' : ''}
+                    ${isPending ? 'text-gray-400' : ''}
                   `}>
                     {label}
                   </span>
