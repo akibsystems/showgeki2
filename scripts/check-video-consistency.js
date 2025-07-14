@@ -261,7 +261,13 @@ async function checkVideoConsistency() {
       const audioColor = getScoreColor(summary.overallAudioScore);
 
       console.log(`   視覚的一貫性: ${visualColor(`${summary.overallVisualScore}点`)} ${visualColor(`(${getScoreLabel(summary.overallVisualScore)})`)})`);
+      if (summary.visualScoreReason) {
+        console.log(chalk.gray(`     └ 理由: ${summary.visualScoreReason}`));
+      }
       console.log(`   音声一貫性: ${audioColor(`${summary.overallAudioScore}点`)} ${audioColor(`(${getScoreLabel(summary.overallAudioScore)})`)})`);
+      if (summary.audioScoreReason) {
+        console.log(chalk.gray(`     └ 理由: ${summary.audioScoreReason}`));
+      }
       console.log(`   検出キャラクター: ${summary.charactersDetected.join(', ')}`);
       console.log(`   総シーン数: ${summary.totalScenes}`);
 
@@ -293,8 +299,24 @@ async function checkVideoConsistency() {
       // Issues
       if (summary.issues && summary.issues.length > 0) {
         console.log(chalk.red('\n⚠️  Detected Issues:'));
-        summary.issues.forEach((issue) => {
-          console.log(chalk.red(`   • ${issue}`));
+        summary.issues.forEach((issue, i) => {
+          if (typeof issue === 'string') {
+            console.log(chalk.red(`   ${i + 1}. ${issue}`));
+          } else {
+            const severityLabels = { high: '重要', medium: '中程度', low: '軽微' };
+            const severityColors = { 
+              high: chalk.red, 
+              medium: chalk.yellow, 
+              low: chalk.blue 
+            };
+            const severityLabel = severityLabels[issue.severity] || '中程度';
+            const severityColor = severityColors[issue.severity] || chalk.yellow;
+            
+            console.log(chalk.red(`   ${i + 1}. `) + severityColor(`[${severityLabel}] `) + chalk.red(issue.description));
+            if (issue.reason) {
+              console.log(chalk.gray(`       └ 理由: ${issue.reason}`));
+            }
+          }
         });
       }
 

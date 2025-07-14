@@ -257,6 +257,11 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                     <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallVisualScore)}`}>
                       {getScoreLabel(consistencyCheck.result.summary.overallVisualScore)}
                     </p>
+                    {consistencyCheck.result.summary.visualScoreReason && (
+                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                        {consistencyCheck.result.summary.visualScoreReason}
+                      </p>
+                    )}
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4">
                     <p className="text-sm text-gray-400 mb-1">音声一貫性</p>
@@ -266,6 +271,11 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                     <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallAudioScore)}`}>
                       {getScoreLabel(consistencyCheck.result.summary.overallAudioScore)}
                     </p>
+                    {consistencyCheck.result.summary.audioScoreReason && (
+                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                        {consistencyCheck.result.summary.audioScoreReason}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -287,12 +297,39 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                 {/* Issues */}
                 {consistencyCheck.result.summary.issues && consistencyCheck.result.summary.issues.length > 0 && (
                   <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-                    <h5 className="text-sm font-medium text-red-400 mb-2">検出された問題:</h5>
-                    <ul className="text-xs text-red-300 space-y-1">
-                      {consistencyCheck.result.summary.issues.map((issue, i) => (
-                        <li key={i}>• {issue}</li>
-                      ))}
-                    </ul>
+                    <h5 className="text-sm font-medium text-red-400 mb-3">検出された問題:</h5>
+                    <div className="space-y-3">
+                      {consistencyCheck.result.summary.issues.map((issue, i) => {
+                        const severityColors = {
+                          high: 'text-red-300 bg-red-900/30',
+                          medium: 'text-orange-300 bg-orange-900/30',
+                          low: 'text-yellow-300 bg-yellow-900/30'
+                        };
+                        const severityLabels = {
+                          high: '重要',
+                          medium: '中程度',
+                          low: '軽微'
+                        };
+                        
+                        return (
+                          <div key={i} className="bg-gray-800/50 rounded p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`text-xs px-2 py-1 rounded ${severityColors[issue.severity || 'medium']}`}>
+                                {severityLabels[issue.severity || 'medium']}
+                              </span>
+                              <span className="text-xs text-red-300 font-medium">
+                                {typeof issue === 'string' ? issue : issue.description}
+                              </span>
+                            </div>
+                            {typeof issue === 'object' && issue.reason && (
+                              <p className="text-xs text-gray-400 leading-relaxed">
+                                {issue.reason}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

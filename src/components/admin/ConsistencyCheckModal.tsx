@@ -167,18 +167,39 @@ export function ConsistencyCheckModal({ videos, isOpen, onClose }: ConsistencyCh
                       <h3 className="text-lg font-medium text-gray-100">
                         {video.title || `動画 ${video.id}`}
                       </h3>
-                      <div className="mt-2 flex items-center gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-400">視覚的一貫性: </span>
-                          <span className={`font-medium ${getScoreColor(result.summary.overallVisualScore)}`}>
-                            {result.summary.overallVisualScore}点 ({getScoreLabel(result.summary.overallVisualScore)})
-                          </span>
+                      <div className="mt-2 space-y-3">
+                        <div className="flex items-center gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-400">視覚的一貫性: </span>
+                            <span className={`font-medium ${getScoreColor(result.summary.overallVisualScore)}`}>
+                              {result.summary.overallVisualScore}点 ({getScoreLabel(result.summary.overallVisualScore)})
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">音声一貫性: </span>
+                            <span className={`font-medium ${getScoreColor(result.summary.overallAudioScore)}`}>
+                              {result.summary.overallAudioScore}点 ({getScoreLabel(result.summary.overallAudioScore)})
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-gray-400">音声一貫性: </span>
-                          <span className={`font-medium ${getScoreColor(result.summary.overallAudioScore)}`}>
-                            {result.summary.overallAudioScore}点 ({getScoreLabel(result.summary.overallAudioScore)})
-                          </span>
+                        {/* Score Reasons */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                          {result.summary.visualScoreReason && (
+                            <div className="bg-gray-800/50 rounded p-2">
+                              <span className="text-gray-400 font-medium">視覚的評価理由:</span>
+                              <p className="text-gray-300 mt-1 leading-relaxed">
+                                {result.summary.visualScoreReason}
+                              </p>
+                            </div>
+                          )}
+                          {result.summary.audioScoreReason && (
+                            <div className="bg-gray-800/50 rounded p-2">
+                              <span className="text-gray-400 font-medium">音声的評価理由:</span>
+                              <p className="text-gray-300 mt-1 leading-relaxed">
+                                {result.summary.audioScoreReason}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -235,12 +256,39 @@ export function ConsistencyCheckModal({ videos, isOpen, onClose }: ConsistencyCh
                     {/* Issues */}
                     {result.summary.issues && result.summary.issues.length > 0 && (
                       <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded">
-                        <h4 className="text-sm font-medium text-red-400 mb-1">検出された問題:</h4>
-                        <ul className="text-xs text-red-300 space-y-1">
-                          {result.summary.issues.map((issue, i) => (
-                            <li key={i}>• {issue}</li>
-                          ))}
-                        </ul>
+                        <h4 className="text-sm font-medium text-red-400 mb-2">検出された問題:</h4>
+                        <div className="space-y-2">
+                          {result.summary.issues.map((issue, i) => {
+                            const severityColors = {
+                              high: 'text-red-300 bg-red-900/40',
+                              medium: 'text-orange-300 bg-orange-900/40',
+                              low: 'text-yellow-300 bg-yellow-900/40'
+                            };
+                            const severityLabels = {
+                              high: '重要',
+                              medium: '中程度',
+                              low: '軽微'
+                            };
+                            
+                            return (
+                              <div key={i} className="bg-gray-800/30 rounded p-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${severityColors[issue.severity || 'medium']}`}>
+                                    {severityLabels[issue.severity || 'medium']}
+                                  </span>
+                                  <span className="text-xs text-red-300">
+                                    {typeof issue === 'string' ? issue : issue.description}
+                                  </span>
+                                </div>
+                                {typeof issue === 'object' && issue.reason && (
+                                  <p className="text-xs text-gray-400 ml-2">
+                                    {issue.reason}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
