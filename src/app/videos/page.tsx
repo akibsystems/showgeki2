@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout';
 import { Button, Card, CardContent, Spinner } from '@/components/ui';
@@ -29,6 +29,10 @@ const VideosContent: React.FC = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [showFullscreenPlayer, setShowFullscreenPlayer] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Pagination settings
+  const VIDEOS_PER_PAGE = 10;
 
   // Fetch videos using SWR hook
   const { videos, isLoading } = useVideos();
@@ -45,6 +49,17 @@ const VideosContent: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || video.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredVideos.length / VIDEOS_PER_PAGE);
+  const startIndex = (currentPage - 1) * VIDEOS_PER_PAGE;
+  const endIndex = startIndex + VIDEOS_PER_PAGE;
+  const paginatedVideos = filteredVideos.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -111,10 +126,15 @@ const VideosContent: React.FC = () => {
 
   const statusCounts = getStatusCounts();
 
-  // Get story title by story_id
-  const getStoryTitle = (storyId: string): string => {
-    const story = stories?.find(s => s.id === storyId);
-    return story?.title || `Story ${storyId}`;
+  // Get video title (prefer video.title, fallback to story title)
+  const getVideoTitle = (video: Video): string => {
+    // Use video.title if available
+    if (video.title) {
+      return video.title;
+    }
+    // Fallback to story title
+    const story = stories?.find(s => s.id === video.story_id);
+    return story?.title || `Story ${video.story_id}`;
   };
 
   // Handler functions
@@ -142,9 +162,9 @@ const VideosContent: React.FC = () => {
     if (!video.url) return;
 
     try {
-      // Get story title for filename
-      const storyTitle = getStoryTitle(video.story_id);
-      const filename = `${storyTitle.replace(/[^a-zA-Z0-9ぁ-ゖァ-ヶー一-龯]/g, '_')}.mp4`;
+      // Get video title for filename
+      const videoTitle = getVideoTitle(video);
+      const filename = `${videoTitle.replace(/[^a-zA-Z0-9ぁ-ゖァ-ヶー一-龯]/g, '_')}.mp4`;
 
       // Add download parameter to Supabase Storage URL
       // Supabase Storage uses ?download parameter to force download
@@ -287,12 +307,12 @@ const VideosContent: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVideos.map((video) => (
+            {paginatedVideos.map((video) => (
               <Card key={video.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-lg font-medium text-gray-100 line-clamp-2">
-                      {getStoryTitle(video.story_id)}
+                      {getVideoTitle(video)}
                     </h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(video.status)} ml-2 flex-shrink-0`}>
                       {getStatusText(video.status)}
@@ -421,6 +441,115 @@ const VideosContent: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {filteredVideos.length > VIDEOS_PER_PAGE && (
+          <div className="mt-8 flex items-center justify-center space-x-2">
+            {/* Previous button */}
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                currentPage === 1
+                  ? 'bg-gray-800/30 text-gray-600 cursor-not-allowed'
+                  : 'bg-gray-800/50 text-gray-300 hover:bg-purple-500/20 hover:text-purple-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Page numbers */}
+            {(() => {
+              const pageNumbers = [];
+              const maxVisiblePages = 5;
+              let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+              let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+              if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+              }
+
+              // First page
+              if (startPage > 1) {
+                pageNumbers.push(
+                  <button
+                    key={1}
+                    onClick={() => setCurrentPage(1)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-800/50 text-gray-300 hover:bg-purple-500/20 hover:text-purple-300 transition-colors"
+                  >
+                    1
+                  </button>
+                );
+                if (startPage > 2) {
+                  pageNumbers.push(
+                    <span key="dots-start" className="px-1 text-gray-500">...</span>
+                  );
+                }
+              }
+
+              // Page range
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i)}
+                    className={`px-3 py-1.5 rounded-lg transition-colors ${
+                      currentPage === i
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-400'
+                        : 'bg-gray-800/50 text-gray-300 hover:bg-purple-500/20 hover:text-purple-300'
+                    }`}
+                  >
+                    {i}
+                  </button>
+                );
+              }
+
+              // Last page
+              if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                  pageNumbers.push(
+                    <span key="dots-end" className="px-1 text-gray-500">...</span>
+                  );
+                }
+                pageNumbers.push(
+                  <button
+                    key={totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-800/50 text-gray-300 hover:bg-purple-500/20 hover:text-purple-300 transition-colors"
+                  >
+                    {totalPages}
+                  </button>
+                );
+              }
+
+              return pageNumbers;
+            })()}
+
+            {/* Next button */}
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                currentPage === totalPages
+                  ? 'bg-gray-800/30 text-gray-600 cursor-not-allowed'
+                  : 'bg-gray-800/50 text-gray-300 hover:bg-purple-500/20 hover:text-purple-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Video info */}
+        {filteredVideos.length > 0 && (
+          <div className="mt-4 text-center text-sm text-gray-400">
+            {filteredVideos.length}件中 {startIndex + 1}-{Math.min(endIndex, filteredVideos.length)}件を表示
+          </div>
+        )}
       </div>
 
       {/* Video Modal */}
@@ -432,8 +561,8 @@ const VideosContent: React.FC = () => {
             setSelectedVideo(null);
           }}
           videoUrl={selectedVideo.url}
-          title={getStoryTitle(selectedVideo.story_id)}
-          storyTitle={getStoryTitle(selectedVideo.story_id)}
+          title={getVideoTitle(selectedVideo)}
+          storyTitle={getVideoTitle(selectedVideo)}
           duration={selectedVideo.duration_sec}
           onDownload={() => handleDownloadVideo(selectedVideo)}
         />
@@ -448,7 +577,7 @@ const VideosContent: React.FC = () => {
             setSelectedVideo(null);
           }}
           videoUrl={selectedVideo.url}
-          title={getStoryTitle(selectedVideo.story_id)}
+          title={getVideoTitle(selectedVideo)}
         />
       )}
     </Layout>

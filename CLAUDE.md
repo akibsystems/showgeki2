@@ -366,6 +366,19 @@ The system supports two operation modes:
 - **`src/components/`**: Reusable React components
 - **Docker files**: `Dockerfile` (production), `Dockerfile.dev` (development)
 
+## Video Title Management (2025-01-14)
+
+### Database Changes
+- Added `title` and `updated_at` columns to `videos` table
+- Migration file: `migrations/002_add_videos_title_updated_at.sql`
+- Webhook handler now saves video title during generation
+- Video list page uses video.title with fallback to story title
+
+### Backfill Script
+**Script**: `scripts/backfill-video-titles.js`  
+**Purpose**: Populate title field for existing videos from storyboards  
+**Usage**: `node scripts/backfill-video-titles.js`
+
 ## Recently Added Scripts (2025-07-02)
 
 ### 1. export-videos.js

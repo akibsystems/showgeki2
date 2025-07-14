@@ -59,6 +59,7 @@ export const VideoSchema = z.object({
   id: z.string().uuid(),
   story_id: z.string().uuid(),
   uid: UidSchema,
+  title: z.string().optional(),
   url: z.string().url().optional(),
   duration_sec: z.number().int().positive().optional(),
   resolution: z.string().optional(),
@@ -66,6 +67,7 @@ export const VideoSchema = z.object({
   status: VideoStatusSchema,
   error_msg: z.string().optional(),
   created_at: z.string().datetime(),
+  updated_at: z.string().datetime().optional(),
 });
 
 // レビュースキーマ（既存互換）

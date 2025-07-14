@@ -1663,11 +1663,13 @@ async function processVideoGeneration(payload) {
       .update({
         status: 'completed',
         url: videoUrl,
+        title: title, // タイトルを追加
         duration_sec: duration, // Actual duration from video
         resolution: resolution, // Actual resolution from video
         size_mb: Number(videoSizeMB.toFixed(2)),
         proc_time: processingTimeSeconds, // 処理時間を記録
-        error_msg: null // エラーログをクリア
+        error_msg: null, // エラーログをクリア
+        updated_at: new Date().toISOString() // 更新日時
         // TODO: 将来的に以下のカラムを追加して個別メトリクスを保存
         // image_gen_time: movieMetrics.imageGenerationTime,
         // audio_gen_time: movieMetrics.audioGenerationTime,
