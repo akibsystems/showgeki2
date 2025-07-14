@@ -293,9 +293,11 @@ export async function processInstantMode({
       await saveStepOutput(supabase, workflowId, 4, step4Output);
 
       const step5Result = await stepManager.proceedToNextStep(4, step4Output);
+      console.log(`[InstantGenerator] Step5 result:`, { success: step5Result.success, hasData: !!step5Result.data, error: step5Result.error });
       if (!step5Result.success) {
         throw new Error(step5Result.error?.message || 'Step5生成に失敗しました');
       }
+      console.log(`[InstantGenerator] Step5 data received:`, JSON.stringify(step5Result.data, null, 2));
       await status.update('voices', undefined, 65);
 
       // Step 4→5 の実行時間を記録
@@ -305,11 +307,15 @@ export async function processInstantMode({
 
       // Step 5→6: BGM・字幕設定
       // デフォルトの音声割り当てをそのまま使用
+      const extractedVoiceSettings = extractVoiceSettingsFromStep5(step5Result.data);
+      console.log(`[InstantGenerator] Extracted voice settings:`, JSON.stringify(extractedVoiceSettings, null, 2));
+      
       const step5Output = {
         userInput: {
-          voiceSettings: extractVoiceSettingsFromStep5(step5Result.data)
+          voiceSettings: extractedVoiceSettings
         }
       };
+      console.log(`[InstantGenerator] Step5Output to save:`, JSON.stringify(step5Output, null, 2));
       await saveStepOutput(supabase, workflowId, 5, step5Output);
 
       const step6Result = await stepManager.proceedToNextStep(5, step5Output);
@@ -443,17 +449,25 @@ async function saveStepOutput(supabase: any, workflowId: string, step: number, o
 
 // ヘルパー関数: Step5の結果からvoiceSettingsを抽出
 function extractVoiceSettingsFromStep5(step5Data: any) {
+  console.log(`[extractVoiceSettingsFromStep5] Input step5Data:`, JSON.stringify(step5Data, null, 2));
   const voiceSettings: Record<string, any> = {};
 
-  if (step5Data.voiceAssignments) {
-    Object.entries(step5Data.voiceAssignments).forEach(([characterId, assignment]: [string, any]) => {
-      voiceSettings[characterId] = {
-        voiceType: assignment.voiceId,
-        corrections: {} // 読み修正は空で初期化
-      };
+  // Step5Input format: characters array with suggestedVoice
+  if (step5Data.characters && Array.isArray(step5Data.characters)) {
+    console.log(`[extractVoiceSettingsFromStep5] Found characters array:`, JSON.stringify(step5Data.characters, null, 2));
+    step5Data.characters.forEach((character: any) => {
+      if (character.id && character.suggestedVoice) {
+        voiceSettings[character.id] = {
+          voiceType: character.suggestedVoice,
+          corrections: {} // 読み修正は空で初期化
+        };
+      }
     });
+  } else {
+    console.log(`[extractVoiceSettingsFromStep5] No characters array found in step5Data`);
   }
 
+  console.log(`[extractVoiceSettingsFromStep5] Extracted voiceSettings:`, JSON.stringify(voiceSettings, null, 2));
   return voiceSettings;
 }
 

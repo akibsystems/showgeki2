@@ -1419,6 +1419,7 @@ async function downloadExistingVideo(filePath, outputPath) {
 async function processVideoGeneration(payload) {
   let { video_id, story_id, uid, title, text_raw, script_json } = payload;
   let uniquePaths = null;
+  let movieMetrics = null; // Initialize movieMetrics in the proper scope
   const processingStartTime = Date.now(); // 処理開始時刻を記録
 
   try {
@@ -1533,7 +1534,6 @@ async function processVideoGeneration(payload) {
     // 4. 既存の動画を確認、なければmulmocast-cliで動画生成
     console.log('4. 動画生成処理...');
     let videoPath;
-    let movieMetrics = null; // Initialize outside try block
     let wasReused = false; // 既存動画を再利用したかどうか
 
     // 既存の動画ファイルを確認
