@@ -473,14 +473,14 @@ export type VoiceId =
 /** 音声の説明 */
 export const VOICE_DESCRIPTIONS: Record<VoiceId, string> = {
   alloy: '中性的で落ち着いた声',
-  ash: '中性的で歯切れの良いビジネス向きの声',
+  ash: '歯切れの良いビジネス向きの男性の声',
   ballad: '滑らかで情感豊かな中性的な声',
   coral: '親しみやすく温かい女性の声',
   echo: '男性的で深みのある信頼感のある声',
   fable: '明瞭でエネルギッシュな男性の声',
   nova: '明るく会話的な若々しい女性の声',
   onyx: '重厚で威厳のある男性の声',
-  sage: '穏やかで思慮深い中性的な声',
+  sage: '穏やかで思慮深い女性の声',
   shimmer: '優しく柔らかく明快な女性の声',
-  verse: '多彩で表現力豊かな中性的な声',
+  verse: '多彩で表現力豊かな男性の声',
 };
