@@ -56,3 +56,7 @@ logs/
 *.png
 *.jpg
 *.jpeg
+
+# Generated files
+prompts-summary.md
+test.json

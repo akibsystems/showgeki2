@@ -112,14 +112,16 @@ const DashboardContent: React.FC = () => {
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">クイックアクセス</h3>
                 <div className="space-y-3">
-                  <Link href="/instant/create">
-                    <Button variant="primary" size="md" className="w-full justify-start bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      かんたんモードで作成
-                    </Button>
-                  </Link>
+                  {process.env.NEXT_PUBLIC_ENABLE_INSTANT_MODE !== 'false' && (
+                    <Link href="/instant/create">
+                      <Button variant="primary" size="md" className="w-full justify-start bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        かんたんモードで作成
+                      </Button>
+                    </Link>
+                  )}
                   <Link href="/stories">
                     <Button variant="secondary" size="md" className="w-full justify-start">
                       <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

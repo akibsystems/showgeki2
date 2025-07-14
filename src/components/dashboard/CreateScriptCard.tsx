@@ -6,6 +6,8 @@ import { useToast } from '@/contexts';
 export function CreateScriptCard() {
   const { user } = useAuth();
   const { error } = useToast();
+  // 環境変数が未設定の場合はデフォルトでtrueとする
+  const isInstantModeEnabled = process.env.NEXT_PUBLIC_ENABLE_INSTANT_MODE !== 'false';
 
   const handleCreateWorkflow = async () => {
     if (!user) {
@@ -34,6 +36,31 @@ export function CreateScriptCard() {
     }
   };
 
+  // かんたんモードが無効の場合は、カード全体をクリック可能にする
+  if (!isInstantModeEnabled) {
+    return (
+      <button
+        onClick={handleCreateWorkflow}
+        className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/50 rounded-lg overflow-hidden hover:from-purple-900/40 hover:to-pink-900/40 hover:border-purple-400/70 transition-all transform hover:scale-[1.02] w-full text-left group cursor-pointer"
+      >
+        <div className="p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 bg-purple-600/20 rounded-full flex items-center justify-center group-hover:bg-purple-600/30 transition-colors">
+            <svg className="w-10 h-10 text-purple-400 group-hover:text-purple-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+          
+          <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-purple-100 transition-colors">新しい脚本を作成</h3>
+          <p className="text-gray-300 group-hover:text-gray-200 transition-colors">
+            あなたの物語をシェイクスピア風の脚本に変換し、<br />
+            アニメ動画を自動生成します
+          </p>
+        </div>
+      </button>
+    );
+  }
+
+  // かんたんモードが有効の場合は、従来の2ボタン表示
   return (
     <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/50 rounded-lg overflow-hidden">
       <div className="p-8 text-center">

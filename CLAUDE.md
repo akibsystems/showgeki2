@@ -201,6 +201,11 @@ A comprehensive, mobile-friendly visual editor for MulmoScript structure that se
   - Options: `shakespeare` (default) or `general`
   - `shakespeare`: Uses dramatic, theatrical Shakespeare-inspired prompts
   - `general`: Uses modern, accessible scriptwriting approach
+- **`NEXT_PUBLIC_ENABLE_INSTANT_MODE`**: Show/hide instant mode (かんたんモード) in dashboard
+  - Default: `true` (shown when not set)
+  - Set to `false` to hide instant mode buttons in dashboard
+  - Controls visibility in both CreateScriptCard and Quick Access section
+  - When not set or set to any value other than `false`, instant mode is shown
 
 ### Cloud Run Secrets
 Environment variables are stored in Google Cloud Secret Manager:
