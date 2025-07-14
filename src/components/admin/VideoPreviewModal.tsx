@@ -300,7 +300,7 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                     {consistencyCheck.result.scenes.map((scene) => (
                       <div key={scene.index} className="bg-gray-800/50 rounded-lg p-3 text-xs">
                         <div className="font-medium text-gray-200 mb-2">
-                          シーン {scene.index} ({scene.timeRange.start}s - {scene.timeRange.end}s)
+                          シーン {scene.index} {scene.timeRange && `(${scene.timeRange.start}s - ${scene.timeRange.end}s)`}
                         </div>
                         <div className="text-gray-400 mb-2">
                           登場人物: {scene.characters.join(', ')}

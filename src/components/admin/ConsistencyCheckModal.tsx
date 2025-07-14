@@ -220,7 +220,9 @@ export function ConsistencyCheckModal({ videos, isOpen, onClose }: ConsistencyCh
                                 {Object.entries(scene.audioScore).map(([char, score]) => (
                                   <div key={char} className="text-xs">
                                     <span className="text-gray-400">{char}: </span>
-                                    <span className={getScoreColor(score)}>{score}</span>
+                                    <span className={score !== null ? getScoreColor(score) : 'text-gray-600'}>
+                                      {score !== null ? score : '-'}
+                                    </span>
                                   </div>
                                 ))}
                               </td>

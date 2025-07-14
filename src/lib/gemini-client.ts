@@ -25,7 +25,7 @@ export interface ConsistencyCheckResult {
     };
     characters: string[];
     visualScore: Record<string, number>;
-    audioScore: Record<string, number>;
+    audioScore: Record<string, number | null>;
     notes?: string;
   }[];
   summary: {
@@ -85,8 +85,10 @@ export const CONSISTENCY_CHECK_PROMPT = `
 // Helper Functions
 // ================================================================
 
-export function calculateAverageScore(scores: Record<string, number>[]): number {
-  const allScores = scores.flatMap(scoreObj => Object.values(scoreObj));
+export function calculateAverageScore(scores: Record<string, number | null>[]): number {
+  const allScores = scores.flatMap(scoreObj => 
+    Object.values(scoreObj).filter((score): score is number => score !== null)
+  );
   if (allScores.length === 0) return 0;
   return Math.round(allScores.reduce((sum, score) => sum + score, 0) / allScores.length);
 }
@@ -106,7 +108,7 @@ export function identifyIssues(result: ConsistencyCheckResult): string[] {
   // Check for low audio scores
   result.scenes.forEach(scene => {
     Object.entries(scene.audioScore).forEach(([character, score]) => {
-      if (score < 70) {
+      if (score !== null && score < 70) {
         issues.push(`Scene ${scene.index}: ${character} has low audio consistency (${score})`);
       }
     });
