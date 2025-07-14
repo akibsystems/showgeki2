@@ -87,10 +87,20 @@ async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
     max_tokens: 32000,
   });
 
+  console.log(`[step1-processor] OpenAI response received`);
+  console.log(`[step1-processor] Response content:`, response.choices[0].message.content);
+  console.log(`[step1-processor] Response content length:`, response.choices[0].message.content?.length);
+  console.log(`[step1-processor] Response content type:`, typeof response.choices[0].message.content);
+  console.log(`[step1-processor] Response content JSON:`, JSON.parse(response.choices[0].message.content || '{}'));
+  console.log(`[step1-processor] Response content JSON length:`, JSON.parse(response.choices[0].message.content || '{}').length);
+  console.log(`[step1-processor] Response content JSON type:`, typeof JSON.parse(response.choices[0].message.content || '{}'));
+
   const result = JSON.parse(response.choices[0].message.content || '{}');
 
   // 生成されたデータを検証・補完
   const validatedResult = validateAndNormalizeStoryboard(result, step1Output);
+
+  console.log(`[step1-processor] Validated result:`, JSON.stringify(validatedResult, null, 2));
 
   return validatedResult;
 }
