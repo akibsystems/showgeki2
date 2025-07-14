@@ -18,7 +18,7 @@ export interface Storyboard {
   uid: string;
   title?: string;
   status: 'draft' | 'completed' | 'archived';
-  
+
   // カテゴリ別生成データ
   story_data?: StoryData; // Step1で保存されるユーザー入力データ
   summary_data?: SummaryData;
@@ -28,10 +28,10 @@ export interface Storyboard {
   audio_data?: AudioData;
   style_data?: StyleData;
   caption_data?: CaptionData;
-  
+
   // 最終的なMulmoScript
   mulmoscript?: MulmoScript;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -172,7 +172,7 @@ export interface MulmoScript {
     images?: Record<string, {
       name?: string;
       type?: string;
-      source: { 
+      source: {
         kind?: string;
         url?: string;
         path?: string;
@@ -196,7 +196,7 @@ export interface Workflow {
   uid: string;
   current_step: number;
   status: 'active' | 'completed' | 'archived';
-  
+
   // 表示用データ（キャッシュ）
   step1_in?: Step1Input;
   step2_in?: Step2Input;
@@ -205,7 +205,7 @@ export interface Workflow {
   step5_in?: Step5Input;
   step6_in?: Step6Input;
   step7_in?: Step7Input;
-  
+
   // ユーザー入力データ
   step1_out?: Step1Output;
   step2_out?: Step2Output;
@@ -214,7 +214,7 @@ export interface Workflow {
   step5_out?: Step5Output;
   step6_out?: Step6Output;
   step7_out?: Step7Output;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -457,14 +457,30 @@ export const IMAGE_STYLE_PRESETS = {
 } as const;
 
 /** OpenAI音声ID */
-export type VoiceId = 'alloy' | 'echo' | 'fable' | 'nova' | 'onyx' | 'shimmer';
+export type VoiceId =
+  | 'alloy'
+  | 'ash'
+  | 'ballad'
+  | 'coral'
+  | 'echo'
+  | 'fable'
+  | 'nova'
+  | 'onyx'
+  | 'sage'
+  | 'shimmer'
+  | 'verse';
 
 /** 音声の説明 */
 export const VOICE_DESCRIPTIONS: Record<VoiceId, string> = {
   alloy: '中性的で落ち着いた声',
-  echo: '男性的で深みのある声',
-  fable: '若々しく明るい女性の声',
-  nova: 'エネルギッシュな女性の声',
+  ash: '中性的で歯切れの良いビジネス向きの声',
+  ballad: '滑らかで情感豊かな中性的な声',
+  coral: '親しみやすく温かい女性の声',
+  echo: '男性的で深みのある信頼感のある声',
+  fable: '明瞭でエネルギッシュな男性の声',
+  nova: '明るく会話的な若々しい女性の声',
   onyx: '重厚で威厳のある男性の声',
-  shimmer: '優しく柔らかな女性の声',
+  sage: '穏やかで思慮深い中性的な声',
+  shimmer: '優しく柔らかく明快な女性の声',
+  verse: '多彩で表現力豊かな中性的な声',
 };

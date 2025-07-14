@@ -33,7 +33,7 @@ export async function generateStep5Input(
 ): Promise<Step5Input> {
   console.log(`[step4-processor] generateStep5Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
   console.log(`[step4-processor] Step4 output received:`, JSON.stringify(step4Output, null, 2));
-  
+
   try {
     // storyboardから既存のデータを取得
     console.log(`[step4-processor] Fetching storyboard data from database...`);
@@ -160,7 +160,7 @@ async function generateVoiceSettings(
   console.log(`[step4-processor] generateVoiceSettings called`);
   console.log(`[step4-processor] Characters count:`, characters.length);
   console.log(`[step4-processor] Scenes count:`, scenes.length);
-  
+
   const systemPrompt = createVoiceSystemPrompt();
   const userPrompt = createVoiceUserPrompt(characters);
   console.log(`[step4-processor] Prompts created, calling OpenAI...`);
@@ -196,7 +196,7 @@ async function generateVoiceSettings(
 
   const processedCharacters = characters.map((char) => {
     const assignment = voiceAssignments.find((va: any) => va.characterId === char.id);
-    
+
     // 音声割り当てが見つからない場合のログ出力
     if (!assignment || !assignment.suggestedVoice) {
       console.warn(`[step4-processor] Voice assignment not found for character "${char.name}" (ID: ${char.id})`);
@@ -205,18 +205,18 @@ async function generateVoiceSettings(
         characterName: va.characterName,
         suggestedVoice: va.suggestedVoice
       })));
-      
+
       // デフォルトの音声を割り当て
       const defaultVoice = char.role?.includes('女') || char.personality?.includes('女') ? 'nova' : 'echo';
       console.warn(`[step4-processor] Assigning default voice "${defaultVoice}" to character "${char.name}"`);
-      
+
       return {
         id: char.id,
         name: char.name,
         suggestedVoice: defaultVoice
       };
     }
-    
+
     return {
       id: char.id,
       name: char.name,
@@ -257,12 +257,42 @@ function createVoiceSystemPrompt(): string {
 - **キャラクターの声紋**: 観客の記憶に残る特徴的な声質
 
 ### 利用可能な音声パレット
-- **alloy**: 中性的で落ち着いた声 - 語り手、賢者、観察者
-- **echo**: 男性的で深みのある声 - 威厳ある統治者、父性的存在
-- **fable**: 若々しく明るい女性の声 - 無垢な恋人、希望の象徴
-- **nova**: エネルギッシュな女性の声 - 情熱的な主人公、行動的な女性
-- **onyx**: 重厚で威厳のある男性の声 - 悪役、権力者、運命の宣告者
-- **shimmer**: 優しく柔らかな女性の声 - 慈母、癒し手、内なる声
+利用可能な 11 音声の特徴まとめ
+
+## 早見表
+
+| Voice ID | 性別/雰囲気* | 音質・トーンの特徴 | 代表的な利用シーン例** |
+|----------|--------------|--------------------|-----------------------|
+| **alloy** | 中性的・ニュートラル | バランス良く落ち着いた声。癖が少なく聞き取りやすい | 企業ナレーション／e-ラーニング |
+| **ash** | 中性的 | クリアで歯切れ良いビジネス調 | 業務アプリ読み上げ／プレゼン音声 |
+| **ballad** | 中性的 | 滑らかで情感豊か。メロディック | 物語朗読／詩の朗読 |
+| **coral** | 女性的 | 親しみやすく温かいカジュアルトーン | ライフスタイル動画／ブログ音声化 |
+| **echo** | 男性的 | 深み・重厚感のある信頼ボイス | 技術解説／ニュース読み上げ |
+| **fable** | 男性的 | 明瞭でエネルギッシュ。惹きつけ力高 | 広告コピー／子ども向け読み聞かせ |
+| **onyx** | 男性的 | 低音かつ威厳のある“司会者”風 | 公式アナウンス／報道ナレーション |
+| **nova** | 女性的 | 明るく若々しい会話調 | AI チャット音声／教育動画 |
+| **sage** | 中性的 | 穏やかで思慮深い落ち着き | ドキュメンタリー解説／教材 |
+| **shimmer** | 女性的 | 柔らかさ＋輝きを併せ持つ明快さ | ライフログ／セルフケア音声 |
+| **verse** | 中性的 | 表現力豊富で動的なイントネーション | 詩・ラップ朗読／演劇セリフ |
+
+\* 性別は公式表記ではなく公開サンプルの印象に基づく便宜的分類  
+\** ユースケースは一般例。"instructions" パラメータで細かな演出調整が可能
+
+---
+
+## 使い分けガイド
+
+- **ニュートラル系**（alloy / ash / sage）  
+  - 誰にでも聞き取りやすく情報伝達重視。まずは **alloy** をデフォルトにし、硬さを調整したい場合は **ash** や **sage** を試すと安定。
+- **感情豊かな語り**（ballad / fable / verse）  
+  - 抑揚が重要な物語や広告に最適。特に **verse** は表現幅が広く、"instructions" で「悲しげに」「興奮気味に」など細かく指定すると効果大。
+- **信頼感・権威重視**（echo / onyx）  
+  - 技術ドキュメントやニュース、公式発表で“重み”を出したいときに。"speed" ≈ 0.9 に下げるとより重厚感アップ。
+- **カジュアル・親近感**（coral / nova / shimmer）  
+  - Vlog、UX 読み上げ、AI アシスタント等フレンドリーな用途に。  
+    - **nova**: 明るくテンポ良い会話  
+    - **coral**: ソフトな雑談系  
+    - **shimmer**: 落ち着いた自己開示系
 
 ### 出力形式
 {
@@ -300,7 +330,8 @@ ${characters.map((char, index) => `${index + 1}. ${char.name} (ID: ${char.id})
 
 これらのキャラクターに最適な音声をJSONフォーマットで割り当ててください。
 
-**重要**: 上記の${characters.length}名のキャラクター全員に対して音声を割り当ててください。1人も欠けることなく、voiceAssignmentsに${characters.length}個の要素を含めてください。`;
+**重要**: 上記の${characters.length}名のキャラクター全員に対して音声を割り当ててください。1人も欠けることなく、voiceAssignmentsに${characters.length}個の要素を含めてください。
+とくに性別と役割には注意して、キャラクターの声を選択してください。`;
 }
 
 /**

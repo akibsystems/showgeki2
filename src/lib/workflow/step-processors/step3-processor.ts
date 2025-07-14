@@ -269,7 +269,12 @@ function createSceneSystemPrompt(): string {
   "scenes": [
     {
       "id": "1から順番に番号をつける",
-      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。画像が指定されていないキャラクターの場合のみ、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見を含めてください。外見指定は"キャラ名(外見)"の形式で、そのキャラが登場するシーンごとに毎回行ってください。画像が指定されているキャラクターは役割、性格のみ反映してください",
+      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。
+      全シーンに登場するすべての登場人物に対して、外見を指定してください。
+      画像が指定されている登場人物の場合は、"登場人物名(体型:XXX, 服装など:YYY)"の形式で体型と服装のみ指定してください。
+      画像が指定されていない登場人物の場合は、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、服装など、をすべて記述してください。
+      外見指定は"登場人物名(外見:XXX, YYY,...)"の形式で、その登場人物が登場するシーンごとに毎回必ず指定してください。
+      ",
       "speaker": "話者名",
       "text": "心に響く台詞(少しカジュアルな日本語)"
     }
@@ -319,7 +324,6 @@ ${act.scenes?.map((scene: any) =>
 - タイトル: ${storyboard.title}
 - ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
 - ストーリー: ${storyData.originalText || ''}
-- 登場人物の詳細: ${storyData.characters || ''}
 - 劇的転換点: ${storyData.dramaticTurningPoint || ''}
 - 未来のビジョン: ${storyData.futureVision || ''}
 - 学びや気づき: ${storyData.learnings || ''}
@@ -355,7 +359,7 @@ ${characters.map(char => {
 - 瞳の色: ${char.eyeColor || ''}
 - 髪の色: ${char.hairColor || ''}
 - 体型: ${char.bodyType || ''}
-- 外見: ${char.visualDescription || ''}`;
+- 服装など: ${char.visualDescription || ''}`;
     }
   }).join('\n\n')}
 

@@ -32,8 +32,20 @@ function VoiceSelector({
   onChange: (voice: string) => void;
   isLoading: boolean;
 }) {
-  const voices: VoiceId[] = ['alloy', 'echo', 'fable', 'nova', 'onyx', 'shimmer'];
-  
+  const voices: VoiceId[] = [
+    'alloy',
+    'ash',
+    'ballad',
+    'coral',
+    'echo',
+    'fable',
+    'nova',
+    'onyx',
+    'sage',
+    'shimmer',
+    'verse',
+  ];
+
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-4">
@@ -115,7 +127,7 @@ function SceneAudioPreview({
                 試聴
               </button>
             </div>
-            
+
             {expandedDialogue === 0 && (
               <div className="mt-3 pt-3 border-t border-gray-600">
                 <div className="text-xs text-gray-400 mb-2">読み修正（任意）</div>
@@ -145,7 +157,7 @@ export default function Step5VoiceGen({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  
+
   // 音声設定の管理
   const [voiceSettings, setVoiceSettings] = useState<{
     [characterId: string]: {
@@ -193,21 +205,21 @@ export default function Step5VoiceGen({
   // 音声プレビュー
   const handlePreview = async (text: string, speaker: string) => {
     if (!user) return;
-    
+
     setIsPreviewLoading(true);
     try {
       // キャラクターIDを取得
       const character = initialData?.stepInput?.characters.find(
         char => char.name === speaker
       );
-      
+
       if (!character) {
         error('話者の情報が見つかりません');
         return;
       }
 
       const voiceType = voiceSettings[character.id]?.voiceType || 'alloy';
-      
+
       // TTS APIを呼び出し
       const response = await fetch('/api/tts/preview', {
         method: 'POST',
