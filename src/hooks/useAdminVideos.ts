@@ -12,12 +12,14 @@ export interface VideoWithRelations {
   story_id: string;
   uid: string;
   status: 'queued' | 'processing' | 'completed' | 'error';
+  title?: string;
   url?: string;
   duration_sec?: number;
   resolution?: string;
   size_mb?: number;
   error_msg?: string;
   created_at: string;
+  updated_at?: string;
   story?: {
     id: string;
     title: string;

@@ -31,12 +31,14 @@ interface VideoWithRelations {
   story_id: string;
   uid: string;
   status: string;
+  title?: string;
   url?: string;
   duration_sec?: number;
   resolution?: string;
   size_mb?: number;
   error_msg?: string;
   created_at: string;
+  updated_at?: string;
   story?: {
     id: string;
     title: string;
@@ -77,18 +79,10 @@ async function getVideos(
     const { page, limit, status, from, to, uid, search } = parseResult.data;
     const supabase = createAdminClient();
     
-    // Build query
+    // Build query - Since there's no foreign key, we'll do a manual join
     let query = supabase
       .from('videos')
-      .select(`
-        *,
-        stories!inner(
-          id,
-          title,
-          uid,
-          created_at
-        )
-      `, { count: 'exact' });
+      .select('*', { count: 'exact' });
     
     // Apply filters
     if (status) {
@@ -108,7 +102,8 @@ async function getVideos(
     }
     
     if (search) {
-      query = query.or(`stories.title.ilike.%${search}%,uid.ilike.%${search}%`);
+      // Search in video title or uid
+      query = query.or(`title.ilike.%${search}%,uid.ilike.%${search}%`);
     }
     
     // Apply pagination
@@ -130,8 +125,27 @@ async function getVideos(
       );
     }
     
+    // Get storyboards for the videos
+    const storyIds = [...new Set((videos || []).map(v => v.story_id).filter(Boolean))];
+    
+    let storyboards: any[] = [];
+    if (storyIds.length > 0) {
+      const { data: storyboardData } = await supabase
+        .from('storyboards')
+        .select('id, title, uid, created_at')
+        .in('id', storyIds);
+      
+      storyboards = storyboardData || [];
+    }
+    
+    // Create storyboard map
+    const storyboardMap = new Map(storyboards.map(sb => [sb.id, sb]));
+    
     // Get profiles for the videos
-    const uids = [...new Set((videos || []).map(v => v.stories?.uid).filter(Boolean))];
+    const uids = [...new Set([
+      ...(videos || []).map(v => v.uid),
+      ...storyboards.map(sb => sb.uid)
+    ].filter(Boolean))];
     
     let profiles: any[] = [];
     if (uids.length > 0) {
@@ -146,11 +160,14 @@ async function getVideos(
     // Map profiles to videos
     const profileMap = new Map(profiles.map(p => [p.id, p]));
     
-    const videosWithProfiles = (videos || []).map(video => ({
-      ...video,
-      story: video.stories,
-      profile: video.stories?.uid ? profileMap.get(video.stories.uid) : undefined,
-    }));
+    const videosWithProfiles = (videos || []).map(video => {
+      const storyboard = storyboardMap.get(video.story_id);
+      return {
+        ...video,
+        story: storyboard, // Map storyboard to story for backward compatibility
+        profile: storyboard?.uid ? profileMap.get(storyboard.uid) : profileMap.get(video.uid),
+      };
+    });
     
     return NextResponse.json({
       success: true,
