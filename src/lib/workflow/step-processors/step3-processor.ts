@@ -34,7 +34,7 @@ export async function generateStep4Input(
 ): Promise<Step4Input> {
   console.log(`[step3-processor] generateStep4Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
   console.log(`[step3-processor] Step3 output received:`, JSON.stringify(step3Output, null, 2));
-  
+
   try {
     // storyboardから既存のデータを取得
     console.log(`[step3-processor] Fetching storyboard data from database...`);
@@ -94,7 +94,7 @@ export async function generateStep4Input(
       let sceneNumber = 1;
       let currentIndex = 0;
       let title = '';
-      
+
       // acts_dataから幕・場番号を取得
       if (storyboard.acts_data?.acts) {
         for (const act of storyboard.acts_data.acts) {
@@ -190,7 +190,7 @@ async function generateScenesWithAI(
   console.log(`[step3-processor] generateScenesWithAI called`);
   console.log(`[step3-processor] Characters count:`, characters.length);
   console.log(`[step3-processor] Style data:`, JSON.stringify(styleData, null, 2));
-  
+
   const systemPrompt = createSceneSystemPrompt();
   const userPrompt = createSceneUserPrompt(storyboard, characters, styleData, storyData);
   console.log(`[step3-processor] Prompts created, calling OpenAI...`);
@@ -269,7 +269,7 @@ function createSceneSystemPrompt(): string {
   "scenes": [
     {
       "id": "1から順番に番号をつける",
-      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。画像が指定されていないキャラクターの場合のみ、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見を含めてください。画像が指定されているキャラクターは役割、性格のみ反映してください",
+      "imagePrompt": "そのシーンの本質を捉えた日本語の画像プロンプト（画風、構図、感情、象徴を含む）。画像が指定されていないキャラクターの場合のみ、性別、年齢、肌の色、身長、体重、髪型、瞳の色、髪の色、体型、外見を含めてください。外見指定は"キャラ名(外見)"の形式で、そのキャラが登場するシーンごとに毎回行ってください。画像が指定されているキャラクターは役割、性格のみ反映してください",
       "speaker": "話者名",
       "text": "心に響く台詞(少しカジュアルな日本語)"
     }
@@ -295,11 +295,11 @@ function createSceneUserPrompt(
   storyData?: any
 ): string {
   // 幕場構成を整理して、シーンごとの情報を作成
-  const actsStructure = storyboard.acts_data?.acts?.map((act: any) => 
+  const actsStructure = storyboard.acts_data?.acts?.map((act: any) =>
     `第${act.actNumber}幕「${act.actTitle}」
-${act.scenes?.map((scene: any) => 
-  `  - 第${scene.sceneNumber}場「${scene.sceneTitle}」: ${scene.summary}`
-).join('\n')}`
+${act.scenes?.map((scene: any) =>
+      `  - 第${scene.sceneNumber}場「${scene.sceneTitle}」: ${scene.summary}`
+    ).join('\n')}`
   ).join('\n\n') || '';
 
   // 全シーンのリストを作成
@@ -315,25 +315,16 @@ ${act.scenes?.map((scene: any) =>
     });
   });
 
-  // 元のストーリー情報を追加
-  let originalStoryInfo = '';
-  if (storyData) {
-    originalStoryInfo = `
-## 元のストーリー情報
-- オリジナルストーリー: ${storyData.originalText || ''}
+  return `## 作品情報
+- タイトル: ${storyboard.title}
+- ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
+- ストーリー: ${storyData.originalText || ''}
 - 登場人物の詳細: ${storyData.characters || ''}
 - 劇的転換点: ${storyData.dramaticTurningPoint || ''}
 - 未来のビジョン: ${storyData.futureVision || ''}
 - 学びや気づき: ${storyData.learnings || ''}
 - 総シーン数: ${storyData.totalScenes || ''}
-`;
-  }
 
-  return `## 作品情報
-タイトル: ${storyboard.title}
-ジャンル: ${storyboard.summary_data?.genre || 'ドラマ'}
-概要: ${storyboard.summary_data?.description || ''}
-${originalStoryInfo}
 ## 幕場構成
 ${actsStructure}
 

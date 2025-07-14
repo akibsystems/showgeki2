@@ -48,32 +48,38 @@ function extractPrompts(filePath) {
   }
   
   // create*Prompt関数の戻り値を抽出（改善版）
-  const promptFunctionRegex = /function\s+(create\w*(?:System|User|Director)Prompt[^{]*)\{([\s\S]*?)^\}/gm;
-  let functionMatch;
+  // より広範なパターンでPrompt関数を検索
+  const promptFunctions = content.matchAll(/function\s+(create\w*Prompt)\s*\([^)]*\)\s*:\s*string\s*\{/g);
   
-  while ((functionMatch = promptFunctionRegex.exec(content)) !== null) {
-    const functionName = functionMatch[1];
-    const functionBody = functionMatch[2];
+  for (const funcMatch of promptFunctions) {
+    const functionName = funcMatch[1];
+    const startPos = funcMatch.index + funcMatch[0].length;
     
-    // return文を探す（複数行にわたる場合も対応）
-    const returnMatch = functionBody.match(/return\s*\`([\s\S]*?)\`;/);
-    if (returnMatch) {
-      const promptContent = returnMatch[1].trim();
-      // SystemPromptかUserPromptかを判定
-      if (functionName.includes('SystemPrompt')) {
-        prompts.systemPrompts.push(promptContent);
-      } else {
-        prompts.directorPrompts.push(promptContent);
-      }
+    // 関数の終了位置を探す（ブレースのネストを考慮）
+    let braceCount = 1;
+    let endPos = startPos;
+    
+    while (braceCount > 0 && endPos < content.length) {
+      if (content[endPos] === '{') braceCount++;
+      else if (content[endPos] === '}') braceCount--;
+      endPos++;
     }
     
-    // return文が改行されている場合
-    const multilineReturnMatch = functionBody.match(/return\s*\`\s*\n([\s\S]*?)\n\s*\`;/);
-    if (multilineReturnMatch && !returnMatch) {
-      const promptContent = multilineReturnMatch[1].trim();
-      if (functionName.includes('SystemPrompt')) {
+    const functionBody = content.substring(startPos, endPos - 1);
+    
+    // return文を探す（テンプレートリテラルに対応）
+    const templateLiteralRegex = /return\s*`([\s\S]*?)`\s*;/;
+    const returnMatch = functionBody.match(templateLiteralRegex);
+    
+    if (returnMatch) {
+      let promptContent = returnMatch[1];
+      // 最初と最後の改行を削除
+      promptContent = promptContent.replace(/^\n/, '').replace(/\n$/, '');
+      
+      // SystemPromptかUserPromptかを判定
+      if (functionName.toLowerCase().includes('system')) {
         prompts.systemPrompts.push(promptContent);
-      } else {
+      } else if (functionName.toLowerCase().includes('user') || functionName.toLowerCase().includes('director')) {
         prompts.directorPrompts.push(promptContent);
       }
     }
@@ -96,9 +102,9 @@ function extractPrompts(filePath) {
 async function main() {
   console.log('🔍 Step processorsからプロンプトを抽出中...\n');
   
-  // step1-5のファイルを読み込む
+  // step1-7のファイルを読み込む（全てのステップを含む）
   const stepFiles = [];
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 7; i++) {
     const filePath = path.join(processorsDir, `step${i}-processor.ts`);
     if (fs.existsSync(filePath)) {
       stepFiles.push(filePath);
