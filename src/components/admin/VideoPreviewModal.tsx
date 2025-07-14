@@ -121,21 +121,24 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
       onClose={onClose}
       title="動画プレビュー"
       size="xl"
+      className="!max-w-7xl"
     >
-      <div className="space-y-6">
-        {/* Video Player */}
-        {video.url && (
-          <div className="bg-black rounded-lg overflow-hidden">
-            <VideoPlayer
-              src={video.url}
-              poster=""
-              title={video.story?.title || '無題'}
-            />
-          </div>
-        )}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Video and Information */}
+        <div className="flex-1 space-y-6">
+          {/* Video Player */}
+          {video.url && (
+            <div className="bg-black rounded-lg overflow-hidden">
+              <VideoPlayer
+                src={video.url}
+                poster=""
+                title={video.story?.title || '無題'}
+              />
+            </div>
+          )}
 
-        {/* Video Information */}
-        <div className="bg-gray-900 rounded-lg p-6 space-y-4">
+          {/* Video Information */}
+          <div className="bg-gray-900 rounded-lg p-6 space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-100 mb-2">
               {video.story?.title || '無題'}
@@ -210,10 +213,12 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
             </a>
           </div>
         </div>
+        </div>
 
-        {/* Consistency Check Results */}
+        {/* Right Column: Consistency Check Results */}
         {video.status === 'completed' && (
-          <div className="bg-gray-900 rounded-lg p-6">
+          <div className="w-full lg:w-[450px] xl:w-[550px]">
+            <div className="bg-gray-900 rounded-lg p-6 lg:sticky lg:top-0 max-h-[80vh] overflow-y-auto">
             <h4 className="text-lg font-semibold text-gray-100 mb-4 flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -291,12 +296,12 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                   </div>
                 )}
 
-                {/* Scene Details (Collapsible) */}
-                <details className="border border-gray-700 rounded-lg overflow-hidden">
-                  <summary className="px-4 py-2 bg-gray-800 hover:bg-gray-700 cursor-pointer text-sm text-gray-300">
-                    シーン詳細を表示
-                  </summary>
-                  <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
+                {/* Scene Details */}
+                <div className="border border-gray-700 rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-gray-800 text-sm text-gray-300 font-medium">
+                    シーン詳細
+                  </div>
+                  <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
                     {consistencyCheck.result.scenes.map((scene) => (
                       <div key={scene.index} className="bg-gray-800/50 rounded-lg p-3 text-xs">
                         <div className="font-medium text-gray-200 mb-2">
@@ -335,9 +340,10 @@ export function VideoPreviewModal({ video, isOpen, onClose }: VideoPreviewModalP
                       </div>
                     ))}
                   </div>
-                </details>
+                </div>
               </div>
             )}
+            </div>
           </div>
         )}
       </div>
