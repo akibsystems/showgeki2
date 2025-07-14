@@ -467,3 +467,24 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up
 ```
+
+#### 6. Instant Mode Background Processing on Vercel
+**Issue**: Instant mode processing stops immediately after API response on Vercel  
+**Cause**: Vercel serverless functions terminate after response is sent  
+**Solution**: Use `waitUntil` from `@vercel/functions` to extend function lifetime:
+
+```typescript
+import { waitUntil } from '@vercel/functions';
+
+// Register background processing with waitUntil
+waitUntil(
+  processInstantMode({
+    workflowId: workflow.id,
+    storyboardId: storyboard.id,
+    uid,
+    input: body
+  })
+);
+```
+
+This ensures the background processing continues even after the response is returned to the client.

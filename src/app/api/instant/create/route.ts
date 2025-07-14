@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { processInstantMode } from '@/lib/instant/instant-generator';
 import type { InstantModeInput } from '@/types/instant';
+import { waitUntil } from '@vercel/functions';
 
 export async function POST(req: NextRequest) {
   console.log('[InstantCreate] ===== POST request received =====');
@@ -115,19 +116,25 @@ export async function POST(req: NextRequest) {
       mode: workflow.mode
     });
 
-    // 4. バックグラウンドで処理を開始（非同期）
-    console.log('[InstantCreate] Starting processInstantMode in background...');
-    processInstantMode({
-      workflowId: workflow.id,
-      storyboardId: storyboard.id,
-      uid,
-      input: body
-    }).catch(error => {
-      console.error('[InstantCreate] Instant Mode processing failed:', error);
-      console.error('[InstantCreate] Error stack:', error.stack);
-      // エラーはinstant-generatorで処理される
-    });
-    console.log('[InstantCreate] Background processing started');
+    // 4. バックグラウンドで処理を開始（Vercel waitUntilを使用）
+    console.log('[InstantCreate] Starting processInstantMode in background with waitUntil...');
+    
+    // waitUntilを使用してバックグラウンド処理を登録
+    // これによりレスポンス返却後も処理が継続される
+    waitUntil(
+      processInstantMode({
+        workflowId: workflow.id,
+        storyboardId: storyboard.id,
+        uid,
+        input: body
+      }).catch(error => {
+        console.error('[InstantCreate] Instant Mode processing failed:', error);
+        console.error('[InstantCreate] Error stack:', error.stack);
+        // エラーはinstant-generatorで処理される
+      })
+    );
+    
+    console.log('[InstantCreate] Background processing registered with waitUntil');
 
     // 5. 即座にレスポンスを返す
     console.log('[InstantCreate] Returning response with instantId:', workflow.id);
