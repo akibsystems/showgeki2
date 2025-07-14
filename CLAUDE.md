@@ -119,6 +119,7 @@ node scripts/test-webhook-concurrent.js
 ### Database Schema
 - **`stories`**: `id` (8-digit), `story_text`, `is_completed`, `video_url`, `created_at`
 - **`reviews`**: `story_id`, `review_text`, `rating` (1-5), `created_at`
+- **`video_consistency_checks`**: `id` (UUID), `video_id`, `check_type`, `result` (JSONB), `metadata`, `created_at`, `updated_at`
 
 ### Core Scripts
 - **`webhook-handler.js`**: Cloud Run webhook receiver for automated processing (now extracts real video metadata)
@@ -197,6 +198,9 @@ A comprehensive, mobile-friendly visual editor for MulmoScript structure that se
   - Default: `false` (use normal workflow phases)
   - Set to `true` for faster generation using direct OpenAI API call
   - Direct mode bypasses character analysis, scene structuring etc.
+- **`GEMINI_API_KEY`**: Google Gemini API key for video consistency checking
+  - Required for admin video consistency check feature
+  - Get from Google AI Studio
 - **`SCRIPT_WRITER_TYPE`**: Choose between Shakespeare-style or general scriptwriter prompts
   - Options: `shakespeare` (default) or `general`
   - `shakespeare`: Uses dramatic, theatrical Shakespeare-inspired prompts
@@ -378,6 +382,90 @@ The system supports two operation modes:
 **Script**: `scripts/backfill-video-titles.js`  
 **Purpose**: Populate title field for existing videos from storyboards  
 **Usage**: `node scripts/backfill-video-titles.js`
+
+## Video Consistency Check Feature (2025-01-14)
+
+### Overview
+AI-powered video consistency analysis using Google Gemini API to evaluate character visual and audio consistency across scenes.
+
+### Setup
+1. **Get Gemini API Key**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. **Add to Environment**: `GEMINI_API_KEY=your_gemini_api_key` in `.env.local`
+3. **Run Migration**: Execute `migrations/003_add_video_consistency_checks.sql` in Supabase
+
+### Technical Details
+- **Models**: Default `gemini-2.5-flash` (configurable via `GEMINI_MODEL` env var)
+  - `gemini-2.5-flash`: Faster, cheaper, recommended for most use cases
+  - `gemini-2.5-pro`: Higher quality, slower, more expensive
+- **Max Output Tokens**: Default 8192 (configurable via `GEMINI_MAX_TOKENS` env var)
+  - Increase for very long videos with many scenes
+  - Error message will indicate if response was truncated
+- **Response Format**: JSON with `responseMimeType: 'application/json'`
+- **Caching**: Results stored in `video_consistency_checks` table
+- **Rate Limits**: Free tier has strict limits (wait time shown in errors)
+
+### Usage in Admin Panel
+1. Navigate to `/admin/videos`
+2. Select completed videos (multiple selection supported)
+3. Click "一貫性チェック" button
+4. View detailed scores per scene and character
+
+### Scoring System
+- **90-100**: 優秀 (Excellent) - Green
+- **70-89**: 良好 (Good) - Yellow  
+- **50-69**: 要改善 (Needs Improvement) - Orange
+- **0-49**: 不良 (Poor) - Red
+
+### API Endpoints
+- **POST** `/api/admin/videos/consistency-check`: Run analysis
+  - Body: `{ videoId: string, forceRecheck?: boolean }`
+- **GET** `/api/admin/videos/consistency-check`: Get cached results
+  - Query: `?videoId=uuid` (optional)
+
+### Troubleshooting
+- **429 Rate Limit**: Wait for specified time or upgrade to paid plan
+- **Parse Errors**: Check console logs for raw Gemini response
+- **Empty Response**: Verify video URL is accessible and valid
+
+### Local Scripts for Testing
+
+#### 1. List Recent Videos
+**Script**: `scripts/list-recent-videos.js`  
+**Purpose**: Display recent video IDs for testing  
+**Usage**: `node scripts/list-recent-videos.js [count]`
+
+#### 2. Check Video Consistency  
+**Script**: `scripts/check-video-consistency.js`  
+**Purpose**: Test video consistency check locally before deploying  
+**Configuration**: Set `GEMINI_MODEL` env var or edit constant in script
+- `gemini-2.5-flash`: Default, faster and cheaper
+- `gemini-2.5-pro`: Higher quality analysis
+**Usage**:
+```bash
+# Basic check (displays results only)
+node scripts/check-video-consistency.js <VIDEO_ID>
+
+# Save results to database
+node scripts/check-video-consistency.js <VIDEO_ID> --save
+
+# Output as JSON
+node scripts/check-video-consistency.js <VIDEO_ID> --json
+```
+**Features**:
+- Downloads video from Supabase storage
+- Analyzes with Gemini API (gemini-2.5-pro)
+- Displays colored results in terminal
+- Saves full results to JSON file
+- Optionally updates database with --save flag
+
+**Example Workflow**:
+```bash
+# List recent videos
+node scripts/list-recent-videos.js 10
+
+# Check specific video
+node scripts/check-video-consistency.js 4d53042a-a8e3-44db-88f3-f4121ffdd17e
+```
 
 ## Recently Added Scripts (2025-07-02)
 

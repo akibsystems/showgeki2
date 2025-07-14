@@ -6,6 +6,7 @@ import { VideoFilters } from '@/components/admin/VideoFilters';
 import { VideoTable } from '@/components/admin/VideoTable';
 import { VideoGrid } from '@/components/admin/VideoGrid';
 import { VideoPreviewModal } from '@/components/admin/VideoPreviewModal';
+import { ConsistencyCheckModal } from '@/components/admin/ConsistencyCheckModal';
 import { Button } from '@/components/ui';
 import { APIErrorMessage } from '@/components/ui/error-message';
 import { VideoWithRelations } from '@/hooks/useAdminVideos';
@@ -31,6 +32,7 @@ export default function AdminVideosPage() {
   const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
   const [previewVideo, setPreviewVideo] = useState<VideoWithRelations | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConsistencyCheck, setShowConsistencyCheck] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Load view mode from localStorage
@@ -156,6 +158,24 @@ export default function AdminVideosPage() {
                     選択解除
                   </Button>
                   <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      // Filter only completed videos for consistency check
+                      const completedVideos = (data?.videos || [])
+                        .filter(v => selectedVideos.includes(v.id) && v.status === 'completed');
+                      
+                      if (completedVideos.length === 0) {
+                        alert('完了した動画を選択してください');
+                        return;
+                      }
+                      
+                      setShowConsistencyCheck(true);
+                    }}
+                  >
+                    一貫性チェック
+                  </Button>
+                  <Button
                     variant="danger"
                     size="sm"
                     onClick={handleBulkDelete}
@@ -264,6 +284,13 @@ export default function AdminVideosPage() {
           </div>
         </div>
       )}
+
+      {/* Consistency check modal */}
+      <ConsistencyCheckModal
+        videos={(data?.videos || []).filter(v => selectedVideos.includes(v.id) && v.status === 'completed')}
+        isOpen={showConsistencyCheck}
+        onClose={() => setShowConsistencyCheck(false)}
+      />
     </div>
   );
 }
