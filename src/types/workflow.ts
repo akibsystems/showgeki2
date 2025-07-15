@@ -215,6 +215,15 @@ export interface Workflow {
   step6_out?: Step6Output;
   step7_out?: Step7Output;
 
+  // UI表示用統合データ（stepN_inとstepN_outをマージしたもの）
+  step1_input?: any;
+  step2_input?: any;
+  step3_input?: any;
+  step4_input?: any;
+  step5_input?: any;
+  step6_input?: any;
+  step7_input?: any;
+
   created_at: string;
   updated_at: string;
 }

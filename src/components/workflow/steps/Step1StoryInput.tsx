@@ -9,8 +9,8 @@ import type { Step1Input, Step1Output } from '@/types/workflow';
 interface Step1StoryInputProps {
   workflowId: string;
   initialData?: {
-    stepInput: Step1Input;
-    stepOutput?: Step1Output;
+    stepInput: any; // すべてのデータがstepInputに含まれる
+    stepOutput?: Step1Output; // 後方互換性のため残す
   };
   onNext: () => void;
   onUpdate: (canProceed: boolean) => void;
@@ -26,24 +26,32 @@ export default function Step1StoryInput({
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
+  // デバッグログ
+  console.log("Step1StoryInput initialData:", {
+    hasInitialData: !!initialData,
+    hasStepInput: !!initialData?.stepInput,
+    stepInput: initialData?.stepInput
+  });
+
   // オプション項目に既存の値があるかチェック
   const hasOptionalData = Boolean(
-    initialData?.stepOutput?.userInput?.dramaticTurningPoint ||
-    initialData?.stepOutput?.userInput?.futureVision ||
-    initialData?.stepOutput?.userInput?.learnings
+    initialData?.stepInput?.dramaticTurningPoint ||
+    initialData?.stepInput?.futureVision ||
+    initialData?.stepInput?.learnings
   );
 
   const [showOptionalFields, setShowOptionalFields] = useState(hasOptionalData);
 
   // フォームの状態管理
+  // stepInputにすべてのデータが含まれている
   const [formData, setFormData] = useState({
-    storyText: initialData?.stepOutput?.userInput?.storyText || '',
-    characters: initialData?.stepOutput?.userInput?.characters || '',
-    dramaticTurningPoint: initialData?.stepOutput?.userInput?.dramaticTurningPoint || '',
-    futureVision: initialData?.stepOutput?.userInput?.futureVision || '',
-    learnings: initialData?.stepOutput?.userInput?.learnings || '',
-    totalScenes: initialData?.stepOutput?.userInput?.totalScenes || 5,
-    settings: initialData?.stepOutput?.userInput?.settings || {
+    storyText: initialData?.stepInput?.storyText || '',
+    characters: initialData?.stepInput?.characters || '',
+    dramaticTurningPoint: initialData?.stepInput?.dramaticTurningPoint || '',
+    futureVision: initialData?.stepInput?.futureVision || '',
+    learnings: initialData?.stepInput?.learnings || '',
+    totalScenes: initialData?.stepInput?.totalScenes || 5,
+    settings: initialData?.stepInput?.settings || {
       style: 'shakespeare',
       language: 'ja',
     },
@@ -51,15 +59,15 @@ export default function Step1StoryInput({
 
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput) {
+    if (initialData?.stepInput) {
       setFormData({
-        storyText: initialData.stepOutput.userInput.storyText || '',
-        characters: initialData.stepOutput.userInput.characters || '',
-        dramaticTurningPoint: initialData.stepOutput.userInput.dramaticTurningPoint || '',
-        futureVision: initialData.stepOutput.userInput.futureVision || '',
-        learnings: initialData.stepOutput.userInput.learnings || '',
-        totalScenes: initialData.stepOutput.userInput.totalScenes || 5,
-        settings: initialData.stepOutput.userInput.settings || {
+        storyText: initialData.stepInput.storyText || '',
+        characters: initialData.stepInput.characters || '',
+        dramaticTurningPoint: initialData.stepInput.dramaticTurningPoint || '',
+        futureVision: initialData.stepInput.futureVision || '',
+        learnings: initialData.stepInput.learnings || '',
+        totalScenes: initialData.stepInput.totalScenes || 5,
+        settings: initialData.stepInput.settings || {
           style: 'shakespeare',
           language: 'ja',
         },

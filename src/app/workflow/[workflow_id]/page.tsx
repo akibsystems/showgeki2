@@ -36,7 +36,7 @@ function WorkflowPageContent({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(false); // 初期値をfalseに変更
   const [canProceed, setCanProceed] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // 前回のステップを記録するためのref
   const prevStepRef = useRef<number | null>(null);
 
@@ -68,7 +68,7 @@ function WorkflowPageContent({ params }: PageProps) {
               'X-User-UID': user.id,
             },
           });
-          
+
           if (!workflowResponse.ok) {
             console.error('Workflow info fetch failed:', {
               status: workflowResponse.status,
@@ -77,19 +77,19 @@ function WorkflowPageContent({ params }: PageProps) {
             });
             throw new Error(`Failed to fetch workflow info: ${workflowResponse.status} ${workflowResponse.statusText}`);
           }
-          
+
           if (workflowResponse.ok) {
             const workflowData = await workflowResponse.json();
             const dbCurrentStep = workflowData.workflow.current_step;
             setWorkflowInfo({ current_step: dbCurrentStep });
-            
+
             // URLにstepパラメータがない場合、データベースのcurrent_stepにリダイレクト
             if (currentStep === null && dbCurrentStep) {
               router.replace(`/workflow/${workflow_id}?step=${dbCurrentStep}`);
               // リダイレクト後もローディング状態を維持
               return;
             }
-            
+
             setIsInitialized(true);
             // URLにstepがある場合は初期化完了後にローディング解除
             if (currentStep !== null) {
@@ -106,7 +106,7 @@ function WorkflowPageContent({ params }: PageProps) {
             user_id: user?.id,
             phase: 'initialization'
           });
-          
+
           // 重大なエラーの場合のみダッシュボードへ
           if (err instanceof Error && (err.message.includes('404') || err.message.includes('401'))) {
             error('ワークフローの読み込みに失敗しました');
@@ -120,7 +120,7 @@ function WorkflowPageContent({ params }: PageProps) {
           }
         }
       };
-      
+
       initWorkflow();
     }
   }, [workflow_id, currentStep, user, router, error, isInitialized]);
@@ -135,19 +135,19 @@ function WorkflowPageContent({ params }: PageProps) {
       }
       return;
     }
-    
+
     // 初回ロードかどうかを判定
     const isFirstLoad = prevStepRef.current === null;
-    
+
     // ステップが実際に変更された場合を判定
     const isStepChanged = !isFirstLoad && prevStepRef.current !== currentStep;
-    
+
     if (isStepChanged) {
       // ステップが変更されたときに、古いデータをクリア
       setStepInput(null);
       setStepOutput(null);
     }
-    
+
     // 現在のステップを記録
     prevStepRef.current = currentStep;
 
@@ -156,7 +156,7 @@ function WorkflowPageContent({ params }: PageProps) {
       setIsLoading(false);
       return;
     }
-    
+
     // 初回ロードでない、ステップが変更されていない、かつデータがすでに存在する場合はスキップ
     if (!isFirstLoad && !isStepChanged && stepInput) {
       console.log('[WorkflowPage] Skip fetch - data already exists for step:', currentStep);
@@ -166,7 +166,7 @@ function WorkflowPageContent({ params }: PageProps) {
 
     const fetchWorkflow = async () => {
       console.log('[WorkflowPage] Starting fetchWorkflow for step:', currentStep);
-      
+
       // データがない場合、初回ロード、またはステップが変更された場合のみローディングを表示
       if (!stepInput || isFirstLoad || isStepChanged) {
         setIsLoading(true);
@@ -184,7 +184,7 @@ function WorkflowPageContent({ params }: PageProps) {
         }).catch((err) => {
           console.log('Failed to update current step:', err);
         });
-        
+
         // StepXInputを取得（workflow-design.mdの仕様に従う）
         const response = await fetch(`/api/workflow/${workflow_id}/step/${currentStep}`, {
           headers: {
@@ -203,7 +203,7 @@ function WorkflowPageContent({ params }: PageProps) {
 
         const stepInputData = await response.json();
         console.log('[WorkflowPage] Fetched step input:', stepInputData);
-        
+
         // stepInputDataが空でないことを確認
         if (!stepInputData || (typeof stepInputData === 'object' && Object.keys(stepInputData).length === 0)) {
           console.warn('[WorkflowPage] Empty step input data received');
@@ -211,37 +211,9 @@ function WorkflowPageContent({ params }: PageProps) {
         } else {
           setStepInput(stepInputData);
         }
-        
-        // ワークフロー情報を取得してstepOutputも取得
-        const workflowResponse = await fetch(`/api/workflow/${workflow_id}`, {
-          headers: {
-            'X-User-UID': user.id,
-          },
-        });
-        
-        if (workflowResponse.ok) {
-          const workflowData = await workflowResponse.json();
-          setWorkflowInfo({ current_step: workflowData.workflow.current_step });
-          
-          // stepOutputを取得
-          const stepOutColumnName = `step${currentStep}_out`;
-          if (workflowData.workflow[stepOutColumnName]) {
-            setStepOutput(workflowData.workflow[stepOutColumnName]);
-          } else if (currentStep === 1 && stepInputData && Object.keys(stepInputData).length > 0) {
-            // Step1でstepOutputがない場合、stepInputをstepOutputとして使用
-            setStepOutput({ userInput: stepInputData });
-          } else {
-            // stepOutputがない場合は空のオブジェクトを設定
-            setStepOutput({});
-          }
-        } else {
-          console.warn('Failed to fetch workflow data:', {
-            status: workflowResponse.status,
-            statusText: workflowResponse.statusText
-          });
-          // ワークフロー情報が取得できない場合でも、stepInputは使えるので続行
-          setStepOutput({});
-        }
+
+        // stepOutputは使わない（stepInputにすべてが含まれている）
+        setStepOutput(null);
       } catch (err) {
         console.error('Failed to fetch workflow - Error details:', {
           error: err,
@@ -251,7 +223,7 @@ function WorkflowPageContent({ params }: PageProps) {
           currentStep,
           user_id: user?.id
         });
-        
+
         // 404エラーの場合のみダッシュボードへ
         if (err instanceof Error && err.message.includes('404')) {
           error('ワークフローが見つかりません');
@@ -410,10 +382,10 @@ function WorkflowPageContent({ params }: PageProps) {
     console.warn('[WorkflowPage] No user available');
     return null;
   }
-  
+
   // stepInputがnullの場合のみ非表示（空のオブジェクトは許可）
   if (stepInput === null) {
-    console.warn('[WorkflowPage] Step input not loaded yet:', { 
+    console.warn('[WorkflowPage] Step input not loaded yet:', {
       currentStep,
       isInitialized
     });

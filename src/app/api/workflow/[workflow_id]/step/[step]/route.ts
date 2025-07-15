@@ -105,52 +105,23 @@ export async function GET(
 
     const workflow = workflowData as Workflow & { storyboard: Storyboard };
 
-    // ステップ入力データ（キャッシュ）を取得
-    const stepInColumnName = `step${stepNumber}_in` as keyof Workflow;
-    let stepInput = workflow[stepInColumnName] as StepInput | undefined;
+    // step{N}_inputカラムから直接データを取得
+    const stepInputColumnName = `step${stepNumber}_input` as keyof Workflow;
+    let stepInput = workflow[stepInputColumnName] as any;
 
-    // キャッシュがない場合は、storyboardsから再生成
-    if (!stepInput && stepNumber > 1) {
-      // 最初はストーリーボードの内容から、各ステップの入力を合成する
+    // step{N}_inputが存在しない場合は生成して保存
+    if (!stepInput) {
       stepInput = await generateStepInput(stepNumber, workflow.storyboard);
-
-      // キャッシュを保存
+      
+      // 生成したデータをstep{N}_inputに保存
       await supabase
         .from('workflows')
-        .update({ [stepInColumnName]: stepInput })
+        .update({ [stepInputColumnName]: stepInput })
         .eq('id', workflow_id);
     }
 
-    // Step4の場合、保存されたStep4Outputがあればマージ
-    if (stepNumber === 4 && stepInput) {
-      const stepOutColumnName = `step${stepNumber}_out` as keyof Workflow;
-      const stepOutput = workflow[stepOutColumnName] as Step4Output | undefined;
-
-      if (stepOutput?.userInput?.scenes && Array.isArray(stepOutput.userInput.scenes)) {
-        const step4Input = stepInput as Step4Input;
-        const savedScenes = stepOutput.userInput.scenes;
-
-        // 保存されたプロンプトをマージ
-        step4Input.scenes = step4Input.scenes.map((scene: any) => {
-          const savedScene = savedScenes.find((s: any) => s.id === scene.id);
-          if (savedScene) {
-            return {
-              ...scene,
-              imagePrompt: savedScene.imagePrompt || scene.imagePrompt,
-              dialogue: savedScene.dialogue || scene.dialogue,
-              customImage: savedScene.customImage
-            };
-          }
-          return scene;
-        });
-      }
-    }
-
-    // workflow-design.mdの仕様に従い、StepXInputのみを返す
-    const response = stepInput || {};
-
-
-    return NextResponse.json(response);
+    // stepInputを返す
+    return NextResponse.json(stepInput);
   } catch (error) {
     console.error('Error fetching step data:', error);
     return NextResponse.json(
@@ -233,22 +204,19 @@ export async function POST(
       );
     }
 
-    // ワークフローのステップ出力データを更新
+    // ワークフローのステップデータを更新
     const workflowUpdateData: any = {
-      [`step${stepNumber}_out`]: stepOutput,
+      [`step${stepNumber}_out`]: stepOutput, // 履歴として保存
+      [`step${stepNumber}_input`]: stepOutput.userInput, // 画面表示用データを保存
       current_step: Math.max(workflow.current_step, stepNumber),
     };
-
-    // Step1の場合のみ、stepX_inにuserInputを保存（次回のGET用）
-    if (stepNumber === 1) {
-      workflowUpdateData[`step${stepNumber}_in`] = stepOutput.userInput;
-    }
 
     // ステップ1-3の編集時は後続ステップをリセット
     if (stepNumber <= 3) {
       for (let i = stepNumber + 1; i <= 7; i++) {
         workflowUpdateData[`step${i}_in`] = null;
         workflowUpdateData[`step${i}_out`] = null;
+        workflowUpdateData[`step${i}_input`] = null;
       }
     }
 
@@ -292,8 +260,10 @@ export async function POST(
       );
     }
 
-    // 次ステップの入力データをキャッシュとして保存
-    if (stepNumber < 7) {
+    // 次ステップの入力データをstep{N}_inputとして保存
+    if (stepNumber < 7 && nextStepInput) {
+      workflowUpdateData[`step${stepNumber + 1}_input`] = nextStepInput;
+      // 互換性のため従来のstep_inも更新
       workflowUpdateData[`step${stepNumber + 1}_in`] = nextStepInput;
     }
 
@@ -353,6 +323,22 @@ async function generateStepInput(
   storyboard: Storyboard
 ): Promise<StepInput> {
   switch (stepNumber) {
+    case 1:
+      // Step1Input: 初期値または保存されたstory_dataから生成
+      const storyData = storyboard.story_data as any;
+      return {
+        storyText: storyData?.originalText || '',
+        characters: storyData?.characters || '',
+        dramaticTurningPoint: storyData?.dramaticTurningPoint || '',
+        futureVision: storyData?.futureVision || '',
+        learnings: storyData?.learnings || '',
+        totalScenes: storyData?.totalScenes || 5,
+        settings: storyData?.settings || {
+          style: 'shakespeare',
+          language: 'ja',
+        }
+      };
+
     case 2:
       // Step2Input: summary_dataとacts_dataから生成
       return {
@@ -464,8 +450,19 @@ async function generateAndUpdateStoryboard(
 
   switch (stepNumber) {
     case 1:
-      // Step1完了時: AIでstoryboardを生成してStep2Inputを作成
+      // Step1完了時: story_dataを更新し、AIでStep2Inputを生成
       const step1Output = stepOutput as Step1Output;
+
+      // story_dataを更新（generateStepInputでStep1の初期値に使用される）
+      storyboardUpdates.story_data = {
+        originalText: step1Output.userInput.storyText,
+        characters: step1Output.userInput.characters,
+        dramaticTurningPoint: step1Output.userInput.dramaticTurningPoint,
+        futureVision: step1Output.userInput.futureVision,
+        learnings: step1Output.userInput.learnings,
+        totalScenes: step1Output.userInput.totalScenes,
+        settings: step1Output.userInput.settings,
+      };
 
       try {
         // WorkflowStepManagerを使用してAI生成を実行
@@ -474,7 +471,6 @@ async function generateAndUpdateStoryboard(
 
         if (result.success && result.data) {
           nextStepInput = result.data;
-          // storyboardUpdatesは step1-processor内で既に更新されているため、ここでは空
         } else {
           const errorMessage = result.error?.message || 'AIによるストーリー生成に失敗しました';
           const errorCode = result.error?.code || 'STEP2_GENERATION_FAILED';
@@ -675,53 +671,3 @@ async function generateAndUpdateStoryboard(
   return { nextStepInput, storyboardUpdates };
 }
 
-/**
- * シーン数に基づいて幕場構成を生成
- */
-function generateActsStructure(totalScenes: number) {
-  const acts = [];
-  const actTitles = ['運命の出会い', '試練と成長', '挫折と再起', '決戦への道', '新たな始まり'];
-  const sceneTitles = [
-    ['序章 - 平凡な日常', '転機の訪れ', '新たな世界へ'],
-    ['最初の壁', '仲間との出会い', '力の目覚め'],
-    ['大きな失敗', '内なる声', '再起への決意'],
-    ['最後の準備', '運命の対決', '激闘の果てに'],
-    ['勝利と別れ', '未来への扉', 'エピローグ']
-  ];
-  const sceneSummaries = [
-    ['主人公の日常生活と内に秘めた夢への憧れ', '運命的な出会いが主人公の人生を大きく変える', '新しい世界への第一歩を踏み出す'],
-    ['新しい世界での困難と戸惑い', '共に困難を乗り越える仲間との絆', '隠された力が目覚め始める'],
-    ['自信を失い、夢を諦めかける主人公', '自分自身と向き合い、真の目的を見つける', '新たな決意と共に立ち上がる'],
-    ['仲間と共に最終決戦への準備を整える', '全てを賭けた最後の挑戦', '激しい戦いの中で真の強さを発揮'],
-    ['目標を達成し、それぞれの道へ', '成長した主人公が新たな冒険へ旅立つ', '物語の終わりと新たな始まり']
-  ];
-
-  // 5幕構成で、各幕のシーン数を計算
-  let totalScenesAssigned = 0;
-  const scenesPerAct = Math.ceil(totalScenes / 5);
-
-  for (let actIndex = 0; actIndex < 5; actIndex++) {
-    const actScenes = [];
-    const actualScenesInAct = Math.min(scenesPerAct, totalScenes - totalScenesAssigned);
-
-    for (let sceneIndex = 0; sceneIndex < actualScenesInAct; sceneIndex++) {
-      actScenes.push({
-        sceneNumber: sceneIndex + 1,
-        sceneTitle: sceneTitles[actIndex][sceneIndex] || `第${sceneIndex + 1}場`,
-        summary: sceneSummaries[actIndex][sceneIndex] || `第${actIndex + 1}幕第${sceneIndex + 1}場の内容`
-      });
-      totalScenesAssigned++;
-    }
-
-    if (actScenes.length > 0) {
-      acts.push({
-        actNumber: actIndex + 1,
-        actTitle: actTitles[actIndex],
-        description: '',
-        scenes: actScenes
-      });
-    }
-  }
-
-  return acts;
-}
