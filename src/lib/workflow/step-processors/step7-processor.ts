@@ -141,11 +141,29 @@ async function updateWorkflowStatistics(
  */
 async function queueVideoGeneration(storyboardId: string): Promise<void> {
   try {
+    // ストーリーボードからuidを取得
+    const { data: storyboard, error: fetchError } = await supabase
+      .from('storyboards')
+      .select('uid')
+      .eq('id', storyboardId)
+      .single();
+
+    if (fetchError || !storyboard) {
+      console.error('[step7-processor] ストーリーボードの取得に失敗:', fetchError);
+      throw new Error('ストーリーボードの取得に失敗しました');
+    }
+
+    if (!storyboard.uid) {
+      console.error('[step7-processor] ストーリーボードにuidが設定されていません');
+      throw new Error('ストーリーボードにuidが設定されていません');
+    }
+
     // 動画生成のためのレコードを作成
     const { error } = await supabase
       .from('videos')
       .insert({
         story_id: storyboardId,
+        uid: storyboard.uid,
         status: 'queued',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -154,7 +172,7 @@ async function queueVideoGeneration(storyboardId: string): Promise<void> {
     if (error) {
       console.error('動画生成キューへの追加エラー:', error);
     } else {
-      console.log(`[step7-processor] 動画生成キューに追加: ${storyboardId}`);
+      console.log(`[step7-processor] 動画生成キューに追加: ${storyboardId} (uid: ${storyboard.uid})`);
     }
   } catch (error) {
     console.error('[step7-processor] 動画生成キュー処理エラー:', error);

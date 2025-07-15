@@ -44,20 +44,12 @@ export async function POST(
       );
     }
 
-    // 新しいストーリーボードを作成（コピー）
+    // 新しいストーリーボードを作成（時刻以外の全フィールドをコピー）
+    const { id, created_at, updated_at, ...storyboardDataToCopy } = originalStoryboard;
     const newStoryboard = {
-      uid: uid,
-      project_id: originalStoryboard.project_id, // project_idをコピー
+      ...storyboardDataToCopy,
       title: `${originalStoryboard.title || '無題'} (コピー)`,
-      status: 'draft',
-      summary_data: originalStoryboard.summary_data,
-      acts_data: originalStoryboard.acts_data,
-      characters_data: originalStoryboard.characters_data,
-      scenes_data: originalStoryboard.scenes_data,
-      audio_data: originalStoryboard.audio_data,
-      style_data: originalStoryboard.style_data,
-      caption_data: originalStoryboard.caption_data,
-      mulmoscript: null, // MulmoScriptはリセット
+      status: 'draft', // statusは常にdraftにセット
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -76,17 +68,48 @@ export async function POST(
       );
     }
 
-    // 新しいワークフローを作成
-    const { data: workflow, error: workflowError } = await supabase
+    // 元のワークフローを取得
+    const { data: originalWorkflows, error: fetchWorkflowError } = await supabase
       .from('workflows')
-      .insert({
+      .select('*')
+      .eq('storyboard_id', storyboardId)
+      .eq('uid', uid)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (fetchWorkflowError) {
+      console.error('元のワークフロー取得エラー:', fetchWorkflowError);
+    }
+
+    const originalWorkflow = originalWorkflows?.[0];
+
+    // 新しいワークフローを作成（時刻以外の全フィールドをコピー）
+    let newWorkflowData;
+    if (originalWorkflow) {
+      const { id, storyboard_id, created_at, updated_at, ...workflowDataToCopy } = originalWorkflow;
+      newWorkflowData = {
+        ...workflowDataToCopy,
+        storyboard_id: createdStoryboard.id, // 新しいstoryboardのIDを設定
+        status: 'active', // statusは常にactiveにセット
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      // 元のワークフローが存在しない場合は新規作成
+      newWorkflowData = {
         uid: uid,
         storyboard_id: createdStoryboard.id,
         status: 'active',
         current_step: 1,
+        mode: 'normal',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      })
+      };
+    }
+
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
+      .insert(newWorkflowData)
       .select()
       .single();
 
