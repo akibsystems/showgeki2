@@ -1,6 +1,8 @@
 services:
   showgeki2:
-    build: .
+    build: 
+      context: ./cloud-run
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -11,7 +13,7 @@ services:
     env_file:
       - .env.local
     volumes:
-      - ./scripts:/app/scripts
+      - ./cloud-run/webhook-handler.js:/app/webhook-handler.js
       - ./logs:/app/logs
       - ./output:/app/output
       - ./mulmocast-output:/app/mulmocast-cli/output

@@ -1,0 +1,18 @@
+{
+  "name": "showgeki2-cloud-run",
+  "version": "1.0.0",
+  "description": "Cloud Run webhook handler for Showgeki2",
+  "main": "webhook-handler.js",
+  "scripts": {
+    "start": "node webhook-handler.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "openai": "^4.76.4",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
