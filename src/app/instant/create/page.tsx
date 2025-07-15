@@ -11,25 +11,10 @@ const ArrowLeftIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// New UI form data interface
+// Form data interface
 interface NewStoryFormData {
   storyText: string;
-  genre?: 'tragedy' | 'comedy';
-  style?: 'anime' | 'realistic' | 'watercolor';
-  castImage?: File;
 }
-
-// UI Option Definitions
-const GENRE_OPTIONS = [
-  { value: 'tragedy', label: '悲劇' },
-  { value: 'comedy', label: '喜劇' },
-] as const;
-
-const STYLE_OPTIONS = [
-  { value: 'anime', label: 'アニメ' },
-  { value: 'realistic', label: '実写' },
-  { value: 'watercolor', label: '水彩画' },
-] as const;
 
 export default function InstantCreatePage() {
   const router = useRouter();
@@ -38,12 +23,8 @@ export default function InstantCreatePage() {
 
   const [formData, setFormData] = useState<NewStoryFormData>({
     storyText: '',
-    genre: undefined,
-    style: undefined,
-    castImage: undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Handle navigation
   const handleBack = () => {
@@ -54,25 +35,6 @@ export default function InstantCreatePage() {
     router.push('/');
   };
 
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, castImage: file });
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setFormData({ ...formData, castImage: undefined });
-    setImagePreview(null);
-  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,18 +59,13 @@ export default function InstantCreatePage() {
     setIsSubmitting(true);
 
     try {
-      // Convert new UI data to API format
-      const apiData: any = {
+      // API data format
+      const apiData = {
         storyText: formData.storyText,
         title: '', // Will be auto-generated
-        visualStyle: formData.style || 'anime', // Use selected style or default to anime
+        visualStyle: 'anime', // Default to anime
         duration: 'medium', // Default duration
-        // Include genre for future processing
-        ...(formData.genre && { genre: formData.genre }),
       };
-
-      // TODO: Handle cast image upload
-      // If castImage exists, upload it first and include reference in apiData
 
       const response = await fetch('/api/instant/create', {
         method: 'POST',
@@ -135,28 +92,6 @@ export default function InstantCreatePage() {
     }
   };
 
-  // Option Button Component
-  interface OptionButtonProps {
-    option: { value: string; label: string };
-    isSelected: boolean;
-    onClick: () => void;
-  }
-
-  const OptionButton = ({ option, isSelected, onClick }: OptionButtonProps) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`
-        flex items-center justify-center px-3 py-2 rounded-lg border transition-all duration-200 text-sm
-        ${isSelected 
-          ? 'border-blue-500 bg-blue-50 text-blue-600' 
-          : 'border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900'
-        }
-      `}
-    >
-      <span className="font-medium">{option.label}</span>
-    </button>
-  );
 
   // Loading state
   if (loading) {
@@ -194,9 +129,9 @@ export default function InstantCreatePage() {
           >
             <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
           </button>
-          
+
           <h1 className="text-lg font-semibold text-gray-900">新しいストーリー</h1>
-          
+
           <button
             onClick={handleCancel}
             className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -207,17 +142,17 @@ export default function InstantCreatePage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-6">
           {/* Story Input */}
           <div className="space-y-2">
             <textarea
               value={formData.storyText}
               onChange={(e) => setFormData({ ...formData, storyText: e.target.value })}
-              placeholder="今日、久しぶりに実家に帰りました。母が作ってくれた手料理を食べながら、家族みんなで昔話に花を咲かせました。"
-              rows={3}
-              className="w-full px-3 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-              style={{ fontSize: '18px' }}
+              placeholder={"ToBe（トゥービー）\n    一行が、あなたの物語になる。"}
+              rows={6}
+              className="w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+              style={{ fontSize: '18px', lineHeight: '1.8' }}
               required
             />
             <p className="text-xs text-gray-500 text-right">
@@ -225,93 +160,8 @@ export default function InstantCreatePage() {
             </p>
           </div>
 
-          {/* Genre Selection */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700">
-              ジャンル
-            </h3>
-            <div className="flex gap-2">
-              {GENRE_OPTIONS.map((option) => (
-                <OptionButton
-                  key={option.value}
-                  option={option}
-                  isSelected={formData.genre === option.value}
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    genre: formData.genre === option.value ? undefined : option.value as any
-                  })}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Style Selection */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700">
-              スタイル
-            </h3>
-            <div className="flex gap-2">
-              {STYLE_OPTIONS.map((option) => (
-                <OptionButton
-                  key={option.value}
-                  option={option}
-                  isSelected={formData.style === option.value}
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    style: formData.style === option.value ? undefined : option.value as any
-                  })}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Cast Image Upload */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700">
-              キャスト
-            </h3>
-            <div className="flex items-start gap-3">
-              <input
-                type="file"
-                id="cast-image"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              {imagePreview ? (
-                <div className="relative w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                  <img 
-                    src={imagePreview} 
-                    alt="Cast preview" 
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white text-xs hover:bg-black/70 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <label 
-                  htmlFor="cast-image"
-                  className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors flex-shrink-0"
-                >
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span className="text-xs text-gray-600 mt-1">追加</span>
-                </label>
-              )}
-              <p className="text-xs text-gray-600 pt-1">
-                顔画像をアップロードして登場人物として使用
-              </p>
-            </div>
-          </div>
-
           {/* Generate Button */}
-          <div className="pt-6">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={!formData.storyText.trim() || isSubmitting}
