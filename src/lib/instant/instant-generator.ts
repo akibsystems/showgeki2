@@ -100,7 +100,7 @@ export async function processInstantMode({
         captionStyles: [`font-size: ${INSTANT_DEFAULTS.caption.fontSize}px`]
       };
       console.log(`[InstantGenerator] Generation options:`, JSON.stringify(generationOptions, null, 2));
-      
+
       const generationResult = await generateMulmoscriptWithOpenAI(story, {
         beats: story.beats,
         language: 'ja',
@@ -131,7 +131,7 @@ export async function processInstantMode({
       console.log("[InstantGenerator] - Has speechParams:", !!generatedScript.speechParams);
       console.log("[InstantGenerator] - Has imageParams:", !!generatedScript.imageParams);
       console.log("[InstantGenerator] - Has captionParams:", !!generatedScript.captionParams);
-      
+
       // 各beatの詳細も確認
       if (generatedScript.beats) {
         console.log("[InstantGenerator] Beat details:");
@@ -309,7 +309,7 @@ export async function processInstantMode({
       // デフォルトの音声割り当てをそのまま使用
       const extractedVoiceSettings = extractVoiceSettingsFromStep5(step5Result.data);
       console.log(`[InstantGenerator] Extracted voice settings:`, JSON.stringify(extractedVoiceSettings, null, 2));
-      
+
       const step5Output = {
         userInput: {
           voiceSettings: extractedVoiceSettings
@@ -426,13 +426,13 @@ export async function processInstantMode({
 async function saveStepOutput(supabase: any, workflowId: string, step: number, output: any) {
   console.log(`[saveStepOutput] Saving step ${step} output for workflow ${workflowId}`);
   console.log(`[saveStepOutput] Output size: ${JSON.stringify(output).length} bytes`);
-  
+
   const updateData = {
     [`step${step}_out`]: output,
     current_step: step + 1
   };
   console.log(`[saveStepOutput] Updating workflow with current_step: ${step + 1}`);
-  
+
   const { error } = await supabase
     .from('workflows')
     .update(updateData)
@@ -443,7 +443,7 @@ async function saveStepOutput(supabase: any, workflowId: string, step: number, o
     console.error(`[saveStepOutput] Error details:`, JSON.stringify(error, null, 2));
     throw new Error(`ステップ${step}の出力保存に失敗しました: ${error.message}`);
   }
-  
+
   console.log(`[saveStepOutput] Successfully saved step ${step} output`);
 }
 
@@ -501,7 +501,7 @@ async function startVideoGeneration(workflowId: string, uid: string): Promise<st
 
     // MulmoScriptを生成または既存のものを使用
     let mulmoScript;
-    
+
     // ダイレクトモードの場合、すでにmulmoscriptが存在するはず
     if (storyboard.mulmoscript) {
       console.log('[InstantGenerator] Using existing MulmoScript from storyboard');
@@ -513,7 +513,7 @@ async function startVideoGeneration(workflowId: string, uid: string): Promise<st
     } else {
       console.log('[InstantGenerator] Generating MulmoScript from storyboard data');
       mulmoScript = generateMulmoScriptFromStoryboard(storyboard, workflow.step4_out);
-      
+
       // ストーリーボードにMulmoScriptを保存
       const { error: updateError } = await supabase
         .from('storyboards')

@@ -32,7 +32,7 @@ export async function generateStep3Input(
 ): Promise<Step3Input> {
   console.log(`[step2-processor] generateStep3Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
   console.log(`[step2-processor] Step2 output received:`, JSON.stringify(step2Output, null, 2));
-  
+
   try {
     // storyboardから既存のデータを取得
     console.log(`[step2-processor] Fetching storyboard data from database...`);
@@ -112,13 +112,13 @@ async function generateDetailedCharacters(
 }>> {
   console.log(`[step2-processor] generateDetailedCharacters called`);
   console.log(`[step2-processor] Existing characters count:`, existingCharacters.length);
-  
+
   const systemPrompt = createCharacterSystemPrompt();
   const userPrompt = createCharacterUserPrompt(step2Output, existingCharacters, storyData);
   console.log(`[step2-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4.1-mini',
     messages: [
       {
         role: 'system',
@@ -187,15 +187,15 @@ function createCharacterSystemPrompt(): string {
       "name": "キャラクター名",
       "role": "物語での役割（主人公、道化、賢者、恋人など）",
       "sex": "性別（男性、女性）",
-      "age": "年齢",
-      "skinColor": "肌の色",
-      "bodyType": "体型（スリム、普通、ぽっちゃり、筋肉質）",
-      "height": "身長",
-      "weight": "体重",
-      "hairStyle": "髪型",
-      "hairColor": "髪の色",
-      "eyeColor": "瞳の色",
-      "visualDescription": "特徴的な装飾品、衣装の詳細、全体的な印象",
+      "age": "各シーンでの年齢を推定し、[年齢1, 年齢2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "skinColor": "各シーンでの肌の色を、[色1, 色2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "bodyType": "各シーンでの体型（スリム、普通、ぽっちゃり、筋肉質）を、[体型1, 体型2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "height": "各シーンでの身長を、[身長1, 身長2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "weight": "各シーンでの体重を、[体重1, 体重2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "hairStyle": "各シーンでの髪型を、[髪型1, 髪型2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "hairColor": "各シーンでの髪の色を、[髪色1, 髪色2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "eyeColor": "各シーンでの瞳の色を、[瞳色1, 瞳色2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "visualDescription": "各シーンでの特徴的な装飾品、衣装の詳細、全体的な印象を、[説明1, 説明2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
       "personality": "内面の葛藤、価値観、行動原理、成長の可能性を含む詳細な性格描写",
     }
   ]
@@ -218,7 +218,7 @@ function createCharacterUserPrompt(
   storyData?: any
 ): string {
   let originalStoryInfo = '';
-  
+
   // story_dataが存在する場合、元のストーリー情報を含める
   if (storyData) {
     originalStoryInfo = `

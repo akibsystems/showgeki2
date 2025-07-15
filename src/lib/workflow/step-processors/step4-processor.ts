@@ -166,7 +166,7 @@ async function generateVoiceSettings(
   console.log(`[step4-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4.1-mini',
     messages: [
       {
         role: 'system',

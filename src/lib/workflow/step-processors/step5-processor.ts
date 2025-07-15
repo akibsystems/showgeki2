@@ -32,7 +32,7 @@ export async function generateStep6Input(
 ): Promise<Step6Input> {
   console.log(`[step5-processor] generateStep6Input called for workflow ${workflowId}, storyboard ${storyboardId}`);
   console.log(`[step5-processor] Step5 output received:`, JSON.stringify(step5Output, null, 2));
-  
+
   try {
     // storyboardから既存のデータを取得
     console.log(`[step5-processor] Fetching storyboard data from database...`);
@@ -135,7 +135,7 @@ async function generateBGMSuggestion(storyboard: any): Promise<{
   console.log(`[step5-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4.1-mini',
     messages: [
       {
         role: 'system',

@@ -81,7 +81,7 @@ export async function POST(
     console.log('[Script Generation Debug] workflow.step4_out:', JSON.stringify(workflow.step4_out, null, 2));
 
     // storyboardのデータから直接MulmoScriptを生成
-    const mulmoScript = generateMulmoScript(storyboard, workflow.step4_out);
+    const mulmoScript = await generateMulmoScript(storyboard, workflow.step4_out);
 
     // ストーリーボードにMulmoScriptを保存
     const { error: updateError } = await supabase

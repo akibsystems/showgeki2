@@ -101,7 +101,7 @@ export async function generateStep7Input(
 
     // Step7と同じ方法でMulmoScriptを生成
     console.log(`[step6-processor] Generating MulmoScript...`);
-    const mulmoScript = generateMulmoScriptFromStoryboard(updatedStoryboard, step4Output);
+    const mulmoScript = await generateMulmoScriptFromStoryboard(updatedStoryboard, step4Output);
     console.log(`[step6-processor] MulmoScript generated:`, JSON.stringify(mulmoScript, null, 2));
 
     // storyboardを更新
