@@ -163,7 +163,6 @@ JSONフォーマットで以下の構造で出力してください：
 }
 
 ## 重要な指示
-- 各シーンは物語の流れに沿って自然に分割してください
 - シェイクスピア風の５幕構成（序幕、展開、クライマックス、転換、終幕）を意識してください
 - タイトルは短く印象的に、劇的な雰囲気を含めて
 - あらすじは簡潔にシーンの要点を説明
@@ -181,7 +180,7 @@ function createStoryboardUserPrompt(step1Output: Step1Output): string {
 - 劇的転換点: ${userInput.dramaticTurningPoint}
 - 未来のビジョン: ${userInput.futureVision}
 - 学びや気づき: ${userInput.learnings}
-- 総シーン数: ${userInput.totalScenes}
+- 総シーン数: ${userInput.totalScenes}。ストーリーの構成ではなく、こちらのシーン数を厳守してください！
 - スタイル: ${userInput.settings.style}
 - 言語: ${userInput.settings.language}
 
