@@ -105,7 +105,7 @@ function BgmSelector({
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-6">
         <h3 className="text-lg font-semibold mb-4">BGM設定</h3>
-        
+
         {/* 現在のBGM表示 */}
         <div className="mb-6 p-4 bg-gray-700 rounded-lg">
           <div className="flex items-start gap-3">
@@ -149,7 +149,7 @@ function BgmSelector({
                         </svg>
                       ) : (
                         <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                         </svg>
                       )}
                       <div className="flex-1">
@@ -166,14 +166,13 @@ function BgmSelector({
                     <button
                       onClick={() => onPreview(preset.value)}
                       disabled={isLoading || (isPreviewLoading && playingBgm !== preset.value)}
-                      className={`ml-3 px-3 py-1 rounded text-sm transition-colors ${
-                        playingBgm === preset.value 
-                          ? 'bg-red-600 hover:bg-red-700' 
-                          : 'bg-purple-600 hover:bg-purple-700'
-                      }`}
+                      className={`ml-3 px-3 py-1 rounded text-sm transition-colors ${playingBgm === preset.value
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-purple-600 hover:bg-purple-700'
+                        }`}
                     >
-                      {isPreviewLoading && playingBgm === null ? '読込中...' : 
-                       playingBgm === preset.value ? '停止' : '試聴'}
+                      {isPreviewLoading && playingBgm === null ? '読込中...' :
+                        playingBgm === preset.value ? '停止' : '試聴'}
                     </button>
                   )}
                 </div>
@@ -300,7 +299,7 @@ function CaptionSettings({
     <Card className="bg-gray-800 border-gray-700">
       <CardContent className="p-6">
         <h3 className="text-lg font-semibold mb-4">字幕設定</h3>
-        
+
         {/* 字幕の有効/無効 */}
         <div className="mb-6">
           <label className="flex items-center space-x-3">
@@ -442,14 +441,14 @@ export default function Step6BgmSubtitle({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  
+
   // BGM設定
   const [bgmSettings, setBgmSettings] = useState({
-    selected: initialData?.stepOutput?.userInput?.bgm?.selected || 
-             initialData?.stepInput?.suggestedBgm || 
-             'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3', // デフォルト: Rise and Shine
+    selected: initialData?.stepOutput?.userInput?.bgm?.selected ||
+      initialData?.stepInput?.suggestedBgm ||
+      'https://github.com/receptron/mulmocast-media/raw/refs/heads/main/bgms/story002.mp3', // デフォルト: Rise and Shine
     customBgm: initialData?.stepOutput?.userInput?.bgm?.customBgm || undefined,
-    volume: initialData?.stepOutput?.userInput?.bgm?.volume ?? 0.5,
+    volume: initialData?.stepOutput?.userInput?.bgm?.volume ?? 0.3,
   });
 
   // 字幕設定 - mulmocast形式のstyles配列をサポート
@@ -469,17 +468,17 @@ export default function Step6BgmSubtitle({
     "word-wrap: break-word",
     "overflow-wrap: break-word"
   ];
-  
+
   const [captionSettings, setCaptionSettings] = useState({
-    enabled: initialData?.stepOutput?.userInput?.caption?.enabled ?? 
-             initialData?.stepInput?.captionSettings?.enabled ?? 
-             true,
-    language: initialData?.stepOutput?.userInput?.caption?.language || 
-              initialData?.stepInput?.captionSettings?.language || 
-              'ja',
-    styles: initialData?.stepOutput?.userInput?.caption?.styles || 
-            initialData?.stepInput?.captionSettings?.styles ||
-            defaultStyles,
+    enabled: initialData?.stepOutput?.userInput?.caption?.enabled ??
+      initialData?.stepInput?.captionSettings?.enabled ??
+      true,
+    language: initialData?.stepOutput?.userInput?.caption?.language ||
+      initialData?.stepInput?.captionSettings?.language ||
+      'ja',
+    styles: initialData?.stepOutput?.userInput?.caption?.styles ||
+      initialData?.stepInput?.captionSettings?.styles ||
+      defaultStyles,
   });
 
   // 常に次へ進める
@@ -614,7 +613,7 @@ export default function Step6BgmSubtitle({
   };
 
   // bgmOptionsはURLのリストなので、BGM_PRESETSから有効なオプションを作成
-  const validBgmOptions = BGM_PRESETS.filter(preset => 
+  const validBgmOptions = BGM_PRESETS.filter(preset =>
     preset.value === 'none' || initialData?.stepInput?.bgmOptions?.includes(preset.value)
   );
 
