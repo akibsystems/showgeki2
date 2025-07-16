@@ -563,10 +563,10 @@ async function generateAndUpdateStoryboard(
       break;
 
     case 4:
-      // Step4完了時: 編集されたscenes_dataを更新
+      // Step4完了時: WorkflowStepManagerを使用してAI処理を実行
       const step4Output = stepOutput as Step4Output;
 
-      // 既存のscenes_dataをマージして更新
+      // まず、編集されたscenes_dataを更新
       const currentScenes = currentStoryboard.scenes_data?.scenes || [];
       const updatedScenes = currentScenes.map(scene => {
         const userEdit = step4Output.userInput.scenes.find(s => s.id === scene.id);
@@ -587,23 +587,35 @@ async function generateAndUpdateStoryboard(
 
       console.log('[Step4 Save] Updated scenes_data with edited prompts:', JSON.stringify(storyboardUpdates.scenes_data, null, 2));
 
-      // Step5Input を生成（音声生成用）
-      nextStepInput = {
-        characters: currentStoryboard.characters_data?.characters.map(char => ({
-          id: char.id,
-          name: char.name,
-          suggestedVoice: char.voiceType || 'alloy' // デフォルト音声
-        })) || [],
-        scenes: updatedScenes.map(scene => ({
-          id: scene.id,
-          title: scene.title,
-          dialogue: scene.dialogue.map(line => ({
-            speaker: line.speaker,
-            text: line.text,
-            audioUrl: undefined // 音声はまだ生成されていない
-          }))
-        }))
-      } as Step5Input;
+      // WorkflowStepManagerを使用してstep4-processorを実行（音声割り当て）
+      try {
+        const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
+        const result = await manager.proceedToNextStep(4, step4Output);
+        
+        if (result.success && result.data) {
+          nextStepInput = result.data;
+          // storyboardUpdatesはstep4-processor内で更新される（charactersデータへのvoiceType追加）
+        } else {
+          const errorMessage = result.error?.message || 'AIによる音声設定の生成に失敗しました';
+          const errorCode = result.error?.code || 'STEP5_GENERATION_FAILED';
+          throw new WorkflowGenerationError(
+            `Step5入力の生成に失敗しました: ${errorMessage}`,
+            errorCode,
+            4
+          );
+        }
+      } catch (error) {
+        console.error('Step4→Step5 生成エラー:', error);
+        if (error instanceof WorkflowGenerationError) {
+          throw error;
+        }
+        throw new WorkflowGenerationError(
+          'AIによる音声設定の生成中にエラーが発生しました。',
+          'AI_GENERATION_ERROR',
+          4,
+          error instanceof Error ? error : undefined
+        );
+      }
       break;
 
     case 5:

@@ -94,17 +94,22 @@ export async function generateStep5Input(
     console.log(`[step4-processor] Adding suggested voices to characters...`);
     const charactersWithVoice = storyboard.characters_data?.characters.map((char: any) => {
       const voiceSetting = voiceSettings.characters.find(v => v.id === char.id);
+      const assignedVoice = voiceSetting?.suggestedVoice || 'alloy';
+
+      console.log(`[step4-processor] Character "${char.name}" (ID: ${char.id}): voice="${assignedVoice}" (${voiceSetting ? 'found' : 'not found in voiceSettings'})`);
+
       return {
         ...char,
-        voiceType: voiceSetting?.suggestedVoice || 'alloy'
+        voiceType: assignedVoice
       };
     }) || [];
 
-    // charactersデータも更新
+    // charactersデータも更新（既存のcharacters_dataを保持しながら更新）
     const { error: charUpdateError } = await supabase
       .from('storyboards')
       .update({
         characters_data: {
+          ...storyboard.characters_data,
           characters: charactersWithVoice
         },
         updated_at: new Date().toISOString()
@@ -264,18 +269,17 @@ function createVoiceSystemPrompt(): string {
 | Voice ID | 性別/雰囲気* | 音質・トーンの特徴 | 代表的な利用シーン例** |
 |----------|--------------|--------------------|-----------------------|
 | **alloy** | 中性的・ニュートラル | バランス良く落ち着いた声。癖が少なく聞き取りやすい | 企業ナレーション／e-ラーニング |
-| **ash** | 男性的 | クリアで歯切れ良いビジネス調 | 業務アプリ読み上げ／プレゼン音声 |
+| **ash** | 男性 | クリアで歯切れ良いビジネス調 | 業務アプリ読み上げ／プレゼン音声 |
 | **ballad** | 中性的 | 滑らかで情感豊か。メロディック | 物語朗読／詩の朗読 |
 | **coral** | 女性的 | 親しみやすく温かいカジュアルトーン | ライフスタイル動画／ブログ音声化 |
-| **echo** | 男性的 | 深み・重厚感のある信頼ボイス | 技術解説／ニュース読み上げ |
-| **fable** | 男性的 | 明瞭でエネルギッシュ。惹きつけ力高 | 広告コピー／子ども向け読み聞かせ |
-| **onyx** | 男性的 | 低音かつ威厳のある“司会者”風 | 公式アナウンス／報道ナレーション |
-| **nova** | 女性的 | 明るく若々しい会話調 | AI チャット音声／教育動画 |
-| **sage** | 女性的 | 穏やかで思慮深い落ち着き | ドキュメンタリー解説／教材 |
-| **shimmer** | 女性的 | 柔らかさ＋輝きを併せ持つ明快さ | ライフログ／セルフケア音声 |
-| **verse** | 男性的 | 表現力豊富で動的なイントネーション | 詩・ラップ朗読／演劇セリフ |
+| **echo** | 男性 | 深み・重厚感のある信頼ボイス | 技術解説／ニュース読み上げ |
+| **fable** | 男性 | 明瞭でエネルギッシュ。惹きつけ力高 | 広告コピー／子ども向け読み聞かせ |
+| **onyx** | 男性 | 低音かつ威厳のある“司会者”風 | 公式アナウンス／報道ナレーション |
+| **nova** | 女性 | 明るく若々しい会話調 | AI チャット音声／教育動画 |
+| **sage** | 女性 | 穏やかで思慮深い落ち着き | ドキュメンタリー解説／教材 |
+| **shimmer** | 女性 | 柔らかさ＋輝きを併せ持つ明快さ | ライフログ／セルフケア音声 |
+| **verse** | 男性 | 表現力豊富で動的なイントネーション | 詩・ラップ朗読／演劇セリフ |
 
-\* 性別は公式表記ではなく公開サンプルの印象に基づく便宜的分類  
 \** ユースケースは一般例。"instructions" パラメータで細かな演出調整が可能
 
 ### 出力形式
@@ -293,6 +297,7 @@ function createVoiceSystemPrompt(): string {
 ## 重要な指示
 - **必須**: すべてのキャラクターに対して音声を割り当てること（キャラクターリストのすべてのキャラクターを含める）
 - 各キャラクターの内面と役割を声で表現すること
+- 性別に注意して、キャラクターの声を選択してください。
 - 声の対比で劇的効果を生み出すこと
 - 物語全体の音響的バランスを考慮すること
 - 観客の感情に訴えかける声の配役
@@ -310,6 +315,7 @@ function createVoiceUserPrompt(characters: any[]): string {
 ${characters.map((char, index) => `${index + 1}. ${char.name} (ID: ${char.id})
    - 役割: ${char.role}
    - 性格: ${char.personality}
+   - 性別: ${char.sex}
 - 外見: ${char.visualDescription || '詳細不明'}`).join('\n\n')}
 
 これらのキャラクターに最適な音声をJSONフォーマットで割り当ててください。
