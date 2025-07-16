@@ -43,6 +43,45 @@ export async function processInstantMode({
   console.log(`[InstantGenerator] Starting instant mode for workflow ${workflowId} at ${new Date(startTime).toISOString()}`);
 
   try {
+    // 顔検出情報の保存処理
+    if (input.characters && input.characters.length > 0) {
+      console.log(`[InstantGenerator] Saving ${input.characters.length} detected faces to database...`);
+      
+      for (let i = 0; i < input.characters.length; i++) {
+        const character = input.characters[i];
+        
+        try {
+          // detected_facesテーブルに保存
+          const { error: dbError } = await supabase
+            .from('detected_faces')
+            .insert({
+              workflow_id: workflowId,
+              storyboard_id: storyboardId,
+              original_image_url: input.imageUrl || '',
+              face_index: i,
+              face_image_url: character.faceImageUrl,
+              thumbnail_url: character.faceImageUrl, // サムネイルURLも同じにする（既に処理済みのため）
+              bounding_box: {}, // 既に処理済みのため空オブジェクト
+              detection_confidence: 1.0, // 既に検出済みのため100%
+              face_attributes: {},
+              position_order: i,
+              tag_name: character.name,
+              tag_role: character.role,
+              tag_description: character.description
+            });
+
+          if (dbError) {
+            console.error(`[InstantGenerator] Failed to save face ${i} to database:`, dbError);
+          } else {
+            console.log(`[InstantGenerator] Face ${i} (${character.name}) saved successfully`);
+          }
+        } catch (error) {
+          console.error(`[InstantGenerator] Error saving face ${i}:`, error);
+        }
+      }
+      
+      console.log(`[InstantGenerator] Face information saved to database`);
+    }
 
     if (isDirectMode) {
       console.log(`[InstantGenerator] ===== DIRECT MODE STARTED =====`);
@@ -74,12 +113,28 @@ export async function processInstantMode({
 
       // Story型に合わせたオブジェクトを作成
       console.log(`[InstantGenerator] Creating Story object...`);
+      // 画像参照がある場合はテキストに追加
+      let enhancedStoryText = input.storyText;
+      if (input.imageUrl) {
+        enhancedStoryText = `${input.storyText}\n\n[参考画像: ${input.imageUrl}]`;
+        console.log(`[InstantGenerator] Image reference added to story text`);
+      }
+
+      // キャラクター情報がある場合は追加
+      if (input.characters && input.characters.length > 0) {
+        const characterInfo = input.characters.map(char => 
+          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
+        ).join('\n');
+        enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
+        console.log(`[InstantGenerator] ${input.characters.length} characters added to story text`);
+      }
+
       const story: Story = {
         id: storyboard.id,
         workspace_id: workflowId, // 仮のworkspace_id
         uid: uid,
         title: input.title || '無題のストーリー',
-        text_raw: input.storyText,
+        text_raw: enhancedStoryText,
         script_json: {},
         status: 'draft' as const,
         beats: getSceneCountForDuration(input.duration || 'medium'),
@@ -174,9 +229,26 @@ export async function processInstantMode({
 
       // Step1Output を準備
       console.log(`[InstantGenerator] Preparing Step1Output...`);
+      
+      // 画像参照がある場合はテキストに追加
+      let enhancedStoryText = input.storyText;
+      if (input.imageUrl) {
+        enhancedStoryText = `${input.storyText}\n\n[参考画像: ${input.imageUrl}]`;
+        console.log(`[InstantGenerator] Image reference added to story text`);
+      }
+
+      // キャラクター情報がある場合は追加
+      if (input.characters && input.characters.length > 0) {
+        const characterInfo = input.characters.map(char => 
+          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
+        ).join('\n');
+        enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
+        console.log(`[InstantGenerator] ${input.characters.length} characters added to story text`);
+      }
+
       const step1Output: Step1Output = {
         userInput: {
-          storyText: input.storyText,
+          storyText: enhancedStoryText,
           characters: '', // 自動推定
           dramaticTurningPoint: '', // 自動推定
           futureVision: '',
@@ -194,6 +266,34 @@ export async function processInstantMode({
       console.log(`[InstantGenerator] Saving Step1 output to database...`);
       await saveStepOutput(supabase, workflowId, 1, step1Output);
       console.log(`[InstantGenerator] Step1 output saved successfully`);
+
+      // story_dataをstoryboardに保存（retry-instant-workflowなどが参照するため）
+      console.log(`[InstantGenerator] Saving story_data to storyboard...`);
+      const { error: storyDataError } = await supabase
+        .from('storyboards')
+        .update({
+          story_data: {
+            originalText: input.storyText,
+            imageUrl: input.imageUrl,
+            detectedCharacters: input.characters,
+            characters: '',
+            dramaticTurningPoint: '',
+            futureVision: '',
+            learnings: '',
+            totalScenes: getSceneCountForDuration(input.duration || 'medium'),
+            settings: {
+              style: 'shakespeare',
+              language: 'ja'
+            }
+          }
+        })
+        .eq('id', storyboardId);
+
+      if (storyDataError) {
+        console.error(`[InstantGenerator] Failed to save story_data:`, storyDataError);
+      } else {
+        console.log(`[InstantGenerator] story_data saved successfully`);
+      }
 
       // Step 1→2 の処理を実行
       console.log(`[InstantGenerator] Starting Step 1→2 processing...`);

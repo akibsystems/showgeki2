@@ -10,6 +10,15 @@ export interface InstantModeInput {
   // Legacy fields for backward compatibility
   visualStyle?: 'anime' | 'realistic' | 'watercolor';
   duration?: 'short' | 'medium' | 'long';
+  // Image reference for story generation
+  imageUrl?: string;
+  // Character information from face detection
+  characters?: Array<{
+    name: string;
+    role: string;
+    description?: string;
+    faceImageUrl: string;
+  }>;
 }
 
 export interface InstantGeneration {

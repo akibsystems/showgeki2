@@ -210,6 +210,11 @@ A comprehensive, mobile-friendly visual editor for MulmoScript structure that se
   - Set to `false` to hide instant mode buttons in dashboard
   - Controls visibility in both CreateScriptCard and Quick Access section
   - When not set or set to any value other than `false`, instant mode is shown
+- **`NEXT_PUBLIC_SHOW_FACE_DETECTION_DEBUG`**: Show face detection bounding boxes overlay
+  - Default: `false` (hidden)
+  - Set to `true` to show green bounding boxes around detected faces
+  - Useful for debugging face detection accuracy
+  - Only affects the instant mode face detection UI
 
 ### Cloud Run Secrets
 Environment variables are stored in Google Cloud Secret Manager:
