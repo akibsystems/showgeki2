@@ -169,6 +169,7 @@ export interface MulmoScript {
     quality?: string;
     model?: string;
     provider?: string;
+    moderation?: string;
     images?: Record<string, {
       name?: string;
       type?: string;

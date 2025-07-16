@@ -330,6 +330,7 @@ export async function generateMulmoScriptFromStoryboard(
       //style: styleData?.imageStyle || 'アニメ風、ソフトパステルカラー、繊細な線画、シネマティック照明',
       style: 'anime style, soft pastel colors, Whisper of the Heart style, muted watercolor backgrounds, soft lighting, subtle cel shading, delicate line art, negative_prompt: realistic style, photorealism, overly saturated colors, strong contrast, harsh lighting, sharp outlines, thick line art, noisy textures, digital art style, glossy finish, exaggerated expressions, overly detailed shading, high dynamic range, blurred details',
       model: 'gpt-image-1',
+      moderation: 'low',
       ...(Object.keys(faceReferences).length > 0 ? { images: faceReferences } : {})
     },
     audioParams: bgmParams,
