@@ -38,7 +38,6 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-gray-700">キャラクターキャスティング</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {faces.map((face, index) => {
           const isEnabled = characters[face.id]?.enabled || false;
