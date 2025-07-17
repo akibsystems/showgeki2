@@ -217,7 +217,7 @@ export function ChartSkeleton({ height = 300, className = '' }: ChartSkeletonPro
             <div key={i} className="flex-1">
               <Skeleton
                 variant="rectangular"
-                height={`${20 + Math.random() * 60}%`}
+                height={`${20 + ((i * 37) % 60)}%`}
                 className="w-full"
               />
             </div>

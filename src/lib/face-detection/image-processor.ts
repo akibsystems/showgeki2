@@ -44,7 +44,7 @@ export class ImageProcessor {
     console.log(`[ImageProcessor] Cropping face with bounding box:`, boundingBox);
     
     try {
-      // 画像のメタデータを取得
+      // 画像のメタデータを取得（回転前の元画像から）
       const metadata = await sharp(imageBuffer).metadata();
       if (!metadata.width || !metadata.height) {
         throw new Error('Failed to get image metadata');
@@ -75,9 +75,10 @@ export class ImageProcessor {
 
       console.log(`[ImageProcessor] Adjusted crop region: left=${left}, top=${top}, width=${width}, height=${height}`);
 
-      // 顔を切り取る
+      // 顔を切り取る（元の画像から切り取り、最後に回転）
       const croppedBuffer = await sharp(imageBuffer)
         .extract({ left, top, width, height })
+        .rotate() // 切り取った後でEXIFのOrientation情報に基づいて自動回転
         .jpeg({ quality: 90 })
         .toBuffer();
 
@@ -100,6 +101,7 @@ export class ImageProcessor {
     
     try {
       const thumbnailBuffer = await sharp(imageBuffer)
+        .rotate() // EXIFのOrientation情報に基づいて自動回転
         .resize(size, size, {
           fit: 'cover',
           position: 'center',
