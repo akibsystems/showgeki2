@@ -1,5 +1,5 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import type { VisionAPIFaceAnnotation, FaceAttributes, LIKELIHOOD_SCORES } from '@/types/face-detection';
+import type { FaceAttributes } from '@/types/face-detection';
 
 /**
  * Google Cloud Vision APIクライアント
@@ -88,7 +88,11 @@ export class VisionClient {
         console.log(`[VisionClient] Processing face ${index + 1}`);
         
         // バウンディングボックスを計算
-        const boundingBox = this.calculateBoundingBox(face.boundingPoly?.vertices || []);
+        const vertices = face.boundingPoly?.vertices?.map(v => ({
+          x: v.x ?? 0,
+          y: v.y ?? 0
+        })) || [];
+        const boundingBox = this.calculateBoundingBox(vertices);
         
         // 属性情報を抽出
         const attributes = this.extractFaceAttributes(face);

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/contexts';
 import Image from 'next/image';
-import { FaceDetectionButton } from '@/components/instant/FaceDetectionButton';
 import { FaceDetectionOverlay } from '@/components/instant/FaceDetectionOverlay';
 import { FaceTaggingPanel } from '@/components/instant/FaceTaggingPanel';
 import { CharacterPreview } from '@/components/instant/CharacterPreview';
@@ -54,6 +53,7 @@ export default function InstantCreatePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showFaceDetection, setShowFaceDetection] = useState(false);
   const [selectedFaceId, setSelectedFaceId] = useState<string | null>(null);
+  const [isDetectingFaces, setIsDetectingFaces] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle navigation
@@ -109,7 +109,8 @@ export default function InstantCreatePage() {
       const { url } = await response.json();
       setFormData(prev => ({ ...prev, imageUrl: url }));
       setImagePreview(url);
-      success('画像をアップロードしました');
+      // 画像アップロード後、自動で顔検出を実行
+      detectFaces(url);
     } catch (err) {
       console.error('Upload error:', err);
       error(err instanceof Error ? err.message : '画像のアップロードに失敗しました');
@@ -137,7 +138,6 @@ export default function InstantCreatePage() {
   const handleFaceDetectionComplete = (faces: DetectedFace[]) => {
     setFormData(prev => ({ ...prev, detectedFaces: faces }));
     setShowFaceDetection(true);
-    success(`${faces.length}人の顔を検出しました`);
   };
 
   // Handle face tag update
@@ -165,6 +165,42 @@ export default function InstantCreatePage() {
         Object.entries(prev.characterTags || {}).filter(([id]) => id !== faceId)
       )
     }));
+  };
+
+  // Auto detect faces after image upload
+  const detectFaces = async (imageUrl: string) => {
+    if (!user) return;
+
+    setIsDetectingFaces(true);
+
+    try {
+      const response = await fetch('/api/instant/detect-faces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-UID': user.id,
+        },
+        body: JSON.stringify({
+          imageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Face detection failed:', errorData.error);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.faces.length > 0) {
+        handleFaceDetectionComplete(data.faces);
+      }
+    } catch (err) {
+      console.error('Face detection error:', err);
+    } finally {
+      setIsDetectingFaces(false);
+    }
   };
 
   // Get all detected faces (with or without tags)
@@ -343,29 +379,27 @@ export default function InstantCreatePage() {
                     fill
                     style={{ objectFit: 'contain' }}
                   />
+                  {/* Loading overlay for face detection */}
+                  {isDetectingFaces && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-2"></div>
+                        <p className="text-white text-sm font-medium">顔を検出中...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
                   onClick={handleRemoveImage}
                   className="absolute top-2 right-2 p-1.5 bg-gray-900 bg-opacity-70 text-white rounded-full hover:bg-opacity-90 transition-opacity"
-                  disabled={isUploading}
+                  disabled={isUploading || isDetectingFaces}
                 >
                   <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
             )}
-            <p className="text-xs text-gray-500">
-              ※ 画像をもとにストーリーが生成されます
-            </p>
             
-            {/* Face Detection Button */}
-            {imagePreview && (
-              <FaceDetectionButton
-                imageUrl={formData.imageUrl!}
-                onDetectionComplete={handleFaceDetectionComplete}
-                disabled={isUploading || showFaceDetection}
-              />
-            )}
           </div>
 
           {/* Face Detection Results */}

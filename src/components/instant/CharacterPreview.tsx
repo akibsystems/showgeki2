@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import type { DetectedFace, FaceTag, FACE_ROLE_LABELS } from '@/types/face-detection';
+import type { DetectedFace, FaceTag } from '@/types/face-detection';
+import { FACE_ROLE_LABELS } from '@/types/face-detection';
 
 interface CharacterPreviewProps {
   characters: Array<{

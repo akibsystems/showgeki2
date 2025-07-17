@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (face.workflows.uid !== uid) {
+    if (face.workflows[0].uid !== uid) {
       return NextResponse.json(
         { success: false, error: 'アクセス権限がありません' },
         { status: 403 }
@@ -163,7 +163,7 @@ export async function PUT(req: NextRequest) {
     // 所有権とワークフローの一貫性をチェック
     const workflowId = faces[0].workflow_id;
     const isValid = faces.every(face => 
-      face.workflows.uid === uid && face.workflow_id === workflowId
+      face.workflows[0].uid === uid && face.workflow_id === workflowId
     );
 
     if (!isValid) {
@@ -246,7 +246,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    if (face.workflows.uid !== uid) {
+    if (face.workflows[0].uid !== uid) {
       return NextResponse.json(
         { success: false, error: 'アクセス権限がありません' },
         { status: 403 }
