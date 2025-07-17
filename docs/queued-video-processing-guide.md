@@ -9,7 +9,7 @@
 ### 1. find-queued-videos.js
 queuedステータスのビデオを検索し、状況を確認します。
 
-### 2. process-queued-video.js
+### 2. process-video.js
 指定したビデオIDの処理を手動で開始します。
 
 ## 使用方法
@@ -50,7 +50,7 @@ ID: 123e4567-e89b-12d3-a456-426614174000
   最終更新: 2025/1/15 10:30:00
   待機時間: 2時間
   UID: user123
-  処理コマンド: node scripts/process-queued-video.js 123e4567-e89b-12d3-a456-426614174000
+  処理コマンド: node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000
 ────────────────────────────────────────────────────────────────────────────────
 
 📊 サマリー:
@@ -61,33 +61,33 @@ ID: 123e4567-e89b-12d3-a456-426614174000
   合計: 13件
 
 💡 queuedビデオを処理するには:
-  個別処理: node scripts/process-queued-video.js <video_id>
+  個別処理: node scripts/process-video.js <video_id>
   一括処理スクリプト例:
   #!/bin/bash
-  node scripts/process-queued-video.js 123e4567-e89b-12d3-a456-426614174000
-  node scripts/process-queued-video.js 234f5678-f89c-23e4-b567-537625285001
-  node scripts/process-queued-video.js 345g6789-g90d-34f5-c678-648736396002
+  node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000
+  node scripts/process-video.js 234f5678-f89c-23e4-b567-537625285001
+  node scripts/process-video.js 345g6789-g90d-34f5-c678-648736396002
 ```
 
 ### 2. Queuedビデオの処理
 
 ```bash
 # 基本的な使用方法（デフォルト: ローカルWebhook）
-node scripts/process-queued-video.js <video_id>
+node scripts/process-video.js <video_id>
 
 # ドライラン（実行せずに確認のみ）
-node scripts/process-queued-video.js <video_id> --dry-run
+node scripts/process-video.js <video_id> --dry-run
 
 # Webhook宛先を指定
-node scripts/process-queued-video.js <video_id> --webhook production
-node scripts/process-queued-video.js <video_id> --webhook debug
-node scripts/process-queued-video.js <video_id> --webhook local
+node scripts/process-video.js <video_id> --webhook production
+node scripts/process-video.js <video_id> --webhook debug
+node scripts/process-video.js <video_id> --webhook local
 
 # 利用可能なWebhook宛先を表示
-node scripts/process-queued-video.js --list-webhooks
+node scripts/process-video.js --list-webhooks
 
 # Webhook URL設定の確認
-node scripts/process-queued-video.js --check-webhook-url
+node scripts/process-video.js --check-webhook-url
 ```
 
 #### Webhook宛先
@@ -97,7 +97,7 @@ node scripts/process-queued-video.js --check-webhook-url
 
 #### 実行例
 ```bash
-node scripts/process-queued-video.js 123e4567-e89b-12d3-a456-426614174000
+node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000
 ```
 
 #### 出力例
@@ -187,7 +187,7 @@ VIDEO_IDS=(
 
 for VIDEO_ID in "${VIDEO_IDS[@]}"; do
   echo "処理中: $VIDEO_ID"
-  node scripts/process-queued-video.js "$VIDEO_ID"
+  node scripts/process-video.js "$VIDEO_ID"
   
   # 次の処理まで5秒待機（API負荷軽減）
   sleep 5
@@ -216,7 +216,7 @@ A: 以下の可能性があります：
 確認方法：
 ```bash
 # Webhook URL設定を確認
-node scripts/process-queued-video.js --check-webhook-url
+node scripts/process-video.js --check-webhook-url
 
 # Cloud Runのログを確認
 gcloud run logs read --service showgeki2-auto-process
@@ -263,7 +263,7 @@ WEBHOOK_URL=https://your-cloud-run-url/webhook
 ## 関連ファイル
 
 - `/scripts/find-queued-videos.js` - queuedビデオ検索
-- `/scripts/process-queued-video.js` - queuedビデオ処理
+- `/scripts/process-video.js` - queuedビデオ処理
 - `/src/app/api/workflow/[workflow_id]/generate-script/route.ts` - 動画生成API
 - `/cloud-run/webhook-handler.js` - Cloud Run Webhookハンドラー
 
@@ -278,7 +278,7 @@ WEBHOOK_URL=https://your-cloud-run-url/webhook
 #!/bin/bash
 cd /path/to/showgeki2
 node scripts/find-queued-videos.js | grep "ID:" | awk '{print $2}' | while read VIDEO_ID; do
-  node scripts/process-queued-video.js "$VIDEO_ID"
+  node scripts/process-video.js "$VIDEO_ID"
   sleep 10
 done
 ```
@@ -290,7 +290,7 @@ done
 node scripts/find-queued-videos.js | grep -B3 -A3 "UID: user123"
 
 # 見つかったビデオIDを処理
-node scripts/process-queued-video.js <found_video_id>
+node scripts/process-video.js <found_video_id>
 ```
 
 ### シナリオ3: エラー後の再処理

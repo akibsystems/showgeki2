@@ -131,12 +131,12 @@ async function findVideos(options = {}) {
     // queuedビデオの処理ヒント
     if (videosByStatus.queued.length > 0) {
       console.log('\n💡 queuedビデオを処理するには:');
-      console.log('  個別処理: node scripts/process-queued-video.js <video_id>');
+      console.log('  個別処理: node scripts/process-video.js <video_id>');
       if (videosByStatus.queued.length > 1) {
         console.log('  一括処理スクリプト例:');
         console.log('  #!/bin/bash');
         videosByStatus.queued.slice(0, 5).forEach(v => {
-          console.log(`  node scripts/process-queued-video.js ${v.id}`);
+          console.log(`  node scripts/process-video.js ${v.id}`);
         });
         if (videosByStatus.queued.length > 5) {
           console.log('  # ... 他 ' + (videosByStatus.queued.length - 5) + ' 件');
@@ -188,7 +188,7 @@ async function displayVideos(videos, showError = false, showUrl = false) {
     }
 
     if (video.status === 'queued') {
-      console.log(`  処理コマンド: node scripts/process-queued-video.js ${video.id}`);
+      console.log(`  処理コマンド: node scripts/process-video.js ${video.id}`);
     }
     
     console.log('─'.repeat(80));

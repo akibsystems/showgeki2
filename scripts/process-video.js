@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * queuedステータスのビデオを手動で処理するスクリプト
+ * ビデオを手動で処理（生成/再生成）するスクリプト
  * 
  * 使用方法:
- * node scripts/process-queued-video.js <video_id>
+ * node scripts/process-video.js <video_id>
  * 
  * オプション:
  * --dry-run: 実行せずに確認のみ
+ * --force: ステータスに関わらず強制的に再生成
  * --check-webhook-url: Cloud Run Webhook URLの設定確認
  * 
  * 例:
- * node scripts/process-queued-video.js 123e4567-e89b-12d3-a456-426614174000
- * node scripts/process-queued-video.js 123e4567-e89b-12d3-a456-426614174000 --dry-run
+ * node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000
+ * node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000 --dry-run
+ * node scripts/process-video.js 123e4567-e89b-12d3-a456-426614174000 --force
  */
 
 require('dotenv').config({ path: '.env.local' });
@@ -123,11 +125,14 @@ async function sendWebhookDirectly(video, storyboard, webhookTarget) {
  * メイン処理
  */
 async function processQueuedVideo(videoId, options = {}) {
-  const { dryRun = false, webhookTarget = null } = options;
+  const { dryRun = false, webhookTarget = null, force = false } = options;
   
-  console.log('📹 queuedビデオの処理を開始します...');
+  console.log('📹 ビデオの処理を開始します...');
   console.log(`  ビデオID: ${videoId}`);
   console.log(`  モード: ${dryRun ? 'DRY RUN' : '実行'}`);
+  if (force) {
+    console.log(`  強制再生成: 有効`);
+  }
   if (webhookTarget) {
     console.log(`  Webhook宛先: ${webhookTarget}`);
   }
@@ -143,9 +148,10 @@ async function processQueuedVideo(videoId, options = {}) {
     console.log(`  ストーリーID: ${video.story_id}`);
     console.log(`  タイトル: ${video.storyboards?.title || '未設定'}`);
 
-    // ステータスチェック
-    if (video.status !== 'queued') {
+    // ステータスチェック（--forceオプションが指定されていない場合のみ）
+    if (!force && video.status !== 'queued') {
       console.log(`\n⚠️  このビデオのステータスは '${video.status}' です。処理をスキップします。`);
+      console.log(`  強制的に再生成するには --force オプションを使用してください。`);
       return;
     }
 
@@ -236,6 +242,7 @@ const videoId = args.find(arg => !arg.startsWith('--'));
 
 // オプション解析
 const dryRun = args.includes('--dry-run');
+const force = args.includes('--force');
 const checkWebhookUrl = args.includes('--check-webhook-url');
 const listWebhooks = args.includes('--list-webhooks');
 
@@ -253,8 +260,8 @@ if (listWebhooks) {
   console.log('  production : https://showgeki2-auto-process-mqku5oexhq-an.a.run.app/webhook');
   console.log('  debug      : https://showgeki2-auto-process-debug-mqku5oexhq-an.a.run.app/webhook');
   console.log('\n使用例:');
-  console.log('  node scripts/process-queued-video.js <video_id> --webhook production');
-  console.log('  node scripts/process-queued-video.js <video_id> --webhook debug');
+  console.log('  node scripts/process-video.js <video_id> --webhook production');
+  console.log('  node scripts/process-video.js <video_id> --webhook debug');
   process.exit(0);
 }
 
@@ -263,7 +270,7 @@ if (checkWebhookUrl) {
   console.log('🔧 Cloud Run Webhook URL 設定確認:');
   console.log(`  環境変数: ${process.env.CLOUD_RUN_WEBHOOK_URL || '❌ 未設定'}`);
   console.log('\n利用可能なWebhook宛先を表示するには:');
-  console.log('  node scripts/process-queued-video.js --list-webhooks');
+  console.log('  node scripts/process-video.js --list-webhooks');
   process.exit(0);
 }
 
@@ -271,11 +278,12 @@ if (checkWebhookUrl) {
 if (!videoId) {
   console.error('❌ ビデオIDを指定してください');
   console.log('\n使用方法:');
-  console.log('  node scripts/process-queued-video.js <video_id>');
-  console.log('  node scripts/process-queued-video.js <video_id> --dry-run');
-  console.log('  node scripts/process-queued-video.js <video_id> --webhook <target>');
-  console.log('  node scripts/process-queued-video.js --check-webhook-url');
-  console.log('  node scripts/process-queued-video.js --list-webhooks');
+  console.log('  node scripts/process-video.js <video_id>');
+  console.log('  node scripts/process-video.js <video_id> --dry-run');
+  console.log('  node scripts/process-video.js <video_id> --force');
+  console.log('  node scripts/process-video.js <video_id> --webhook <target>');
+  console.log('  node scripts/process-video.js --check-webhook-url');
+  console.log('  node scripts/process-video.js --list-webhooks');
   console.log('\n📋 queuedステータスのビデオを検索するには:');
   console.log('  node scripts/find-queued-videos.js');
   
@@ -300,7 +308,7 @@ if (!videoId) {
 }
 
 // 実行
-processQueuedVideo(videoId, { dryRun, webhookTarget })
+processQueuedVideo(videoId, { dryRun, webhookTarget, force })
   .then(() => {
     console.log('\n🎉 処理が完了しました');
     process.exit(0);
