@@ -57,7 +57,7 @@ export async function processInstantMode({
             .insert({
               workflow_id: workflowId,
               storyboard_id: storyboardId,
-              original_image_url: input.imageUrl || '',
+              original_image_url: input.imageUrls?.[0] || '',
               face_index: i,
               face_image_url: character.faceImageUrl,
               thumbnail_url: character.faceImageUrl, // サムネイルURLも同じにする（既に処理済みのため）
@@ -115,9 +115,10 @@ export async function processInstantMode({
       console.log(`[InstantGenerator] Creating Story object...`);
       // 画像参照がある場合はテキストに追加
       let enhancedStoryText = input.storyText;
-      if (input.imageUrl) {
-        enhancedStoryText = `${input.storyText}\n\n[参考画像: ${input.imageUrl}]`;
-        console.log(`[InstantGenerator] Image reference added to story text`);
+      if (input.imageUrls && input.imageUrls.length > 0) {
+        const imageRefs = input.imageUrls.map((url, index) => `[参考画像${index + 1}: ${url}]`).join('\n');
+        enhancedStoryText = `${input.storyText}\n\n${imageRefs}`;
+        console.log(`[InstantGenerator] ${input.imageUrls.length} image references added to story text`);
       }
 
       // キャラクター情報がある場合は追加
@@ -232,9 +233,10 @@ export async function processInstantMode({
       
       // 画像参照がある場合はテキストに追加
       let enhancedStoryText = input.storyText;
-      if (input.imageUrl) {
-        enhancedStoryText = `${input.storyText}\n\n[参考画像: ${input.imageUrl}]`;
-        console.log(`[InstantGenerator] Image reference added to story text`);
+      if (input.imageUrls && input.imageUrls.length > 0) {
+        const imageRefs = input.imageUrls.map((url, index) => `[参考画像${index + 1}: ${url}]`).join('\n');
+        enhancedStoryText = `${input.storyText}\n\n${imageRefs}`;
+        console.log(`[InstantGenerator] ${input.imageUrls.length} image references added to story text`);
       }
 
       // キャラクター情報がある場合は追加
@@ -274,7 +276,7 @@ export async function processInstantMode({
         .update({
           story_data: {
             originalText: input.storyText,
-            imageUrl: input.imageUrl,
+            imageUrls: input.imageUrls,
             detectedCharacters: input.characters,
             characters: '',
             dramaticTurningPoint: '',

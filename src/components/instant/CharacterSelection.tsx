@@ -84,11 +84,8 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
                   type="text"
                   value={name}
                   onChange={(e) => handleNameChange(face.id, e.target.value)}
-                  placeholder="キャラ名を入力"
-                  className={`w-full px-2 py-1 text-sm text-gray-900 border rounded-md focus:outline-none focus:ring-1 ${isEnabled && !name.trim()
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-blue-500'
-                    }`}
+                  placeholder="名前"
+                  className="w-full px-2 py-1 text-sm text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               ) : (
                 <div className="h-[30px] flex items-center justify-center">
@@ -102,7 +99,7 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
 
       {/* Helper text */}
       <p className="text-xs text-gray-500">
-        登場させたい人物をタップして選択し、名前を入力してください
+        登場させたい人物をタップして選択してください（名前は任意）
       </p>
     </div>
   );

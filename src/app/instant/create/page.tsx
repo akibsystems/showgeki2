@@ -31,7 +31,7 @@ const CloseIcon = ({ className }: { className?: string }) => (
 // Form data interface
 interface NewStoryFormData {
   storyText: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   detectedFaces?: DetectedFace[];
   characters?: { [faceId: string]: { enabled: boolean; name: string } };
 }
@@ -43,15 +43,16 @@ export default function InstantCreatePage() {
 
   const [formData, setFormData] = useState<NewStoryFormData>({
     storyText: '',
-    imageUrl: undefined,
+    imageUrls: [],
     detectedFaces: [],
     characters: {},
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [showFaceDetection, setShowFaceDetection] = useState(false);
   const [isDetectingFaces, setIsDetectingFaces] = useState(false);
+  const [detectingImageUrls, setDetectingImageUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle navigation
@@ -65,50 +66,69 @@ export default function InstantCreatePage() {
 
   // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     if (!user) {
       error('Please log in to upload images');
       return;
     }
 
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      error('画像ファイルのみアップロード可能です');
-      return;
-    }
-
-    // Check file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      error('画像サイズは10MB以下にしてください');
+    // 既存の画像数 + 新しい画像数が3枚を超えないかチェック
+    const currentImageCount = formData.imageUrls?.length || 0;
+    if (currentImageCount + files.length > 3) {
+      error(`画像は最大3枚までアップロード可能です（現在${currentImageCount}枚）`);
       return;
     }
 
     setIsUploading(true);
+    const uploadedUrls: string[] = [];
+    const previewUrls: string[] = [];
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Check file type
+        if (!file.type.startsWith('image/')) {
+          error(`${file.name}は画像ファイルではありません`);
+          continue;
+        }
 
-      const response = await fetch('/api/instant/upload-image', {
-        method: 'POST',
-        headers: {
-          'X-User-UID': user.id,
-        },
-        body: formData,
-      });
+        // Check file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          error(`${file.name}は10MB以下にしてください`);
+          continue;
+        }
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Upload failed');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/instant/upload-image', {
+          method: 'POST',
+          headers: {
+            'X-User-UID': user.id,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          error(`${file.name}のアップロードに失敗しました: ${data.error}`);
+          continue;
+        }
+
+        const { url } = await response.json();
+        uploadedUrls.push(url);
+        previewUrls.push(url);
       }
 
-      const { url } = await response.json();
-      setFormData(prev => ({ ...prev, imageUrl: url }));
-      setImagePreview(url);
-      // 画像アップロード後、自動で顔検出を実行
-      detectFaces(url);
+      if (uploadedUrls.length > 0) {
+        setFormData(prev => ({ ...prev, imageUrls: [...(prev.imageUrls || []), ...uploadedUrls] }));
+        setImagePreviews(prev => [...prev, ...previewUrls]);
+        // 新しくアップロードした画像のみから顔検出を実行
+        detectFacesFromNewImages(uploadedUrls);
+      }
     } catch (err) {
       console.error('Upload error:', err);
       error(err instanceof Error ? err.message : '画像のアップロードに失敗しました');
@@ -118,17 +138,43 @@ export default function InstantCreatePage() {
   };
 
   // Handle image removal
-  const handleRemoveImage = () => {
-    setFormData(prev => ({ 
-      ...prev, 
-      imageUrl: undefined,
-      detectedFaces: [],
-      characters: {}
-    }));
-    setImagePreview(null);
-    setShowFaceDetection(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handleRemoveImage = (index: number) => {
+    const removedImageUrl = formData.imageUrls?.[index];
+    
+    setFormData(prev => {
+      const newImageUrls = [...(prev.imageUrls || [])];
+      newImageUrls.splice(index, 1);
+      
+      // 削除した画像に関連する顔を削除
+      const newDetectedFaces = prev.detectedFaces?.filter(
+        face => face.sourceImageUrl !== removedImageUrl
+      ) || [];
+      
+      // 削除した顔に関連するキャラクター情報も削除
+      const newCharacters = { ...prev.characters };
+      prev.detectedFaces?.forEach(face => {
+        if (face.sourceImageUrl === removedImageUrl) {
+          delete newCharacters[face.id];
+        }
+      });
+      
+      return { 
+        ...prev, 
+        imageUrls: newImageUrls,
+        detectedFaces: newDetectedFaces,
+        characters: newCharacters
+      };
+    });
+    setImagePreviews(prev => {
+      const newPreviews = [...prev];
+      newPreviews.splice(index, 1);
+      return newPreviews;
+    });
+    if (imagePreviews.length === 1) {
+      setShowFaceDetection(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -143,34 +189,112 @@ export default function InstantCreatePage() {
     setFormData(prev => ({ ...prev, characters: characterData }));
   };
 
-  // Auto detect faces after image upload
-  const detectFaces = async (imageUrl: string) => {
-    if (!user) return;
+  // Auto detect faces from new images only (append to existing faces)
+  const detectFacesFromNewImages = async (newImageUrls: string[]) => {
+    if (!user || newImageUrls.length === 0) return;
 
     setIsDetectingFaces(true);
+    setDetectingImageUrls(newImageUrls);
+    const newDetectedFaces: DetectedFace[] = [];
 
     try {
-      const response = await fetch('/api/instant/detect-faces', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-UID': user.id,
-        },
-        body: JSON.stringify({
-          imageUrl,
-        }),
-      });
+      // Get current total image count to calculate correct sourceImageIndex
+      const currentImageCount = (formData.imageUrls?.length || 0) - newImageUrls.length;
+      
+      for (let i = 0; i < newImageUrls.length; i++) {
+        const imageUrl = newImageUrls[i];
+        console.log(`Detecting faces from new image ${i + 1}/${newImageUrls.length}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Face detection failed:', errorData.error);
-        return;
+        const response = await fetch('/api/instant/detect-faces', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': user.id,
+          },
+          body: JSON.stringify({
+            imageUrl,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`Face detection failed for new image ${i + 1}:`, errorData.error);
+          continue;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.faces.length > 0) {
+          // 各顔にソース画像の情報を追加（正しいインデックスを使用）
+          const facesWithSource = data.faces.map((face: DetectedFace) => ({
+            ...face,
+            sourceImageUrl: imageUrl,
+            sourceImageIndex: currentImageCount + i
+          }));
+          newDetectedFaces.push(...facesWithSource);
+        }
       }
 
-      const data = await response.json();
+      if (newDetectedFaces.length > 0) {
+        // 新しい顔を先頭に追加（上に表示）
+        setFormData(prev => ({ 
+          ...prev, 
+          detectedFaces: [...newDetectedFaces, ...(prev.detectedFaces || [])] 
+        }));
+        setShowFaceDetection(true);
+      }
+    } catch (err) {
+      console.error('Face detection error:', err);
+    } finally {
+      setIsDetectingFaces(false);
+      setDetectingImageUrls([]);
+    }
+  };
 
-      if (data.success && data.faces.length > 0) {
-        handleFaceDetectionComplete(data.faces);
+  // Auto detect faces from multiple images (for initial load)
+  const detectFacesFromMultipleImages = async (imageUrls: string[]) => {
+    if (!user || imageUrls.length === 0) return;
+
+    setIsDetectingFaces(true);
+    const allDetectedFaces: DetectedFace[] = [];
+
+    try {
+      for (let i = 0; i < imageUrls.length; i++) {
+        const imageUrl = imageUrls[i];
+        console.log(`Detecting faces from image ${i + 1}/${imageUrls.length}`);
+
+        const response = await fetch('/api/instant/detect-faces', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-UID': user.id,
+          },
+          body: JSON.stringify({
+            imageUrl,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`Face detection failed for image ${i + 1}:`, errorData.error);
+          continue;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.faces.length > 0) {
+          // 各顔にソース画像の情報を追加
+          const facesWithSource = data.faces.map((face: DetectedFace) => ({
+            ...face,
+            sourceImageUrl: imageUrl,
+            sourceImageIndex: i
+          }));
+          allDetectedFaces.push(...facesWithSource);
+        }
+      }
+
+      if (allDetectedFaces.length > 0) {
+        handleFaceDetectionComplete(allDetectedFaces);
       }
     } catch (err) {
       console.error('Face detection error:', err);
@@ -185,10 +309,10 @@ export default function InstantCreatePage() {
     
     return formData.detectedFaces
       .filter(face => formData.characters?.[face.id]?.enabled)
-      .map((face) => {
+      .map((face, index) => {
         const character = formData.characters![face.id];
         return {
-          name: character.name,
+          name: character.name.trim() || `__AUTO_NAME_${index}__`, // 名前がない場合は自動生成用マーカー
           role: 'その他',
           description: '',
           faceImageUrl: face.imageUrl,
@@ -196,14 +320,7 @@ export default function InstantCreatePage() {
       });
   };
 
-  // Check if all enabled characters have names
-  const areAllCharacterNamesProvided = () => {
-    if (!formData.characters) return true;
-    
-    return Object.entries(formData.characters)
-      .filter(([_, char]) => char.enabled)
-      .every(([_, char]) => char.name.trim() !== '');
-  };
+  // Check if all enabled characters have names (removed - no longer required)
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -228,12 +345,7 @@ export default function InstantCreatePage() {
     setIsSubmitting(true);
 
     try {
-      // Check if all enabled characters have names
-      if (!areAllCharacterNamesProvided()) {
-        error('使用するキャラクター全員の名前を入力してください');
-        setIsSubmitting(false);
-        return;
-      }
+      // 名前のチェックは削除（名前がない場合は後で自動生成）
 
       // Get enabled characters
       const characters = getEnabledCharacters();
@@ -244,7 +356,7 @@ export default function InstantCreatePage() {
         title: '', // Will be auto-generated
         visualStyle: 'anime', // Default to anime
         duration: 'medium', // Default duration
-        imageUrl: formData.imageUrl, // Include image URL if present
+        imageUrls: formData.imageUrls, // Include image URLs if present
         characters: characters,
       };
 
@@ -343,9 +455,10 @@ export default function InstantCreatePage() {
 
           {/* Image Upload Section */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">参考画像（任意）</p>
+            <p className="text-sm font-medium text-gray-700">参考画像（任意・最大3枚）</p>
             
-            {!imagePreview ? (
+            {/* Upload Area - Hide when 3 images are uploaded or uploading */}
+            {(imagePreviews.length < 3 && !isUploading) && (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
@@ -354,6 +467,7 @@ export default function InstantCreatePage() {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageUpload}
                   className="hidden"
                   disabled={isUploading}
@@ -363,39 +477,47 @@ export default function InstantCreatePage() {
                   {isUploading ? '画像をアップロード中...' : 'クリックして画像を選択'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  JPEG、PNG、GIF（最大10MB）
+                  JPEG、PNG、GIF（最大10MB、残り{3 - imagePreviews.length}枚）
                 </p>
               </div>
-            ) : (
-              <div className="relative rounded-xl overflow-hidden bg-gray-100">
-                <div className="relative h-48">
-                  <Image
-                    src={imagePreview}
-                    alt="アップロードした画像"
-                    fill
-                    style={{ objectFit: 'contain' }}
-                  />
-                  {/* Loading overlay for face detection */}
-                  {isDetectingFaces && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-2"></div>
-                        <p className="text-white text-sm font-medium">顔を検出中...</p>
+            )}
+
+            {/* Image Previews */}
+            {imagePreviews.length > 0 && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative rounded-lg overflow-hidden bg-gray-100">
+                      <div className="relative aspect-square">
+                        <Image
+                          src={preview}
+                          alt={`アップロードした画像${index + 1}`}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                        {/* Loading overlay for face detection */}
+                        {detectingImageUrls.includes(preview) && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+                          </div>
+                        )}
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 p-1 bg-gray-900 bg-opacity-70 text-white rounded-full hover:bg-opacity-90 transition-opacity"
+                        disabled={isUploading || isDetectingFaces}
+                      >
+                        <CloseIcon className="w-3 h-3" />
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 p-1.5 bg-gray-900 bg-opacity-70 text-white rounded-full hover:bg-opacity-90 transition-opacity"
-                  disabled={isUploading || isDetectingFaces}
-                >
-                  <CloseIcon className="w-4 h-4" />
-                </button>
+                {detectingImageUrls.length > 0 && (
+                  <p className="text-sm text-gray-600 text-center">顔を検出中...</p>
+                )}
               </div>
             )}
-            
           </div>
 
           {/* Face Detection Results */}
@@ -405,7 +527,7 @@ export default function InstantCreatePage() {
               {process.env.NEXT_PUBLIC_SHOW_FACE_DETECTION_DEBUG === 'true' && (
                 <div className="h-64">
                   <FaceDetectionOverlay
-                    originalImage={formData.imageUrl!}
+                    originalImage={formData.imageUrls?.[0] || ''}
                     detectedFaces={formData.detectedFaces}
                   />
                 </div>
@@ -423,7 +545,7 @@ export default function InstantCreatePage() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={!formData.storyText.trim() || isSubmitting || !areAllCharacterNamesProvided()}
+              disabled={!formData.storyText.trim() || isSubmitting}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

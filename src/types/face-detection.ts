@@ -18,6 +18,9 @@ export interface DetectedFace {
   confidence: number;
   attributes?: FaceAttributes;
   tag?: FaceTag;
+  // Multiple image support
+  sourceImageUrl?: string;
+  sourceImageIndex?: number;
 }
 
 /**
