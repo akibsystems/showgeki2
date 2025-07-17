@@ -85,6 +85,225 @@ const openai = new OpenAI({ apiKey: openaiApiKey });
 const CONCURRENT_UPLOAD_LIMIT = 1; // 同時アップロード数を制限（3→5に増加）
 let currentUploads = 0;
 
+// フォールバック画像の設定
+// 注意: VercelのURLは動的に変わる可能性があるため、より安定したURLを使用
+const FALLBACK_IMAGE_URL = 'https://placehold.co/1920x1080/ffffff/ffffff/png';  // 白い画像のプレースホルダー
+
+// 問題のある可能性のあるキーワードのリスト（OpenAIのモデレーションに引っかかりやすいもの）
+const PROBLEMATIC_KEYWORDS = [
+  // 露出・性的
+  '全裸', 'ヌード', 'nude', 'naked', '裸', 'ヌーディスト', '露出',
+  '性的', 'sexual', 'セックス', 'sex', 'エロ', 'ero', 'porn',
+  '下着', 'underwear', 'lingerie', 'ビキニ', 'bikini',
+
+  // 暴力・危険
+  '暴力', 'violence', '血', 'blood', 'gore', '流血',
+  '銃', 'gun', '武器', 'weapon', '刃物', 'knife',
+  //'死', 'death', 
+  '殺', 'kill', 'murder', '殺人',
+  '戦争', 'war', '爆発', 'explosion',
+
+  // 薬物・違法
+  'ドラッグ', 'drug', '薬物', '麻薬', 'cocaine', 'marijuana',
+  '覚醒剤', 'アルコール中毒', 'alcoholism',
+
+  // 自傷・危険行為
+  '自殺', 'suicide', '自傷', 'self-harm',
+  '飛び降り', 'jump', '首吊り', 'hanging',
+
+  // その他センシティブ
+  'テロ', 'terror', 'terrorism',
+  //'児童', 'child', '子供', 'minor', '未成年',
+  '差別', 'discrimination', '人種差別', 'racism'
+];
+
+/**
+ * 画像プロンプトが問題を含む可能性があるかチェック
+ */
+function isProblematicPrompt(prompt) {
+  if (!prompt || typeof prompt !== 'string') return false;
+
+  const lowerPrompt = prompt.toLowerCase();
+  return PROBLEMATIC_KEYWORDS.some(keyword =>
+    lowerPrompt.includes(keyword.toLowerCase())
+  );
+}
+
+
+/**
+ * スクリプトを前処理して問題のある画像プロンプトのみを置換
+ */
+function preprocessScriptForSafety(scriptJson) {
+  const processedScript = JSON.parse(JSON.stringify(scriptJson)); // Deep copy
+  let replacedCount = 0;
+
+  console.log('🔍 画像プロンプトの安全性チェックを実行中...');
+
+  if (processedScript.beats && Array.isArray(processedScript.beats)) {
+    processedScript.beats = processedScript.beats.map((beat, index) => {
+      // imagePromptがある場合
+      if (beat.imagePrompt) {
+        if (isProblematicPrompt(beat.imagePrompt)) {
+          console.log(`⚠️ Beat ${index + 1}: 問題のあるプロンプトを検出:`);
+          console.log(`  元のプロンプト: "${beat.imagePrompt}"`);
+          console.log(`  🗑️ imagePromptを削除します`);
+
+          // 問題のあるプロンプトを削除（画像なしにする）
+          delete beat.imagePrompt;
+          delete beat.imageOptions;
+          // imageオブジェクトも削除して画像なしにする
+          delete beat.image;
+
+          replacedCount++;
+        } else {
+          console.log(`✅ Beat ${index + 1}: 安全なプロンプト: "${beat.imagePrompt}"`);
+        }
+      }
+
+      // image.source.promptがある場合
+      if (beat.image?.source?.prompt) {
+        if (isProblematicPrompt(beat.image.source.prompt)) {
+          console.log(`⚠️ Beat ${index + 1}: 問題のある画像プロンプトを検出:`);
+          console.log(`  元のプロンプト: "${beat.image.source.prompt}"`);
+          console.log(`  🗑️ imageオブジェクトを削除します`);
+
+          // 問題のあるプロンプトベースの画像を削除（画像なしにする）
+          delete beat.image;
+          delete beat.imagePrompt;
+          delete beat.imageOptions;
+
+          replacedCount++;
+        } else {
+          console.log(`✅ Beat ${index + 1}: 安全な画像プロンプト`);
+        }
+      }
+
+      return beat;
+    });
+  }
+
+  if (replacedCount > 0) {
+    console.log(`\n📊 画像処理結果:`);
+    console.log(`  - 削除した問題のある画像: ${replacedCount}個`);
+    console.log(`  - 処理方法: imagePromptを削除（画像なし）`);
+    console.log(`  - 安全な画像は通常通り生成されます`);
+  } else {
+    console.log('\n✅ すべての画像プロンプトが安全です');
+  }
+
+  return processedScript;
+}
+
+/**
+ * すべての画像をフォールバック画像に置換
+ */
+function replaceAllImagesWithFallback(scriptJson) {
+  const processedScript = JSON.parse(JSON.stringify(scriptJson)); // Deep copy
+  let replacedCount = 0;
+
+  console.log('🔄 すべての画像をフォールバック画像に置換中...');
+
+  if (processedScript.beats && Array.isArray(processedScript.beats)) {
+    processedScript.beats = processedScript.beats.map((beat, index) => {
+      // imagePromptまたはimage.source.promptがある場合、すべて置換
+      if (beat.imagePrompt || beat.image?.source?.prompt) {
+        console.log(`  - Beat ${index + 1}: フォールバック画像に置換`);
+
+        // すべての画像関連プロパティを削除
+        delete beat.imagePrompt;
+        delete beat.imageOptions;
+
+        // フォールバック画像URLを設定
+        beat.image = {
+          type: "image",
+          source: {
+            kind: "url",
+            url: FALLBACK_IMAGE_URL
+          }
+        };
+        replacedCount++;
+      }
+
+      return beat;
+    });
+  }
+
+  console.log(`✅ ${replacedCount}個の画像をフォールバック画像に置換しました`);
+  return processedScript;
+}
+
+/**
+ * mulmocast-cliのエラー出力から失敗した画像のインデックスを解析
+ */
+function parseFailedImageIndexes(errorOutput) {
+  const failedIndexes = new Set();
+
+  // エラーパターン: エラー発生時、最後に "> image" が出力され、
+  // その直前の "} image X" の X が失敗した画像のインデックス
+  const lines = errorOutput.split('\n');
+
+  // "> image" を探して、その直前の "} image X" を見つける
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // "> image" を見つけたら
+    if (line === '> image') {
+      // 直前の行から遡って "} image X" を探す
+      for (let j = i - 1; j >= 0; j--) {
+        const prevLine = lines[j].trim();
+        const match = prevLine.match(/} image (\d+)/);
+
+        if (match) {
+          const imageIndex = parseInt(match[1]);
+          failedIndexes.add(imageIndex);
+          console.log(`❌ Beat ${imageIndex + 1}の画像生成が失敗しました（安全性システムによるブロック）`);
+          break;
+        }
+      }
+    }
+  }
+
+  return Array.from(failedIndexes).sort((a, b) => a - b);
+}
+
+/**
+ * 特定のインデックスの画像のみをフォールバック画像に置換
+ */
+function replaceSpecificImagesWithFallback(scriptJson, imageIndexes) {
+  const processedScript = JSON.parse(JSON.stringify(scriptJson)); // Deep copy
+  let replacedCount = 0;
+
+  console.log(`🔄 特定の画像をフォールバック画像に置換中... (対象: Beat ${imageIndexes.map(i => i + 1).join(', ')})`);
+
+  if (processedScript.beats && Array.isArray(processedScript.beats)) {
+    processedScript.beats = processedScript.beats.map((beat, index) => {
+      // 指定されたインデックスの画像のみ置換（mulmocast-cliは0ベースを使用）
+      if (imageIndexes.includes(index)) {
+        console.log(`  - Beat ${index + 1}: フォールバック画像に置換`);
+
+        // すべての画像関連プロパティを削除
+        delete beat.imagePrompt;
+        delete beat.imageOptions;
+
+        // フォールバック画像URLを設定
+        beat.image = {
+          type: "image",
+          source: {
+            kind: "url",
+            url: FALLBACK_IMAGE_URL
+          }
+        };
+        replacedCount++;
+      }
+
+      return beat;
+    });
+  }
+
+  console.log(`✅ ${replacedCount}個の画像をフォールバック画像に置換しました`);
+  return processedScript;
+}
+
 /**
  * Slackにエラー通知を送信する関数
  */
@@ -411,13 +630,41 @@ function generateMovie(scriptPath, outputPath, captionLang = null) {
       // 元のシンプルな方法に戻す
       console.log('📝 mulmocast-cli 実行中...');
 
-      // リアルタイム表示のため stdio: 'inherit' を使用
-      execSync(command, {
-        cwd: mulmocastPath,
-        stdio: 'inherit',
-        timeout: 600000, // 10分タイムアウト
-        maxBuffer: 1024 * 1024 * 10
-      });
+      // エラー出力をキャプチャするため stdio: 'pipe' を使用
+      let output = '';
+      try {
+        output = execSync(command, {
+          cwd: mulmocastPath,
+          stdio: 'pipe',
+          timeout: 600000, // 10分タイムアウト
+          maxBuffer: 1024 * 1024 * 10,
+          encoding: 'utf8'
+        });
+        console.log(output);
+      } catch (execError) {
+        // エラー出力を取得
+        const errorOutput = execError.stdout ? execError.stdout.toString() : '';
+        const errorMessage = execError.stderr ? execError.stderr.toString() : '';
+        const fullError = errorOutput + '\n' + errorMessage;
+        console.error('mulmocast-cliエラー出力:', fullError);
+
+        // moderation_blockedエラーを検出
+        if (fullError.includes('moderation_blocked') ||
+          fullError.includes('Request was rejected as a result of the safety system')) {
+          console.log('⚠️ 画像生成でモデレーションエラーを検出しました');
+
+          // 失敗した画像のインデックスを解析
+          const failedIndexes = parseFailedImageIndexes(fullError);
+          console.log(`📊 失敗した画像: Beat ${failedIndexes.map(i => i + 1).join(', ')}`);
+
+          const error = new Error('MODERATION_BLOCKED');
+          error.failedImageIndexes = failedIndexes;
+          error.fullOutput = fullError;
+          throw error;
+        }
+
+        throw execError;
+      }
 
       const executionTime = Date.now() - startTime;
       metrics.totalTime = Math.round(executionTime / 1000);
@@ -431,14 +678,18 @@ function generateMovie(scriptPath, outputPath, captionLang = null) {
       console.log(`⏱️ mulmocast-cli 実行完了: ${metrics.totalTime}秒`);
 
       // mulmocast-cliの出力パスを確認 (ユニークディレクトリ内)
+      const scriptBaseName = path.basename(scriptPath, '.json');
       const actualOutputPaths = [
-        path.join(outputDir, 'script.mp4'), // mulmocast-cliの実際の出力名（字幕なし）
+        path.join(outputDir, `${scriptBaseName}.mp4`), // スクリプト名に基づく出力（例: script_retry_1.mp4）
+        path.join(outputDir, 'script.mp4'), // デフォルトの出力名
         outputPath // 期待するパス
       ];
 
       // 字幕ありの場合は、言語別のファイル名も確認
       if (captionLang) {
-        const captionPath = path.join(outputDir, `script__${captionLang}.mp4`);
+        // スクリプトファイル名に基づいた出力ファイル名を構築
+        const scriptBaseName = path.basename(scriptPath, '.json');
+        const captionPath = path.join(outputDir, `${scriptBaseName}__${captionLang}.mp4`);
         console.log(`📝 字幕ファイルパスを追加: ${captionPath} (言語: ${captionLang})`);
         actualOutputPaths.unshift(captionPath); // 言語別字幕ありのファイル名
       }
@@ -477,6 +728,13 @@ function generateMovie(scriptPath, outputPath, captionLang = null) {
     }
 
   } catch (error) {
+    // MODERATION_BLOCKEDエラーの場合は、追加情報を保持
+    if (error.message === 'MODERATION_BLOCKED') {
+      const enhancedError = new Error(`動画生成エラー: ${error.message}`);
+      enhancedError.originalError = error;
+      enhancedError.failedImageIndexes = error.failedImageIndexes;
+      throw enhancedError;
+    }
     throw new Error(`動画生成エラー: ${error.message}`);
   }
 }
@@ -762,8 +1020,12 @@ async function processImagePreview(payload) {
       throw new Error('script_jsonが存在しません。プレビュー生成にはスクリプトが必要です。');
     }
 
+    // 安全性チェックとプロンプトの前処理
+    console.log('🔍 プレビュースクリプトの安全性チェックを実行中...');
+    const safeScript = preprocessScriptForSafety(script_json);
+
     // プレビュー生成時は常にquality=lowに強制
-    const previewScript = JSON.parse(JSON.stringify(script_json));
+    const previewScript = JSON.parse(JSON.stringify(safeScript));
     if (!previewScript.imageParams) {
       previewScript.imageParams = {};
     }
@@ -1468,8 +1730,13 @@ async function processVideoGeneration(payload) {
     if (script_json && typeof script_json === 'object') {
       console.log('2. 既存のスクリプトを使用...');
 
+      // 安全性チェックとプロンプトの前処理
+      console.log('🔍 スクリプトの安全性チェックを実行中...');
+      const safeScript = preprocessScriptForSafety(script_json);
+
       // クレジットbeatを最後に追加
-      const scriptWithCredit = { ...script_json };
+      const scriptWithCredit = { ...safeScript };
+
       if (Array.isArray(scriptWithCredit.beats)) {
         // speechParamsから最初のspeakerを取得
         let creditSpeaker = "";
@@ -1536,6 +1803,15 @@ async function processVideoGeneration(payload) {
     let videoPath;
     let wasReused = false; // 既存動画を再利用したかどうか
 
+    // captionParamsの有無と言語を確認（スコープを広げる）
+    const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
+    if (captionLang) {
+      console.log(`🌐 字幕言語検出: ${captionLang}`);
+      console.log(`  - captionParams:`, JSON.stringify(script_json.captionParams));
+    } else {
+      console.log('📝 字幕なし');
+    }
+
     // 既存の動画ファイルを確認
     const existingVideoPath = await checkExistingVideo(video_id);
 
@@ -1544,7 +1820,6 @@ async function processVideoGeneration(payload) {
       console.log('📦 既存の動画を再利用します');
 
       // 期待される出力パスを設定（字幕の有無に応じて）
-      const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
       const expectedFileName = captionLang ? `script__${captionLang}.mp4` : 'script.mp4';
       videoPath = path.join(path.dirname(uniquePaths.outputPath), expectedFileName);
 
@@ -1570,15 +1845,6 @@ async function processVideoGeneration(payload) {
     if (!wasReused) {
       try {
         console.log('🎬 新規動画を生成します...');
-
-        // captionParamsの有無と言語を確認
-        const captionLang = script_json && script_json.captionParams && script_json.captionParams.lang ? script_json.captionParams.lang : null;
-        if (captionLang) {
-          console.log(`🌐 字幕言語検出: ${captionLang}`);
-          console.log(`  - captionParams:`, JSON.stringify(script_json.captionParams));
-        } else {
-          console.log('📝 字幕なし');
-        }
         const result = generateMovie(uniquePaths.scriptPath, uniquePaths.outputPath, captionLang);
         videoPath = result.videoPath;
         movieMetrics = result.metrics;
@@ -1590,7 +1856,89 @@ async function processVideoGeneration(payload) {
         console.log('');
       } catch (movieError) {
         console.error('❌ 動画生成に失敗しました:', movieError.message);
-        throw new Error(`動画生成失敗: ${movieError.message}`);
+
+        // MODERATION_BLOCKEDエラーの場合、失敗した画像のみをフォールバックに置き換えて再試行
+        if (movieError.message.includes('MODERATION_BLOCKED')) {
+          console.log('\n🔄 モデレーションエラーを検出しました。失敗した画像のみをフォールバック画像に置き換えて再試行します...');
+
+          // jsonContentは文字列なので、オブジェクトに戻す
+          let workingScript = JSON.parse(jsonContent);
+          let replacedIndexes = new Set();
+          let retryCount = 0;
+          const maxRetries = 5; // 最大5回まで再試行
+          let lastError = movieError;
+
+          while (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`\n📝 再試行 ${retryCount}/${maxRetries}...`);
+
+            // 失敗した画像のインデックスを取得
+            const failedIndexes = lastError.failedImageIndexes || lastError.originalError?.failedImageIndexes || [];
+
+            if (failedIndexes.length === 0) {
+              console.log('⚠️ 失敗した画像のインデックスが特定できませんでした。すべての画像を置換します。');
+              // すべての画像を置換
+              workingScript = replaceAllImagesWithFallback(workingScript);
+            } else {
+              // 失敗した画像のみを置換
+              failedIndexes.forEach(idx => replacedIndexes.add(idx));
+              workingScript = replaceSpecificImagesWithFallback(workingScript, failedIndexes);
+            }
+
+            // 新しいスクリプトファイルを保存
+            const retryScriptPath = path.join(uniquePaths.tempDir, `script_retry_${retryCount}.json`);
+            fs.writeFileSync(retryScriptPath, JSON.stringify(workingScript, null, 2));
+            console.log(`✅ リトライスクリプトを保存: ${retryScriptPath}`);
+
+            try {
+              console.log(`\n🎬 ${replacedIndexes.size}個の画像を置換して動画を再生成中...`);
+              const retryResult = generateMovie(retryScriptPath, uniquePaths.outputPath, captionLang);
+              videoPath = retryResult.videoPath;
+              movieMetrics = retryResult.metrics;
+              console.log('\n✅ 動画生成に成功しました！');
+              console.log(`📊 置換した画像: Beat ${Array.from(replacedIndexes).sort((a, b) => a - b).map(i => i + 1).join(', ')}`);
+              console.log('\n📊 動画生成メトリクス（リトライ後）:');
+              console.log(`  - 画像生成時間: ${movieMetrics.imageGenerationTime}秒`);
+              console.log(`  - 音声生成時間: ${movieMetrics.audioGenerationTime}秒`);
+              console.log(`  - 動画合成時間: ${movieMetrics.videoProcessingTime}秒`);
+              console.log(`  - 合計時間: ${movieMetrics.totalTime}秒`);
+              console.log('');
+              break; // 成功したらループを抜ける
+            } catch (retryError) {
+              console.error(`❌ リトライ ${retryCount} も失敗しました:`, retryError.message);
+
+              // 再度MODERATION_BLOCKEDエラーの場合は続行
+              if (retryError.message.includes('MODERATION_BLOCKED')) {
+                lastError = retryError;
+                continue;
+              } else {
+                // 他のエラーの場合は諦める
+                throw new Error(`動画生成失敗（リトライ ${retryCount}回後）: ${retryError.message}`);
+              }
+            }
+          }
+
+          // 最大リトライ回数に達した場合
+          if (retryCount >= maxRetries) {
+            console.error('❌ 最大リトライ回数に達しました。すべての画像を置換して最終試行します。');
+
+            // すべての画像を置換して最終試行（jsonContentは文字列なのでパース）
+            const allFallbackScript = replaceAllImagesWithFallback(JSON.parse(jsonContent));
+            const finalScriptPath = path.join(uniquePaths.tempDir, 'script_final_fallback.json');
+            fs.writeFileSync(finalScriptPath, JSON.stringify(allFallbackScript, null, 2));
+
+            try {
+              const finalResult = generateMovie(finalScriptPath, uniquePaths.outputPath, captionLang);
+              videoPath = finalResult.videoPath;
+              movieMetrics = finalResult.metrics;
+              console.log('\n✅ すべての画像を置換して動画生成に成功しました！');
+            } catch (finalError) {
+              throw new Error(`動画生成失敗（最終試行も失敗）: ${finalError.message}`);
+            }
+          }
+        } else {
+          throw new Error(`動画生成失敗: ${movieError.message}`);
+        }
       }
     }
 
