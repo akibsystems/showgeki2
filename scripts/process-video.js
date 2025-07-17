@@ -166,6 +166,120 @@ async function processQueuedVideo(videoId, options = {}) {
       return;
     }
 
+    // --forceオプションの場合、既存の動画とプレビューを削除
+    if (force) {
+      console.log('\n🗑️ 強制再生成モード: 既存のデータを削除します...');
+      
+      // 1. 既存の動画ファイルを削除
+      if (video.url) {
+        console.log('  📹 既存の動画を削除中...');
+        try {
+          const videoPath = `videos/${videoId}.mp4`;
+          const { error: deleteVideoError } = await supabase.storage
+            .from('videos')
+            .remove([videoPath]);
+          
+          if (deleteVideoError) {
+            console.error(`  ⚠️ 動画削除エラー: ${deleteVideoError.message}`);
+          } else {
+            console.log(`  ✅ 動画を削除しました: ${videoPath}`);
+          }
+        } catch (error) {
+          console.error('  ⚠️ 動画削除中にエラー:', error.message);
+        }
+      }
+      
+      // 2. プレビューフォルダを削除（videos/[video_id]/preview）
+      console.log('  🖼️ プレビューフォルダを削除中...');
+      try {
+        // プレビューフォルダ内のファイルをリスト
+        const previewPath = `videos/${videoId}/preview`;
+        const { data: files, error: listError } = await supabase.storage
+          .from('videos')
+          .list(previewPath, {
+            limit: 1000,
+            recursive: true
+          });
+        
+        if (!listError && files && files.length > 0) {
+          // すべてのファイルのパスを生成
+          const filePaths = files.map(file => `${previewPath}/${file.name}`);
+          
+          // バッチで削除
+          const { error: deleteError } = await supabase.storage
+            .from('videos')
+            .remove(filePaths);
+          
+          if (deleteError) {
+            console.error(`  ⚠️ プレビュー削除エラー: ${deleteError.message}`);
+          } else {
+            console.log(`  ✅ プレビューファイルを削除しました: ${files.length}個`);
+          }
+        } else {
+          console.log('  ℹ️ プレビューファイルが見つかりませんでした');
+        }
+      } catch (error) {
+        console.error('  ⚠️ プレビュー削除中にエラー:', error.message);
+      }
+      
+      // 3. 音声プレビューフォルダも削除（videos/[video_id]/audio-preview）
+      console.log('  🎵 音声プレビューフォルダを削除中...');
+      try {
+        const audioPreviewPath = `videos/${videoId}/audio-preview`;
+        const { data: audioFiles, error: listError } = await supabase.storage
+          .from('videos')
+          .list(audioPreviewPath, {
+            limit: 1000,
+            recursive: true
+          });
+        
+        if (!listError && audioFiles && audioFiles.length > 0) {
+          const filePaths = audioFiles.map(file => `${audioPreviewPath}/${file.name}`);
+          
+          const { error: deleteError } = await supabase.storage
+            .from('videos')
+            .remove(filePaths);
+          
+          if (deleteError) {
+            console.error(`  ⚠️ 音声プレビュー削除エラー: ${deleteError.message}`);
+          } else {
+            console.log(`  ✅ 音声プレビューファイルを削除しました: ${audioFiles.length}個`);
+          }
+        } else {
+          console.log('  ℹ️ 音声プレビューファイルが見つかりませんでした');
+        }
+      } catch (error) {
+        console.error('  ⚠️ 音声プレビュー削除中にエラー:', error.message);
+      }
+      
+      // 4. videosテーブルのURLとプレビュー関連フィールドをクリア
+      console.log('  📝 データベースの参照をクリア中...');
+      const { error: updateError } = await supabase
+        .from('videos')
+        .update({
+          url: null,
+          title: null,
+          duration: null,
+          resolution: null,
+          preview_status: null,
+          preview_data: null,
+          preview_storage_path: null,
+          audio_preview_status: null,
+          audio_preview_data: null,
+          audio_preview_storage_path: null
+        })
+        .eq('id', videoId)
+        .eq('uid', video.uid);
+      
+      if (updateError) {
+        console.error(`  ⚠️ データベース更新エラー: ${updateError.message}`);
+      } else {
+        console.log('  ✅ データベースの参照をクリアしました');
+      }
+      
+      console.log('\n✅ 既存データの削除が完了しました');
+    }
+
     const startTime = Date.now();
 
     // 2. 直接Webhookを送信（webhookTargetが指定されている場合は優先）
