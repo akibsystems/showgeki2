@@ -6,9 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/contexts';
 import Image from 'next/image';
 import { FaceDetectionOverlay } from '@/components/instant/FaceDetectionOverlay';
-import { FaceTaggingPanel } from '@/components/instant/FaceTaggingPanel';
-import { CharacterPreview } from '@/components/instant/CharacterPreview';
-import type { DetectedFace, FaceTag } from '@/types/face-detection';
+import { CharacterSelection } from '@/components/instant/CharacterSelection';
+import type { DetectedFace } from '@/types/face-detection';
 
 // Custom SVG Icons
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
@@ -34,7 +33,7 @@ interface NewStoryFormData {
   storyText: string;
   imageUrl?: string;
   detectedFaces?: DetectedFace[];
-  characterTags?: Record<string, FaceTag>;
+  characters?: { [faceId: string]: { enabled: boolean; name: string } };
 }
 
 export default function InstantCreatePage() {
@@ -46,13 +45,12 @@ export default function InstantCreatePage() {
     storyText: '',
     imageUrl: undefined,
     detectedFaces: [],
-    characterTags: {},
+    characters: {},
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showFaceDetection, setShowFaceDetection] = useState(false);
-  const [selectedFaceId, setSelectedFaceId] = useState<string | null>(null);
   const [isDetectingFaces, setIsDetectingFaces] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,7 +123,7 @@ export default function InstantCreatePage() {
       ...prev, 
       imageUrl: undefined,
       detectedFaces: [],
-      characterTags: {}
+      characters: {}
     }));
     setImagePreview(null);
     setShowFaceDetection(false);
@@ -140,31 +138,9 @@ export default function InstantCreatePage() {
     setShowFaceDetection(true);
   };
 
-  // Handle face tag update
-  const handleFaceTagUpdate = (faceId: string, tag: FaceTag) => {
-    setFormData(prev => ({
-      ...prev,
-      characterTags: {
-        ...prev.characterTags,
-        [faceId]: tag
-      }
-    }));
-  };
-
-  // Handle face reorder
-  const handleFaceReorder = (reorderedFaces: DetectedFace[]) => {
-    setFormData(prev => ({ ...prev, detectedFaces: reorderedFaces }));
-  };
-
-  // Handle face delete
-  const handleFaceDelete = (faceId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      detectedFaces: prev.detectedFaces?.filter(f => f.id !== faceId) || [],
-      characterTags: Object.fromEntries(
-        Object.entries(prev.characterTags || {}).filter(([id]) => id !== faceId)
-      )
-    }));
+  // Handle character update
+  const handleCharacterUpdate = (characterData: { [faceId: string]: { enabled: boolean; name: string } }) => {
+    setFormData(prev => ({ ...prev, characters: characterData }));
   };
 
   // Auto detect faces after image upload
@@ -203,17 +179,30 @@ export default function InstantCreatePage() {
     }
   };
 
-  // Get all detected faces (with or without tags)
-  const getAllDetectedFaces = () => {
-    return formData.detectedFaces?.map((face, index) => {
-      const tag = formData.characterTags?.[face.id];
-      return {
-        name: tag?.name || `人物${index + 1}`,
-        role: tag?.role || 'その他',
-        description: tag?.description || '',
-        faceImageUrl: face.imageUrl,
-      };
-    }) || [];
+  // Get enabled characters with names
+  const getEnabledCharacters = () => {
+    if (!formData.characters || !formData.detectedFaces) return [];
+    
+    return formData.detectedFaces
+      .filter(face => formData.characters?.[face.id]?.enabled)
+      .map((face) => {
+        const character = formData.characters![face.id];
+        return {
+          name: character.name,
+          role: 'その他',
+          description: '',
+          faceImageUrl: face.imageUrl,
+        };
+      });
+  };
+
+  // Check if all enabled characters have names
+  const areAllCharacterNamesProvided = () => {
+    if (!formData.characters) return true;
+    
+    return Object.entries(formData.characters)
+      .filter(([_, char]) => char.enabled)
+      .every(([_, char]) => char.name.trim() !== '');
   };
 
   // Handle form submission
@@ -239,8 +228,15 @@ export default function InstantCreatePage() {
     setIsSubmitting(true);
 
     try {
-      // Get all detected faces (tagged or untagged)
-      const characters = getAllDetectedFaces();
+      // Check if all enabled characters have names
+      if (!areAllCharacterNamesProvided()) {
+        error('使用するキャラクター全員の名前を入力してください');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Get enabled characters
+      const characters = getEnabledCharacters();
       
       // API data format
       const apiData = {
@@ -411,28 +407,14 @@ export default function InstantCreatePage() {
                   <FaceDetectionOverlay
                     originalImage={formData.imageUrl!}
                     detectedFaces={formData.detectedFaces}
-                    selectedFaceId={selectedFaceId || undefined}
-                    onFaceClick={(face) => setSelectedFaceId(face.id)}
                   />
                 </div>
               )}
 
-              {/* Face Tagging Panel */}
-              <FaceTaggingPanel
+              {/* Character Selection */}
+              <CharacterSelection
                 faces={formData.detectedFaces}
-                selectedFaceId={selectedFaceId || undefined}
-                onFaceSelect={setSelectedFaceId}
-                onTagUpdate={handleFaceTagUpdate}
-                onReorder={handleFaceReorder}
-                onDelete={handleFaceDelete}
-              />
-
-              {/* Character Preview */}
-              <CharacterPreview
-                characters={formData.detectedFaces?.filter(face => formData.characterTags?.[face.id]?.name).map(face => ({
-                  face,
-                  tag: formData.characterTags![face.id]
-                })) || []}
+                onCharacterUpdate={handleCharacterUpdate}
               />
             </div>
           )}
@@ -441,7 +423,7 @@ export default function InstantCreatePage() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={!formData.storyText.trim() || isSubmitting}
+              disabled={!formData.storyText.trim() || isSubmitting || !areAllCharacterNamesProvided()}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

@@ -345,17 +345,34 @@ export async function processInstantMode({
       // Step 3→4: 台本生成
       // 画風設定を追加（visualStyleフィールドを使用）
       console.log(`[InstantGenerator] Preparing Step3Output...`);
+      console.log(`[InstantGenerator] Input characters for face mapping:`, input.characters?.map(c => ({ name: c.name, hasFaceImage: !!c.faceImageUrl })));
+      console.log(`[InstantGenerator] Generated characters from Step3:`, step3Result.data.detailedCharacters.map((c: any) => c.name));
       const imageStyle = input.visualStyle || 'anime';
       const styleConfig = getImageStyleConfig(imageStyle as 'anime' | 'realistic' | 'watercolor');
       console.log(`[InstantGenerator] Image style config:`, { imageStyle, styleConfig });
       const step3Output: Step3Output = {
         userInput: {
-          characters: step3Result.data.detailedCharacters.map((char: any) => ({
-            id: char.id,
-            name: char.name,
-            description: `${char.personality} ${char.visualDescription}`,
-            faceReference: undefined
-          })),
+          characters: step3Result.data.detailedCharacters.map((char: any) => {
+            // input.charactersから同名のキャラクターを探して顔画像URLを取得
+            const matchingInputChar = input.characters?.find(inputChar => 
+              inputChar.name === char.name || 
+              char.name.includes(inputChar.name) || 
+              inputChar.name.includes(char.name)
+            );
+            
+            if (matchingInputChar) {
+              console.log(`[InstantGenerator] Matched character "${char.name}" with input character "${matchingInputChar.name}", faceImageUrl: ${matchingInputChar.faceImageUrl}`);
+            } else {
+              console.log(`[InstantGenerator] No matching input character found for "${char.name}"`);
+            }
+            
+            return {
+              id: char.id,
+              name: char.name,
+              description: `${char.personality} ${char.visualDescription}`,
+              faceReference: matchingInputChar?.faceImageUrl || undefined
+            };
+          }),
           imageStyle: {
             preset: imageStyle,
             customPrompt: styleConfig.prompt_suffix

@@ -238,12 +238,50 @@ export async function generateMulmoScriptFromStoryboard(
 
   console.log('[MulmoScript Generation] Processed image prompts for characters');
 
+  // 顔参照画像を持つキャラクターのリストを作成
+  const charactersWithFaceRef = characters.filter((char: any) => char.faceReference);
+  console.log('[MulmoScript Generation] Characters with face reference:', charactersWithFaceRef.map(c => c.name));
+
+  // 各beatにimageNamesを追加し、imagePromptの先頭に画像番号を追加
+  const finalBeats = processedBeats.map((beat) => {
+    // このbeatのimagePromptに登場するキャラクターを特定
+    const charactersInBeat: string[] = [];
+    
+    charactersWithFaceRef.forEach((char: any) => {
+      // キャラクター名がimagePromptに含まれているかチェック
+      if (beat.imagePrompt.includes(char.name)) {
+        charactersInBeat.push(char.name);
+      }
+    });
+
+    // imageNamesとimagePromptの更新
+    if (charactersInBeat.length > 0) {
+      // 画像番号とキャラクター名の対応を作成
+      const imageMapping = charactersInBeat
+        .map((name, idx) => `画像${idx + 1}: ${name}`)
+        .join(', ');
+
+      // imagePromptの先頭に画像番号の対応を追加
+      const updatedImagePrompt = `${imageMapping}. ${beat.imagePrompt}`;
+
+      return {
+        ...beat,
+        imagePrompt: updatedImagePrompt,
+        imageNames: charactersInBeat
+      };
+    }
+
+    return beat;
+  });
+
+  console.log('[MulmoScript Generation] Added imageNames to beats');
+
   // speakersを生成（シーンで使用されている名前を収集）
   const speakers: Record<string, any> = {};
   const usedSpeakerNames = new Set<string>();
 
-  // processedBeatsで実際に使用されているspeaker名を収集
-  processedBeats.forEach(beat => {
+  // finalBeatsで実際に使用されているspeaker名を収集
+  finalBeats.forEach(beat => {
     if (beat.speaker) {
       usedSpeakerNames.add(beat.speaker);
     }
@@ -304,8 +342,11 @@ export async function generateMulmoScriptFromStoryboard(
 
   // 顔参照画像を設定
   const faceReferences: Record<string, any> = {};
+  console.log('[MulmoScript Generation] Processing face references for characters:', characters.map(c => ({ name: c.name, hasFaceReference: !!c.faceReference })));
+  
   characters.forEach(char => {
     if (char.faceReference) {
+      console.log(`[MulmoScript Generation] Adding face reference for ${char.name}: ${char.faceReference}`);
       faceReferences[char.name] = {
         type: 'image' as const,
         source: {
@@ -321,7 +362,7 @@ export async function generateMulmoScriptFromStoryboard(
     $mulmocast: { version: '1.0' },
     title: storyboard.title || 'untitled',
     lang: 'ja',
-    beats: processedBeats,
+    beats: finalBeats,
     speechParams: {
       provider: 'openai',
       speakers
@@ -356,10 +397,13 @@ export async function generateMulmoScriptFromStoryboard(
   };
 
   console.log('[MulmoScript Generation] Created MulmoScript from storyboard data');
-  console.log('[MulmoScript Generation] Total beats:', processedBeats.length);
+  console.log('[MulmoScript Generation] Total beats:', finalBeats.length);
   console.log('[MulmoScript Generation] Speakers:', Object.keys(speakers));
   console.log('[MulmoScript Generation] Speaker mappings:', speakers);
-  console.log('[MulmoScript Generation] Beat speakers sample:', processedBeats.slice(0, 3).map(b => b.speaker));
+  console.log('[MulmoScript Generation] Beat speakers sample:', finalBeats.slice(0, 3).map(b => b.speaker));
+  console.log('[MulmoScript Generation] Face references included:', Object.keys(faceReferences));
+  console.log('[MulmoScript Generation] Has images in imageParams:', !!mulmoScript.imageParams.images && Object.keys(mulmoScript.imageParams.images).length > 0);
+  console.log('[MulmoScript Generation] Sample beat with imageNames:', finalBeats.find(b => b.imageNames && b.imageNames.length > 0));
 
   return mulmoScript;
 }
