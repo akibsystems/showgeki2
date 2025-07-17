@@ -47,9 +47,8 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
             <div key={face.id} className="space-y-2">
               {/* Face thumbnail with checkbox */}
               <div className="relative">
-                <div className={`relative aspect-square rounded-lg overflow-hidden bg-gray-100 ${
-                  isEnabled ? 'ring-2 ring-blue-500' : ''
-                }`}>
+                <div className={`relative aspect-square rounded-lg overflow-hidden bg-gray-100 ${isEnabled ? 'ring-2 ring-blue-500' : ''
+                  }`}>
                   <Image
                     src={face.thumbnailUrl || face.imageUrl}
                     alt={`人物${index + 1}`}
@@ -57,7 +56,7 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
                     style={{ objectFit: 'cover' }}
                   />
                 </div>
-                
+
                 {/* Checkbox in corner */}
                 <label className="absolute top-1 right-1 cursor-pointer">
                   <input
@@ -66,11 +65,10 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
                     onChange={() => handleToggle(face.id)}
                     className="sr-only"
                   />
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
-                    isEnabled 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-white bg-opacity-90 border-2 border-gray-300 hover:border-blue-500'
-                  }`}>
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${isEnabled
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white bg-opacity-90 border-2 border-gray-300 hover:border-blue-500'
+                    }`}>
                     {isEnabled && (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -87,11 +85,10 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
                   value={name}
                   onChange={(e) => handleNameChange(face.id, e.target.value)}
                   placeholder="キャラ名を入力"
-                  className={`w-full px-2 py-1 text-sm text-gray-900 border rounded-md focus:outline-none focus:ring-1 ${
-                    isEnabled && !name.trim() 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-300 focus:ring-blue-500'
-                  }`}
+                  className={`w-full px-2 py-1 text-sm text-gray-900 border rounded-md focus:outline-none focus:ring-1 ${isEnabled && !name.trim()
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-blue-500'
+                    }`}
                 />
               ) : (
                 <div className="h-[30px] flex items-center justify-center">
@@ -102,10 +99,10 @@ export function CharacterSelection({ faces, onCharacterUpdate }: CharacterSelect
           );
         })}
       </div>
-      
+
       {/* Helper text */}
       <p className="text-xs text-gray-500">
-        使用するキャラクターをタップして選択し、名前を入力してください
+        登場させたい人物をタップして選択し、名前を入力してください
       </p>
     </div>
   );
