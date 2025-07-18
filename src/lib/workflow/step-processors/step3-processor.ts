@@ -65,7 +65,7 @@ export async function generateStep4Input(
       characters: step3Output.userInput.characters.map(char => {
         // 既存のキャラクターデータを取得
         const existingChar = storyboard.characters_data?.characters?.find((c: any) => c.id === char.id) || {};
-        
+
         // Step3のdescriptionは personality + visualDescription の結合されたもの
         // 元のフィールドを保持しつつ、編集された内容も反映する
         return {
@@ -275,6 +275,7 @@ function createSceneSystemPrompt(): string {
 台詞には現代的で少しカジュアルな日本語を使う。
 内容を膨らませ、各台詞の長さは１〜４文程度、時折長い台詞を含む
 元の物語のエッセンスと感情を捉え、多様なキャラクターの個性で視覚的・感情的な演出を行う
+重要なキーワードについてはtextまたはimagePromptに含める
 
 ### 出力形式
 {
@@ -333,6 +334,7 @@ ${act.scenes?.map((scene: any) =>
 - 未来のビジョン: ${storyData.futureVision || ''}
 - 学びや気づき: ${storyData.learnings || ''}
 - 総シーン数: ${storyData.totalScenes || ''}
+- キーワード: ${storyboard.summary_data?.keywords?.map((k: any) => `${k.term}（${k.importance}）`).join(', ') || ''}
 
 ## 幕場構成
 ${actsStructure}

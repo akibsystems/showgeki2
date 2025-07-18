@@ -57,6 +57,12 @@ export interface SummaryData {
   genre: string;
   tags: string[];
   estimatedDuration: number;
+  keywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
+  }>;
 }
 
 export interface ActsData {
@@ -269,6 +275,12 @@ export interface Step2Input {
     name: string;
     role: string;
     personality: string;
+  }>;
+  keywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
   }>;
 }
 

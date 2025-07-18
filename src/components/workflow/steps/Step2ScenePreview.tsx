@@ -591,7 +591,6 @@ export default function Step2ScenePreview({
         </CardContent>
       </Card>
 
-
       {/* 幕場構成エディタ */}
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-4">
@@ -679,6 +678,79 @@ export default function Step2ScenePreview({
           </DragOverlay>
         </DndContext>
       </div>
+
+      {/* キーワード表示 */}
+      {initialData?.stepInput?.keywords && initialData.stepInput.keywords.length > 0 && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">抽出されたキーワード（{initialData.stepInput.keywords.length}個）</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {initialData.stepInput.keywords.map((keyword, index) => {
+                // スコアに基づいて色を計算
+                const getScoreColor = (score: number) => {
+                  if (score >= 9.0) return 'bg-red-600';
+                  if (score >= 7.0) return 'bg-orange-600';
+                  if (score >= 5.0) return 'bg-yellow-600';
+                  if (score >= 3.0) return 'bg-blue-600';
+                  return 'bg-gray-600';
+                };
+                
+                const getScoreTextColor = (score: number) => {
+                  if (score >= 5.0) return 'text-white';
+                  return 'text-gray-200';
+                };
+                
+                return (
+                  <div key={index} className="bg-gray-700 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-base font-medium text-white">{keyword.term}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(Number(keyword.importance))} ${getScoreTextColor(Number(keyword.importance))}`}>
+                            {Number(keyword.importance).toFixed(1)}
+                          </span>
+                          <span className="px-2 py-1 bg-gray-600 rounded-full text-xs text-gray-200">
+                            {keyword.category === 'person' ? '人物' :
+                             keyword.category === 'organization' ? '組織' :
+                             keyword.category === 'event' ? 'イベント' :
+                             keyword.category === 'concept' ? '概念' :
+                             keyword.category === 'location' ? '場所' : 'その他'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-300 line-clamp-2">{keyword.reason}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-600">
+              <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-red-600 rounded-full"></span>
+                  9.0-10.0
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-orange-600 rounded-full"></span>
+                  7.0-8.9
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-yellow-600 rounded-full"></span>
+                  5.0-6.9
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-blue-600 rounded-full"></span>
+                  3.0-4.9
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-gray-600 rounded-full"></span>
+                  0.0-2.9
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* アクションボタン */}
       <div className="flex justify-between mt-8">

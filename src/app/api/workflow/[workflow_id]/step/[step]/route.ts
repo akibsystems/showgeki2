@@ -368,6 +368,7 @@ async function generateStepInput(
           role: char.role,
           personality: char.personality,
         })) || [],
+        keywords: storyboard.summary_data?.keywords || [],
       } as Step2Input;
 
     case 3:

@@ -43,7 +43,8 @@ export async function generateStep2Input(
     const step2Input: Step2Input = {
       suggestedTitle: generatedStoryboard.summary.title,
       acts: generatedStoryboard.acts.acts,
-      charactersList: generatedStoryboard.characters.characters
+      charactersList: generatedStoryboard.characters.characters,
+      keywords: generatedStoryboard.summary.keywords
     };
 
     console.log(`[step1-processor] Step2Input built:`, JSON.stringify(step2Input, null, 2));
@@ -131,7 +132,15 @@ JSONフォーマットで以下の構造で出力してください：
     "description": "物語の概要",
     "genre": "ジャンル（例：ドラマ、コメディ、冒険など）",
     "tags": ["タグ1", "タグ2", "タグ3"],
-    "estimatedDuration": 120
+    "estimatedDuration": 120,
+    "keywords": [
+      {
+        "term": "キーワード（固有名詞・重要な概念）",
+        "importance": 8.5,
+        "reason": "このキーワードが重要な理由",
+        "category": "person"
+      }
+    ]
   },
   "acts": {
     "acts": [
@@ -168,6 +177,29 @@ JSONフォーマットで以下の構造で出力してください：
 - あらすじは簡潔にシーンの要点を説明
 - 日本語で出力してください
 - タグは物語の特徴を表す3-5個程度
+
+## キーワード抽出の指針
+物語から**できるだけ多くの**重要なキーワードを抽出してください（最低15個以上）：
+
+### 抽出対象
+- **固有名詞**: 人名、企業名、製品名、サービス名、団体名、地名、建物名など
+- **重要なイベント**: IPO、起業、買収、合併、受賞、発表会、転機となった出来事など
+- **重要な概念**: 物語の核となるテーマ、価値観、哲学、技術、手法など
+- **感情的な要素**: 主人公の感情、決意、夢、目標など
+- **時期・期間**: 重要な日付、期間、タイミングなど
+- **数値・金額**: 売上、資金調達額、従業員数など重要な数字
+
+### スコアリング（0.0-10.0）
+- **9.0-10.0**: 物語の核心（主人公名、企業名、最重要イベントなど）
+- **7.0-8.9**: 重要な要素（主要キャラ、重要な出来事、キーテーマなど）
+- **5.0-6.9**: 中程度の重要性（サブキャラ、補助的イベント、背景情報など）
+- **3.0-4.9**: 補助的要素（環境設定、小道具、一般的概念など）
+- **0.0-2.9**: 参考情報（雰囲気作り、一般的な用語など）
+
+### 各キーワードの形式
+- importance: 0.0から10.0の間の数値（0.1刻み）
+- reason: なぜこのキーワードが重要なのか具体的に説明
+- category: "person"（人物）、"organization"（組織）、"event"（出来事）、"concept"（概念）、"location"（場所）、"other"（その他）
 `;
 }
 
@@ -222,7 +254,20 @@ function validateAndNormalizeStoryboard(
     description: result.summary.description,
     genre: result.summary?.genre || 'ドラマ',
     tags: Array.isArray(result.summary?.tags) ? result.summary.tags : [],
-    estimatedDuration: result.summary?.estimatedDuration || 120
+    estimatedDuration: result.summary?.estimatedDuration || 120,
+    keywords: Array.isArray(result.summary?.keywords) ? 
+      result.summary.keywords.map((keyword: any) => ({
+        term: keyword.term || '',
+        importance: typeof keyword.importance === 'number' && 
+                   keyword.importance >= 0 && 
+                   keyword.importance <= 10 ? 
+                   Math.round(keyword.importance * 10) / 10 : // 0.1刻みに丸める
+                   5.0,
+        reason: keyword.reason || '',
+        category: ['person', 'organization', 'event', 'concept', 'location', 'other'].includes(keyword.category) 
+          ? keyword.category 
+          : 'other'
+      })).filter((k: any) => k.term).sort((a: any, b: any) => b.importance - a.importance) : [] // 重要度順でソート
   };
 
   // Acts データの検証
