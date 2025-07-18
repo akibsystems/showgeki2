@@ -63,6 +63,12 @@ export interface SummaryData {
     reason: string;
     category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
   }>;
+  selectedKeywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
+  }>;
 }
 
 export interface ActsData {
@@ -296,6 +302,12 @@ export interface Step2Output {
         summary: string;
       }>;
     }>;
+    selectedKeywords?: Array<{
+      term: string;
+      importance: number; // 0.0-10.0
+      reason: string;
+      category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
+    }>;
   };
 }
 
@@ -309,6 +321,12 @@ export interface Step3Input {
     role: string;
     personality: string;
     visualDescription: string;
+  }>;
+  selectedKeywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
   }>;
 }
 
@@ -345,6 +363,12 @@ export interface Step4Input {
       text: string;
     }>;
   }>;
+  selectedKeywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
+  }>;
 }
 
 export interface Step4Output {
@@ -377,6 +401,12 @@ export interface Step5Input {
       text: string;
       audioUrl?: string;
     }>;
+  }>;
+  selectedKeywords?: Array<{
+    term: string;
+    importance: number; // 0.0-10.0
+    reason: string;
+    category: 'person' | 'organization' | 'event' | 'concept' | 'location' | 'other';
   }>;
 }
 

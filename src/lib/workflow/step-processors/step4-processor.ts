@@ -126,7 +126,8 @@ export async function generateStep5Input(
     console.log(`[step4-processor] Building Step5Input...`);
     const step5Input: Step5Input = {
       characters: voiceSettings.characters,
-      scenes: voiceSettings.scenes
+      scenes: voiceSettings.scenes,
+      selectedKeywords: storyboard.summary_data?.selectedKeywords
     };
 
     console.log(`[step4-processor] Step5Input built:`, JSON.stringify(step5Input, null, 2));

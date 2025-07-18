@@ -382,6 +382,7 @@ async function generateStepInput(
           personality: char.personality,
           visualDescription: char.visualDescription,
         })) || [],
+        selectedKeywords: storyboard.summary_data?.selectedKeywords
       } as Step3Input;
 
     case 4:
@@ -389,7 +390,8 @@ async function generateStepInput(
       return {
         title: storyboard.title || '',
         acts: storyboard.acts_data?.acts || [],
-        scenes: storyboard.scenes_data?.scenes || []
+        scenes: storyboard.scenes_data?.scenes || [],
+        selectedKeywords: storyboard.summary_data?.selectedKeywords
       } as Step4Input;
 
     case 5:
@@ -408,7 +410,8 @@ async function generateStepInput(
             text: line.text,
             audioUrl: undefined
           }))
-        })) || []
+        })) || [],
+        selectedKeywords: storyboard.summary_data?.selectedKeywords
       } as Step5Input;
 
     case 6:
@@ -518,23 +521,28 @@ async function generateAndUpdateStoryboard(
         // タイトルを更新
         storyboardUpdates.title = step2Output.userInput.title;
         
-        // summary_dataもタイトルを更新
+        // summary_dataもタイトルと選択されたキーワードを更新
         if (currentStoryboard.summary_data) {
           storyboardUpdates.summary_data = {
             ...currentStoryboard.summary_data,
-            title: step2Output.userInput.title
+            title: step2Output.userInput.title,
+            selectedKeywords: step2Output.userInput.selectedKeywords
           };
         }
         
         // 既存のストーリーボードデータからStep3Inputを生成
-        nextStepInput = await generateStepInput(3, {
+        const step3Input = await generateStepInput(3, {
           ...currentStoryboard,
           title: step2Output.userInput.title,
           summary_data: {
             ...currentStoryboard.summary_data,
             title: step2Output.userInput.title
           }
-        } as Storyboard);
+        } as Storyboard) as Step3Input;
+        
+        // 選択されたキーワードを追加
+        step3Input.selectedKeywords = step2Output.userInput.selectedKeywords;
+        nextStepInput = step3Input;
         
         console.log('[Step2] Generated Step3Input from existing data');
       } else {

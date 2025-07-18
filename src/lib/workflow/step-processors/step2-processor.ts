@@ -62,12 +62,19 @@ export async function generateStep3Input(
       characters: detailedCharacters
     };
 
+    // summary_dataを更新（選択されたキーワードを含む）
+    const updatedSummaryData = storyboard.summary_data ? {
+      ...storyboard.summary_data,
+      selectedKeywords: step2Output.userInput.selectedKeywords
+    } : undefined;
+
     const { error: updateError } = await supabase
       .from('storyboards')
       .update({
         title: step2Output.userInput.title,
         acts_data: { acts: step2Output.userInput.acts },
         characters_data: updatedCharactersData,
+        summary_data: updatedSummaryData,
         updated_at: new Date().toISOString()
       })
       .eq('id', storyboardId);
@@ -82,7 +89,8 @@ export async function generateStep3Input(
     console.log(`[step2-processor] Building Step3Input...`);
     const step3Input: Step3Input = {
       title: step2Output.userInput.title,
-      detailedCharacters
+      detailedCharacters,
+      selectedKeywords: step2Output.userInput.selectedKeywords
     };
 
     console.log(`[step2-processor] Step3Input built:`, JSON.stringify(step3Input, null, 2));

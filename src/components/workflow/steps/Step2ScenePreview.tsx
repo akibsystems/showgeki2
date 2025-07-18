@@ -219,6 +219,18 @@ export default function Step2ScenePreview({
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDragType, setActiveDragType] = useState<'act' | 'scene' | null>(null);
+  
+  // 選択されたキーワードの管理
+  const [selectedKeywords, setSelectedKeywords] = useState<Set<string>>(() => {
+    // 既存の選択状態を復元
+    const savedKeywords = initialData?.stepOutput?.userInput?.selectedKeywords;
+    if (savedKeywords) {
+      return new Set(savedKeywords.map(k => k.term));
+    }
+    // デフォルトで重要度7.0以上を選択
+    const importantKeywords = initialData?.stepInput?.keywords?.filter(k => k.importance >= 7.0) || [];
+    return new Set(importantKeywords.map(k => k.term));
+  });
 
   // ドラッグ＆ドロップのセンサー設定
   const sensors = useSensors(
@@ -249,10 +261,17 @@ export default function Step2ScenePreview({
           setTitle(initialData.stepOutput.userInput.title);
         }
         setActs(initialData.stepOutput.userInput.acts || []);
+        // 選択されたキーワードを復元
+        if (initialData.stepOutput.userInput.selectedKeywords) {
+          setSelectedKeywords(new Set(initialData.stepOutput.userInput.selectedKeywords.map(k => k.term)));
+        }
       } else if (initialData?.stepInput) {
         console.log('[Step2ScenePreview] Using stepInput');
         setTitle(initialData.stepInput.suggestedTitle || '');
         setActs(initialData.stepInput.acts || []);
+        // デフォルトで重要度7.0以上を選択
+        const importantKeywords = initialData.stepInput.keywords?.filter(k => k.importance >= 7.0) || [];
+        setSelectedKeywords(new Set(importantKeywords.map(k => k.term)));
       }
       
       // 現在のデータを記録
@@ -458,6 +477,16 @@ export default function Step2ScenePreview({
       }
     }
     
+    // キーワード選択の比較
+    const savedKeywords = savedData.selectedKeywords || [];
+    const savedKeywordSet = new Set(savedKeywords.map(k => k.term));
+    
+    if (selectedKeywords.size !== savedKeywordSet.size) return true;
+    
+    for (const term of selectedKeywords) {
+      if (!savedKeywordSet.has(term)) return true;
+    }
+    
     return false;
   };
 
@@ -498,6 +527,18 @@ export default function Step2ScenePreview({
       }
     }
     
+    // キーワード選択が変更されていないかチェック
+    const savedKeywords = savedData.selectedKeywords || [];
+    const savedKeywordSet = new Set(savedKeywords.map(k => k.term));
+    
+    // 選択数が異なる場合はfalse
+    if (selectedKeywords.size !== savedKeywordSet.size) return false;
+    
+    // 選択内容が異なる場合はfalse
+    for (const term of selectedKeywords) {
+      if (!savedKeywordSet.has(term)) return false;
+    }
+    
     // タイトルだけが変更されている
     return true;
   };
@@ -526,11 +567,16 @@ export default function Step2ScenePreview({
         return;
       }
 
+      // 選択されたキーワードのみを抽出
+      const allKeywords = initialData?.stepInput?.keywords || [];
+      const selectedKeywordsList = allKeywords.filter(k => selectedKeywords.has(k.term));
+
       // workflow-design.mdの仕様に従い、Step2Outputを送信
       const step2Output: Step2Output = {
         userInput: {
           title: title.trim(),
           acts: filteredActs,
+          selectedKeywords: selectedKeywordsList,
         },
       };
 
@@ -683,7 +729,27 @@ export default function Step2ScenePreview({
       {initialData?.stepInput?.keywords && initialData.stepInput.keywords.length > 0 && (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">抽出されたキーワード（{initialData.stepInput.keywords.length}個）</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                抽出されたキーワード（{selectedKeywords.size}/{initialData.stepInput.keywords.length}個選択）
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedKeywords(new Set(initialData.stepInput.keywords.map(k => k.term)))}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                  disabled={isLoading}
+                >
+                  すべて選択
+                </button>
+                <button
+                  onClick={() => setSelectedKeywords(new Set())}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                  disabled={isLoading}
+                >
+                  すべて解除
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {initialData.stepInput.keywords.map((keyword, index) => {
                 // スコアに基づいて色を計算
@@ -700,9 +766,32 @@ export default function Step2ScenePreview({
                   return 'text-gray-200';
                 };
                 
+                const isSelected = selectedKeywords.has(keyword.term);
+                
                 return (
-                  <div key={index} className="bg-gray-700 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
+                  <div 
+                    key={index} 
+                    className={`bg-gray-700 rounded-lg p-4 cursor-pointer transition-all ${
+                      isSelected ? 'ring-2 ring-purple-500' : ''
+                    }`}
+                    onClick={() => {
+                      const newSet = new Set(selectedKeywords);
+                      if (isSelected) {
+                        newSet.delete(keyword.term);
+                      } else {
+                        newSet.add(keyword.term);
+                      }
+                      setSelectedKeywords(newSet);
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}} // onClickで処理
+                        className="mt-1 w-4 h-4 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+                        disabled={isLoading}
+                      />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-base font-medium text-white">{keyword.term}</span>

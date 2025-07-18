@@ -179,7 +179,8 @@ export async function generateStep4Input(
         actNumber: act.actNumber,
         actTitle: act.actTitle
       })) || [],
-      scenes: mergedScenes
+      scenes: mergedScenes,
+      selectedKeywords: storyboard.summary_data?.selectedKeywords
     };
 
     return step4Input;
@@ -334,7 +335,7 @@ ${act.scenes?.map((scene: any) =>
 - 未来のビジョン: ${storyData.futureVision || ''}
 - 学びや気づき: ${storyData.learnings || ''}
 - 総シーン数: ${storyData.totalScenes || ''}
-- キーワード: ${storyboard.summary_data?.keywords?.map((k: any) => `${k.term}（${k.importance}）`).join(', ') || ''}
+- 選択されたキーワード: ${storyboard.summary_data?.selectedKeywords?.map((k: any) => `${k.term}（${k.importance}）`).join(', ') || ''}
 
 ## 幕場構成
 ${actsStructure}
