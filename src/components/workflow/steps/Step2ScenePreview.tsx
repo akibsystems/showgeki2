@@ -224,7 +224,7 @@ export default function Step2ScenePreview({
   const [selectedKeywords, setSelectedKeywords] = useState<Set<string>>(() => {
     // 既存の選択状態を復元
     const savedKeywords = initialData?.stepOutput?.userInput?.selectedKeywords;
-    if (savedKeywords) {
+    if (savedKeywords && Array.isArray(savedKeywords)) {
       return new Set(savedKeywords.map(k => k.term));
     }
     // デフォルトで重要度7.0以上を選択
@@ -479,7 +479,7 @@ export default function Step2ScenePreview({
     
     // キーワード選択の比較
     const savedKeywords = savedData.selectedKeywords || [];
-    const savedKeywordSet = new Set(savedKeywords.map(k => k.term));
+    const savedKeywordSet = new Set(Array.isArray(savedKeywords) ? savedKeywords.map(k => k.term) : []);
     
     if (selectedKeywords.size !== savedKeywordSet.size) return true;
     
@@ -529,7 +529,7 @@ export default function Step2ScenePreview({
     
     // キーワード選択が変更されていないかチェック
     const savedKeywords = savedData.selectedKeywords || [];
-    const savedKeywordSet = new Set(savedKeywords.map(k => k.term));
+    const savedKeywordSet = new Set(Array.isArray(savedKeywords) ? savedKeywords.map(k => k.term) : []);
     
     // 選択数が異なる場合はfalse
     if (selectedKeywords.size !== savedKeywordSet.size) return false;
@@ -735,7 +735,7 @@ export default function Step2ScenePreview({
               </h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setSelectedKeywords(new Set(initialData.stepInput.keywords.map(k => k.term)))}
+                  onClick={() => setSelectedKeywords(new Set(initialData.stepInput.keywords?.map(k => k.term) || []))}
                   className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
                   disabled={isLoading}
                 >

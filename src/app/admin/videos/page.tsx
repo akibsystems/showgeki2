@@ -117,14 +117,18 @@ export default function AdminVideosPage() {
       search: searchParams.get('search') || undefined,
     };
     
-    // Filter out undefined values
+    // Filter out undefined values and ensure required fields
     const cleanFilters = Object.fromEntries(
       Object.entries(urlFilters).filter(([_, value]) => value !== undefined)
     );
     
     // Always set from URL if available
     if (searchParams.toString()) {
-      setFilters(cleanFilters);
+      setFilters({
+        page: urlFilters.page,
+        limit: urlFilters.limit,
+        ...cleanFilters
+      });
     }
   }, []); // Only run once on mount
 

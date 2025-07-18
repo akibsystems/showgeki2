@@ -119,7 +119,7 @@ function JsonDataCard({
           </Button>
         </div>
       </div>
-      <CardContent className="p-6 overflow-auto bg-gray-950/50" style={{ maxHeight: '70vh' }}>
+      <CardContent className="p-6 overflow-auto bg-gray-950/50 max-h-[70vh]">
         {renderContent()}
       </CardContent>
     </Card>
@@ -378,7 +378,7 @@ export default function VideoDetailPage() {
         </div>
         
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-100">
-          {detail.video.title || detail.video.story.title}
+          {detail.video.title || detail.video.story?.title || '無題'}
         </h1>
         <div className="mt-2 flex items-center gap-2">
           <p className="text-sm lg:text-base text-gray-400">
@@ -402,13 +402,13 @@ export default function VideoDetailPage() {
         {/* Left Column: Video Preview and Basic Info */}
         <div className="xl:col-span-2 space-y-6">
           {/* Video Player */}
-          {detail.video.video_url && (
+          {detail.video.url && (
             <Card className="bg-gray-900 border-gray-800">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-100 mb-4">動画プレビュー</h3>
                 <div className="bg-black rounded-lg overflow-hidden">
                   <VideoPlayer
-                    src={detail.video.video_url}
+                    src={detail.video.url}
                     poster=""
                     title={detail.video.title || detail.video.story?.title || '無題'}
                   />
@@ -417,7 +417,7 @@ export default function VideoDetailPage() {
                 {/* Video Actions */}
                 <div className="flex gap-3 mt-4">
                   <a
-                    href={detail.video.video_url}
+                    href={detail.video.url}
                     download
                     className="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors"
                   >
@@ -446,7 +446,7 @@ export default function VideoDetailPage() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       detail.video.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                       detail.video.status === 'processing' ? 'bg-yellow-500/20 text-yellow-400' :
-                      detail.video.status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                      detail.video.status === 'error' ? 'bg-red-500/20 text-red-400' :
                       'bg-gray-500/20 text-gray-400'
                     }`}>
                       {detail.video.status}
@@ -477,20 +477,20 @@ export default function VideoDetailPage() {
                     <p className="text-gray-100 text-sm mt-1">{detail.video.resolution}</p>
                   </div>
                 )}
-                {detail.video.video_url && (
+                {detail.video.url && (
                   <div className="md:col-span-2">
                     <label className="text-sm text-gray-400">動画URL</label>
                     <div className="flex items-center gap-2 mt-1">
                       <input
                         type="text"
                         readOnly
-                        value={detail.video.video_url}
+                        value={detail.video.url}
                         className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 font-mono"
                       />
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => copyToClipboard(detail.video.video_url!, 'video_url')}
+                        onClick={() => copyToClipboard(detail.video.url!, 'video_url')}
                       >
                         {copiedField === 'video_url' ? 'コピー済み' : 'コピー'}
                       </Button>

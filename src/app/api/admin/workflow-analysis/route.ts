@@ -70,9 +70,10 @@ function extractPrompts(content: string, fileName: string): StepPrompt {
   };
   
   // システムプロンプトを抽出（messages配列のrole: 'system'）
-  const systemPromptVarMatches = content.matchAll(/role:\s*['"]system['"]\s*,\s*content:\s*(\w+)/g);
-  for (const match of systemPromptVarMatches) {
-    const varName = match[1];
+  const systemPromptVarRegex = /role:\s*['"]system['"]\s*,\s*content:\s*(\w+)/g;
+  let systemMatch;
+  while ((systemMatch = systemPromptVarRegex.exec(content)) !== null) {
+    const varName = systemMatch[1];
     const varDefRegex = new RegExp(`const\\s+${varName}\\s*=\\s*\\\`([^\\\`]+)\\\``, 's');
     const varDefMatch = content.match(varDefRegex);
     if (varDefMatch) {
@@ -81,9 +82,10 @@ function extractPrompts(content: string, fileName: string): StepPrompt {
   }
   
   // ユーザープロンプトを抽出（role: 'user'）
-  const userPromptVarMatches = content.matchAll(/role:\s*['"]user['"]\s*,\s*content:\s*(\w+)/g);
-  for (const match of userPromptVarMatches) {
-    const varName = match[1];
+  const userPromptVarRegex = /role:\s*['"]user['"]\s*,\s*content:\s*(\w+)/g;
+  let userMatch;
+  while ((userMatch = userPromptVarRegex.exec(content)) !== null) {
+    const varName = userMatch[1];
     const varDefRegex = new RegExp(`const\\s+${varName}\\s*=\\s*\\\`([^\\\`]+)\\\``, 's');
     const varDefMatch = content.match(varDefRegex);
     if (varDefMatch) {
@@ -92,9 +94,9 @@ function extractPrompts(content: string, fileName: string): StepPrompt {
   }
   
   // create*Prompt関数の戻り値を抽出
-  const promptFunctions = content.matchAll(/function\s+(create\w*Prompt)\s*\([^)]*\)\s*:\s*string\s*\{/g);
-  
-  for (const funcMatch of promptFunctions) {
+  const promptFunctionsRegex = /function\s+(create\w*Prompt)\s*\([^)]*\)\s*:\s*string\s*\{/g;
+  let funcMatch;
+  while ((funcMatch = promptFunctionsRegex.exec(content)) !== null) {
     const functionName = funcMatch[1];
     const startPos = funcMatch.index! + funcMatch[0].length;
     
@@ -127,9 +129,10 @@ function extractPrompts(content: string, fileName: string): StepPrompt {
   }
   
   // directorPrompt変数パターン
-  const directorPromptMatches = content.matchAll(/const\s+(?:director|user)Prompt\s*=\s*\`([^\`]+)\`/gs);
-  for (const match of directorPromptMatches) {
-    prompts.directorPrompts.push(match[1].trim());
+  const directorPromptRegex = /const\s+(?:director|user)Prompt\s*=\s*\`([^\`]+)\`/g;
+  let directorMatch;
+  while ((directorMatch = directorPromptRegex.exec(content)) !== null) {
+    prompts.directorPrompts.push(directorMatch[1].trim());
   }
   
   // 重複を削除
