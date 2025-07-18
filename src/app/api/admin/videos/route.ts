@@ -64,7 +64,7 @@ async function getVideos(
     const searchParams = Object.fromEntries(request.nextUrl.searchParams.entries());
     
     // Validate query parameters
-    const parseResult = GetVideosQuerySchema.safeParse(searchParams);
+      const parseResult = GetVideosQuerySchema.safeParse(searchParams);
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -78,6 +78,11 @@ async function getVideos(
     
     const { page, limit, status, from, to, uid, search } = parseResult.data;
     const supabase = createAdminClient();
+    
+    console.log(`\n========================================`);
+    console.log(`[getVideos] SEARCH REQUEST RECEIVED`);
+    console.log(`[getVideos] Query params:`, { page, limit, status, from, to, uid, search });
+    console.log(`========================================\n`);
     
     // Build query - Since there's no foreign key, we'll do a manual join
     let query = supabase
@@ -101,41 +106,153 @@ async function getVideos(
       query = query.eq('uid', uid);
     }
     
-    if (search) {
-      // Search in video title or uid
-      query = query.or(`title.ilike.%${search}%,uid.ilike.%${search}%`);
-    }
-    
-    // Apply pagination
-    const startIndex = (page - 1) * limit;
-    query = query
-      .range(startIndex, startIndex + limit - 1)
-      .order('created_at', { ascending: false });
-    
-    const { data: videos, error, count } = await query;
-    
-    if (error) {
-      console.error('[getVideos] Database error:', error);
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch videos',
-          type: ErrorType.INTERNAL,
-        },
-        { status: 500 }
-      );
-    }
-    
-    // Get storyboards for the videos
-    const storyIds = [...new Set((videos || []).map(v => v.story_id).filter(Boolean))];
-    
+    // If searching, we need to get all videos first to search in story_data
+    let finalVideos = [];
+    let totalCount = 0;
     let storyboards: any[] = [];
-    if (storyIds.length > 0) {
-      const { data: storyboardData } = await supabase
-        .from('storyboards')
-        .select('id, title, uid, created_at')
-        .in('id', storyIds);
+    
+    if (search) {
+      // First, find all storyboards that match the search term
+      console.log(`[getVideos] Searching for: "${search}"`);
       
-      storyboards = storyboardData || [];
+      // Get storyboards that match the search
+      const { data: matchingStoryboards, error: storyboardError } = await supabase
+        .from('storyboards')
+        .select('id')
+        .ilike('story_data->>originalText', `%${search}%`);
+      
+      if (storyboardError) {
+        console.error('[getVideos] Storyboard search error:', storyboardError);
+      }
+      
+      const matchingStoryIds = (matchingStoryboards || []).map(sb => sb.id);
+      console.log(`[getVideos] Found ${matchingStoryIds.length} storyboards matching "${search}"`);
+      
+      // Build video query with search conditions
+      let searchQuery = supabase
+        .from('videos')
+        .select('*', { count: 'exact' });
+      
+      // Apply other filters
+      if (status) {
+        searchQuery = searchQuery.eq('status', status);
+      }
+      if (from) {
+        searchQuery = searchQuery.gte('created_at', from);
+      }
+      if (to) {
+        searchQuery = searchQuery.lte('created_at', to);
+      }
+      if (uid) {
+        searchQuery = searchQuery.eq('uid', uid);
+      }
+      
+      // Apply search filter
+      if (matchingStoryIds.length > 0) {
+        // Search in video title, uid, AND/OR matching story IDs
+        // Option 1: Search in all fields (current behavior - 14 results)
+        searchQuery = searchQuery.or(
+          `title.ilike.%${search}%,uid.ilike.%${search}%,story_id.in.(${matchingStoryIds.join(',')})`
+        );
+        
+        // Option 2: Search ONLY in story content (9 results)
+        // Uncomment the following line and comment out the above to search only in story content
+        // searchQuery = searchQuery.in('story_id', matchingStoryIds);
+      } else {
+        // Only search in video title and uid
+        searchQuery = searchQuery.or(`title.ilike.%${search}%,uid.ilike.%${search}%`);
+      }
+      
+      // Apply pagination and ordering
+      searchQuery = searchQuery
+        .range((page - 1) * limit, page * limit - 1)
+        .order('created_at', { ascending: false });
+      
+      const { data: videos, error, count } = await searchQuery;
+      
+      if (error) {
+        console.error('[getVideos] Database error:', error);
+        return NextResponse.json(
+          {
+            error: 'Failed to fetch videos',
+            type: ErrorType.INTERNAL,
+          },
+          { status: 500 }
+        );
+      }
+      
+      finalVideos = videos || [];
+      totalCount = count || 0;
+      
+      console.log(`[getVideos] Found ${finalVideos.length} videos (total: ${totalCount})`);
+      
+      // Get storyboards for the videos
+      const storyIds = [...new Set(finalVideos.map(v => v.story_id).filter(Boolean))];
+      
+      if (storyIds.length > 0) {
+        // Batch fetch to avoid IN query limits
+        const batchSize = 100;
+        storyboards = [];
+        
+        for (let i = 0; i < storyIds.length; i += batchSize) {
+          const batch = storyIds.slice(i, i + batchSize);
+          const { data: storyboardData } = await supabase
+            .from('storyboards')
+            .select('id, title, uid, created_at')
+            .in('id', batch);
+          
+          if (storyboardData) {
+            storyboards = storyboards.concat(storyboardData);
+          }
+        }
+      } else {
+        storyboards = [];
+      }
+      
+    } else {
+      // No search - use normal pagination
+      query = query
+        .range((page - 1) * limit, page * limit - 1)
+        .order('created_at', { ascending: false });
+      
+      const { data: videos, error, count } = await query;
+      
+      if (error) {
+        console.error('[getVideos] Database error:', error);
+        return NextResponse.json(
+          {
+            error: 'Failed to fetch videos',
+            type: ErrorType.INTERNAL,
+          },
+          { status: 500 }
+        );
+      }
+      
+      finalVideos = videos || [];
+      totalCount = count || 0;
+      
+      // Get storyboards for the videos
+      const storyIds = [...new Set(finalVideos.map(v => v.story_id).filter(Boolean))];
+      
+      if (storyIds.length > 0) {
+        // Batch fetch to avoid IN query limits
+        const batchSize = 100;
+        storyboards = [];
+        
+        for (let i = 0; i < storyIds.length; i += batchSize) {
+          const batch = storyIds.slice(i, i + batchSize);
+          const { data: storyboardData } = await supabase
+            .from('storyboards')
+            .select('id, title, uid, created_at')
+            .in('id', batch);
+          
+          if (storyboardData) {
+            storyboards = storyboards.concat(storyboardData);
+          }
+        }
+      } else {
+        storyboards = [];
+      }
     }
     
     // Create storyboard map
@@ -143,7 +260,7 @@ async function getVideos(
     
     // Get profiles for the videos
     const uids = [...new Set([
-      ...(videos || []).map(v => v.uid),
+      ...finalVideos.map(v => v.uid),
       ...storyboards.map(sb => sb.uid)
     ].filter(Boolean))];
     
@@ -160,27 +277,26 @@ async function getVideos(
     // Map profiles to videos
     const profileMap = new Map(profiles.map(p => [p.id, p]));
     
-    const videosWithProfiles = (videos || []).map(video => {
+    const videosWithProfiles = finalVideos.map(video => {
       const storyboard = storyboardMap.get(video.story_id);
+      // Remove story_data from the response to reduce payload size
+      const { story_data, ...storyboardWithoutData } = storyboard || {};
       return {
         ...video,
-        story: storyboard, // Map storyboard to story for backward compatibility
+        story: storyboardWithoutData, // Map storyboard to story for backward compatibility
         profile: storyboard?.uid ? profileMap.get(storyboard.uid) : profileMap.get(video.uid),
       };
     });
     
+    // Fix the response format - remove success wrapper
     return NextResponse.json({
-      success: true,
-      data: {
-        videos: videosWithProfiles,
-        pagination: {
-          total: count || 0,
-          page,
-          limit,
-          totalPages: Math.ceil((count || 0) / limit),
-        },
+      videos: videosWithProfiles,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
       },
-      timestamp: new Date().toISOString(),
     });
     
   } catch (error) {

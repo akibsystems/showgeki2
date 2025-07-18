@@ -71,13 +71,16 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
       <div className="mb-4">
         <input
           type="text"
-          placeholder="タイトルまたはUIDで検索..."
+          placeholder="タイトル、UID、ストーリー内容で検索..."
           value={localFilters.search || ''}
           onChange={(e) => setLocalFilters({ ...localFilters, search: e.target.value, page: 1 })}
           onKeyPress={(e) => e.key === 'Enter' && handleApplyFilters()}
           disabled={disabled}
           className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         />
+        <p className="mt-1 text-xs text-gray-500">
+          動画タイトル、UID、ストーリー内容（originalText）を検索します
+        </p>
       </div>
 
       {/* Expanded filters */}
