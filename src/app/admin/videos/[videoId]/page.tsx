@@ -40,6 +40,59 @@ function JsonDataCard({
 }) {
   const jsonString = JSON.stringify(data, null, 2);
 
+  // Special rendering for text fields
+  const textFields = ['originalText', 'storyText', 'characters', 'dramaticTurningPoint', 
+                      'futureVision', 'learnings', 'text', 'description', 'content'];
+  
+  const renderContent = () => {
+    if (data && typeof data === 'object') {
+      const hasTextFields = textFields.some(field => data[field] && typeof data[field] === 'string');
+      
+      if (hasTextFields && title === "Story Data") {
+        const textFieldsInData = textFields.filter(field => data[field]);
+        const otherFields = Object.keys(data).filter(key => !textFields.includes(key));
+        
+        return (
+          <div className="space-y-6">
+            {/* Text Fields */}
+            {textFieldsInData.map(field => (
+              <div key={field}>
+                <h4 className="text-sm font-medium text-purple-400 mb-2">
+                  {field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                </h4>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <pre className="text-emerald-300 whitespace-pre-wrap font-mono text-sm">
+                    {/* Convert \n string to actual newlines */}
+                    {typeof data[field] === 'string' 
+                      ? data[field].replace(/\\n/g, '\n')
+                      : data[field]
+                    }
+                  </pre>
+                </div>
+              </div>
+            ))}
+            
+            {/* Other Fields */}
+            {otherFields.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-purple-400 mb-2">Other Fields</h4>
+                <JsonSyntaxHighlighter json={JSON.stringify(
+                  otherFields.reduce((obj, key) => {
+                    obj[key] = data[key];
+                    return obj;
+                  }, {} as any),
+                  null, 2
+                )} />
+              </div>
+            )}
+          </div>
+        );
+      }
+    }
+    
+    return <JsonSyntaxHighlighter json={jsonString} />;
+  };
+
   return (
     <Card className="bg-gray-900 border-gray-800">
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
@@ -62,7 +115,7 @@ function JsonDataCard({
         </div>
       </div>
       <CardContent className="p-6 overflow-auto bg-gray-950/50" style={{ maxHeight: '70vh' }}>
-        <JsonSyntaxHighlighter json={jsonString} />
+        {renderContent()}
       </CardContent>
     </Card>
   );
@@ -160,14 +213,24 @@ export default function VideoDetailPage() {
       {/* Header */}
       <div className="mb-6 lg:mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <Link href="/admin/videos">
-            <Button variant="ghost" size="sm">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              戻る
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              // Use browser back if we came from the videos page
+              if (document.referrer.includes('/admin/videos')) {
+                router.back();
+              } else {
+                // Fallback to direct link
+                router.push('/admin/videos');
+              }
+            }}
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            戻る
+          </Button>
         </div>
         
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-100">

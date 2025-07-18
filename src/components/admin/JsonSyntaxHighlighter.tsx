@@ -9,7 +9,7 @@ interface JsonSyntaxHighlighterProps {
 
 export function JsonSyntaxHighlighter({ json, className = '' }: JsonSyntaxHighlighterProps) {
   // Function to render JSON with proper formatting and highlighting
-  const renderJson = (obj: any, indent: number = 0): React.ReactNode => {
+  const renderJson = (obj: any, indent: number = 0, parentKey?: string): React.ReactNode => {
     const spaces = '  '.repeat(indent);
     
     if (obj === null) {
@@ -23,7 +23,47 @@ export function JsonSyntaxHighlighter({ json, className = '' }: JsonSyntaxHighli
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+      
+      // For non-text fields, show as simple string
       return <span className="text-emerald-400">"{escaped}"</span>;
+      
+      // Multi-line string - special handling for originalText and similar fields
+      const isTextContent = parentKey === 'originalText' || 
+                           parentKey === 'text' || 
+                           parentKey === 'description' ||
+                           parentKey === 'content' ||
+                           parentKey === 'storyText' ||
+                           parentKey === 'characters' ||
+                           parentKey === 'dramaticTurningPoint' ||
+                           parentKey === 'futureVision' ||
+                           parentKey === 'learnings' ||
+                           parentKey === 'dialogue' ||
+                           parentKey === 'stage_directions' ||
+                           parentKey === 'synopsis';
+      
+      if (isTextContent) {
+        // For text content fields, display with actual line breaks for readability
+        // Convert \n to actual line breaks and decode HTML entities
+        // JSONの中の文字列は既に適切にパースされているはずだが、
+        // HTMLエンティティをデコード
+        const decodedText = obj
+          .replace(/&gt;/g, '>')    // Decode HTML entities
+          .replace(/&lt;/g, '<')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"');
+        
+        return (
+          <div className="text-emerald-400">
+            <span>"</span>
+            <div className="pl-4 py-1">
+              <div className="text-emerald-300 whitespace-pre-wrap break-words font-mono text-sm">
+                {decodedText}
+              </div>
+            </div>
+            <span>{spaces}"</span>
+          </div>
+        );
+      }
     }
     
     if (typeof obj === 'number') {
@@ -66,7 +106,7 @@ export function JsonSyntaxHighlighter({ json, className = '' }: JsonSyntaxHighli
             <React.Fragment key={key}>
               {'\n'}{spaces}  <span className="text-purple-400">"{key}"</span>
               <span className="text-gray-500">: </span>
-              {renderJson(value, indent + 1)}
+              {renderJson(value, indent + 1, key)}
               {index < entries.length - 1 && <span className="text-gray-500">,</span>}
             </React.Fragment>
           ))}

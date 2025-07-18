@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAdminVideos } from '@/hooks/useAdminVideos';
 import { VideoFilters } from '@/components/admin/VideoFilters';
 import { VideoTable } from '@/components/admin/VideoTable';
@@ -18,6 +19,9 @@ type ViewMode = 'list' | 'grid';
 // ================================================================
 
 export default function AdminVideosPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const { 
     data, 
     isLoading,
@@ -63,6 +67,68 @@ export default function AdminVideosPage() {
     }
     setShowDeleteConfirm(false);
   };
+
+  // Update URL when filters change (but avoid initial update)
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    if (!isInitialized) {
+      setIsInitialized(true);
+      return;
+    }
+    
+    const params = new URLSearchParams();
+    
+    if (filters.page && filters.page !== 1) {
+      params.set('page', filters.page.toString());
+    }
+    if (filters.limit && filters.limit !== 50) {
+      params.set('limit', filters.limit.toString());
+    }
+    if (filters.status) {
+      params.set('status', filters.status);
+    }
+    if (filters.from) {
+      params.set('from', filters.from);
+    }
+    if (filters.to) {
+      params.set('to', filters.to);
+    }
+    if (filters.uid) {
+      params.set('uid', filters.uid);
+    }
+    if (filters.search) {
+      params.set('search', filters.search);
+    }
+    
+    const query = params.toString();
+    const newUrl = query ? `/admin/videos?${query}` : '/admin/videos';
+    
+    router.replace(newUrl);
+  }, [filters, router, isInitialized]);
+  
+  // Initialize filters from URL on mount (only once)
+  useEffect(() => {
+    const urlFilters = {
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '50'),
+      status: searchParams.get('status') as any || undefined,
+      from: searchParams.get('from') || undefined,
+      to: searchParams.get('to') || undefined,
+      uid: searchParams.get('uid') || undefined,
+      search: searchParams.get('search') || undefined,
+    };
+    
+    // Filter out undefined values
+    const cleanFilters = Object.fromEntries(
+      Object.entries(urlFilters).filter(([_, value]) => value !== undefined)
+    );
+    
+    // Always set from URL if available
+    if (searchParams.toString()) {
+      setFilters(cleanFilters);
+    }
+  }, []); // Only run once on mount
 
   // Handle pagination
   const handlePageChange = (page: number) => {

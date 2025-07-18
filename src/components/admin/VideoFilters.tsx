@@ -24,6 +24,11 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
   // Start with false to avoid hydration mismatch
   const [isExpanded, setIsExpanded] = useState(false);
   
+  // Update localFilters when filters prop changes (e.g., from URL)
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+  
   // Set initial state after mount based on screen size
   useEffect(() => {
     const handleResize = () => {
