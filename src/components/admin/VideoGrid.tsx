@@ -8,6 +8,7 @@ import { ja } from 'date-fns/locale/ja';
 import { Button } from '@/components/ui';
 import { VideoThumbnail } from './VideoThumbnail';
 import { GridSkeleton, CardSkeleton } from '@/components/ui/skeleton';
+import { VideoPlayer } from '@/components/video';
 
 // ================================================================
 // Types
@@ -32,6 +33,8 @@ export function VideoGrid({
   onVideoPreview,
   loading = false 
 }: VideoGridProps) {
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+
   // Handle individual selection
   const handleSelectVideo = useCallback((videoId: string, checked: boolean) => {
     if (checked) {
@@ -132,30 +135,55 @@ export function VideoGrid({
           <div className="relative aspect-video bg-gray-800 group overflow-hidden">
             {video.status === 'completed' && video.url ? (
               <>
-                {/* Video thumbnail */}
-                <VideoThumbnail
-                  src={video.url}
-                  alt={video.story?.title || '動画サムネイル'}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                
-                {/* Play button overlay */}
-                <button
-                  onClick={() => onVideoPreview?.(video)}
-                  className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-colors z-10"
-                >
-                  <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg className="w-6 h-6 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                {playingVideo === video.id ? (
+                  /* Video Player */
+                  <div className="absolute inset-0 bg-black">
+                    <VideoPlayer
+                      src={video.url}
+                      poster=""
+                      title={video.story?.title || '無題'}
+                      className="w-full h-full"
+                      controls
+                      autoPlay
+                    />
+                    {/* Close button */}
+                    <button
+                      onClick={() => setPlayingVideo(null)}
+                      className="absolute top-2 right-2 w-8 h-8 bg-black/70 hover:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-20"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                </button>
+                ) : (
+                  <>
+                    {/* Video thumbnail */}
+                    <VideoThumbnail
+                      src={video.url}
+                      alt={video.story?.title || '動画サムネイル'}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    
+                    {/* Play button overlay */}
+                    <button
+                      onClick={() => setPlayingVideo(video.id)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-colors z-10"
+                    >
+                      <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-6 h-6 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </button>
 
-                {/* Duration badge */}
-                {video.duration_sec && (
-                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
-                    {formatDuration(video.duration_sec)}
-                  </div>
+                    {/* Duration badge */}
+                    {video.duration_sec && (
+                      <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
+                        {formatDuration(video.duration_sec)}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             ) : (
@@ -167,7 +195,7 @@ export function VideoGrid({
             )}
 
             {/* Selection checkbox */}
-            <div className="absolute top-2 left-2">
+            <div className="absolute top-2 left-2 z-20">
               <input
                 type="checkbox"
                 checked={selectedVideos.includes(video.id)}
@@ -210,47 +238,19 @@ export function VideoGrid({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
-              <div className="flex items-center gap-2">
-                <Link href={`/admin/videos/${video.id}`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-1"
-                    title="詳細を表示"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </Button>
-                </Link>
-                {video.status === 'completed' && video.url && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onVideoPreview?.(video)}
-                    className="p-1"
-                    title="プレビュー"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </Button>
-                )}
-              </div>
-              
-              <a
-                href={`/stories/${video.story_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:text-purple-300 p-1"
-                title="ストーリーを開く"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+            <div className="flex items-center justify-center mt-4 pt-3 border-t border-gray-800">
+              <Link href={`/admin/videos/${video.id}`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1"
+                  title="詳細を表示"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
