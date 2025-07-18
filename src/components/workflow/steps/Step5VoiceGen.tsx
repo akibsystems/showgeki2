@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,13 +20,11 @@ interface Step5VoiceGenProps {
 
 // 音声選択コンポーネント
 function VoiceSelector({
-  characterId,
   characterName,
   currentVoice,
   onChange,
   isLoading
 }: {
-  characterId: string;
   characterName: string;
   currentVoice: string;
   onChange: (voice: string) => void;
@@ -79,7 +77,6 @@ function VoiceSelector({
 // シーン音声プレビューコンポーネント
 function SceneAudioPreview({
   scene,
-  voiceSettings,
   isLoading,
   onPreview
 }: {
@@ -92,7 +89,6 @@ function SceneAudioPreview({
       audioUrl?: string;
     }>;
   };
-  voiceSettings: { [characterId: string]: { voiceType: string } };
   isLoading: boolean;
   onPreview: (text: string, speaker: string) => void;
 }) {
@@ -153,10 +149,13 @@ export default function Step5VoiceGen({
   onBack,
   onUpdate,
 }: Step5VoiceGenProps) {
-  const { error, success } = useToast();
+  const { error } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  // 前回のinitialDataを追跡（データの変更を検出するため）
+  const prevInitialDataRef = useRef<typeof initialData>(undefined);
 
   // 音声設定の管理
   const [voiceSettings, setVoiceSettings] = useState<{
@@ -172,17 +171,28 @@ export default function Step5VoiceGen({
 
   // initialDataから音声設定を初期化
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput?.voiceSettings) {
-      setVoiceSettings(initialData.stepOutput.userInput.voiceSettings);
-    } else if (initialData?.stepInput?.characters) {
-      // 初期設定を作成
-      const initialSettings: any = {};
-      initialData.stepInput.characters.forEach(char => {
-        initialSettings[char.id] = {
-          voiceType: char.suggestedVoice || 'alloy'
-        };
-      });
-      setVoiceSettings(initialSettings);
+    // 前回のデータと比較して、実際に変更があった場合のみ更新
+    const hasDataChanged = prevInitialDataRef.current?.stepOutput !== initialData?.stepOutput ||
+                          prevInitialDataRef.current?.stepInput !== initialData?.stepInput;
+    
+    if (hasDataChanged && initialData) {
+      console.log('[Step5VoiceGen] Initial data changed, updating voice settings');
+      
+      if (initialData?.stepOutput?.userInput?.voiceSettings) {
+        setVoiceSettings(initialData.stepOutput.userInput.voiceSettings);
+      } else if (initialData?.stepInput?.characters) {
+        // 初期設定を作成
+        const initialSettings: any = {};
+        initialData.stepInput.characters.forEach(char => {
+          initialSettings[char.id] = {
+            voiceType: char.suggestedVoice || 'alloy'
+          };
+        });
+        setVoiceSettings(initialSettings);
+      }
+      
+      // 現在のデータを記録
+      prevInitialDataRef.current = initialData;
     }
   }, [initialData]);
 
@@ -251,9 +261,58 @@ export default function Step5VoiceGen({
     }
   };
 
+  // データが変更されているかチェック
+  const hasDataChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return true; // 保存データがない場合は変更ありとみなす
+    
+    const savedVoiceSettings = savedData.voiceSettings || {};
+    
+    // キャラクターごとの音声設定を比較
+    const characterIds = Object.keys(voiceSettings);
+    const savedCharacterIds = Object.keys(savedVoiceSettings);
+    
+    if (characterIds.length !== savedCharacterIds.length) return true;
+    
+    for (const charId of characterIds) {
+      const settings = voiceSettings[charId];
+      const savedSettings = savedVoiceSettings[charId];
+      
+      if (!savedSettings || settings.voiceType !== savedSettings.voiceType) {
+        return true;
+      }
+      
+      // correctionsの比較（存在する場合）
+      if (settings.corrections || savedSettings.corrections) {
+        const corrections = settings.corrections || {};
+        const savedCorrections = savedSettings.corrections || {};
+        
+        const sceneIds = Object.keys(corrections);
+        const savedSceneIds = Object.keys(savedCorrections);
+        
+        if (sceneIds.length !== savedSceneIds.length) return true;
+        
+        for (const sceneId of sceneIds) {
+          if (JSON.stringify(corrections[sceneId]) !== JSON.stringify(savedCorrections[sceneId])) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!user) return;
+
+    // データが変更されていない場合はスキップ
+    if (!hasDataChanged()) {
+      console.log('[Step5VoiceGen] No changes detected, skipping save');
+      onNext();
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -308,7 +367,6 @@ export default function Step5VoiceGen({
           {characters.map((character) => (
             <VoiceSelector
               key={character.id}
-              characterId={character.id}
               characterName={character.name}
               currentVoice={voiceSettings[character.id]?.voiceType || 'alloy'}
               onChange={(voice) => handleVoiceChange(character.id, voice)}
@@ -326,7 +384,6 @@ export default function Step5VoiceGen({
             <SceneAudioPreview
               key={scene.id}
               scene={scene}
-              voiceSettings={voiceSettings}
               isLoading={isLoading || isPreviewLoading}
               onPreview={handlePreview}
             />

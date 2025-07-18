@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +35,9 @@ export default function Step1StoryInput({
 
   const [showOptionalFields, setShowOptionalFields] = useState(hasOptionalData);
 
+  // 前回のinitialDataを追跡（データの変更を検出するため）
+  const prevInitialDataRef = useRef<typeof initialData>(undefined);
+
   // フォームの状態管理
   const [formData, setFormData] = useState({
     storyText: initialData?.stepOutput?.userInput?.storyText || '',
@@ -51,7 +54,12 @@ export default function Step1StoryInput({
 
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput) {
+    // 前回のデータと比較して、実際に変更があった場合のみ更新
+    const hasDataChanged = prevInitialDataRef.current?.stepOutput !== initialData?.stepOutput ||
+                          prevInitialDataRef.current?.stepInput !== initialData?.stepInput;
+    
+    if (hasDataChanged && initialData?.stepOutput?.userInput) {
+      console.log('[Step1StoryInput] Initial data changed, updating form');
       setFormData({
         storyText: initialData.stepOutput.userInput.storyText || '',
         characters: initialData.stepOutput.userInput.characters || '',
@@ -64,6 +72,9 @@ export default function Step1StoryInput({
           language: 'ja',
         },
       });
+      
+      // 現在のデータを記録
+      prevInitialDataRef.current = initialData;
     }
   }, [initialData]);
 
@@ -76,10 +87,34 @@ export default function Step1StoryInput({
     onUpdate(isValid);
   }, [isValid, onUpdate]);
 
+  // データが変更されているかチェック
+  const hasDataChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return true; // 保存データがない場合は変更ありとみなす
+    
+    return (
+      formData.storyText !== savedData.storyText ||
+      formData.characters !== savedData.characters ||
+      formData.dramaticTurningPoint !== savedData.dramaticTurningPoint ||
+      formData.futureVision !== savedData.futureVision ||
+      formData.learnings !== savedData.learnings ||
+      formData.totalScenes !== savedData.totalScenes ||
+      formData.settings.style !== savedData.settings?.style ||
+      formData.settings.language !== savedData.settings?.language
+    );
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!isValid || !user) {
       error('ストーリー本文を入力してください');
+      return;
+    }
+
+    // データが変更されていない場合はスキップ
+    if (!hasDataChanged()) {
+      console.log('[Step1StoryInput] No changes detected, skipping save');
+      onNext();
       return;
     }
 

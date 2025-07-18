@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
@@ -199,12 +199,19 @@ export default function Step2ScenePreview({
   // デバッグ: データの内容を確認
   console.log('[Step2ScenePreview] initialData:', initialData);
 
+  // 前回のinitialDataを追跡（データの変更を検出するため）
+  const prevInitialDataRef = useRef<typeof initialData>(undefined);
+
   // フォームの状態管理
-  const [title, setTitle] = useState(
-    initialData?.stepOutput?.userInput?.title ||
-    initialData?.stepInput?.suggestedTitle ||
-    ''
-  );
+  const [title, setTitle] = useState(() => {
+    // stepOutputのtitleが存在する場合（空文字列も含む）はそれを使用
+    if (initialData?.stepOutput?.userInput?.title !== undefined && 
+        initialData?.stepOutput?.userInput?.title !== null) {
+      return initialData.stepOutput.userInput.title;
+    }
+    // それ以外はstepInputのsuggestedTitleを使用
+    return initialData?.stepInput?.suggestedTitle || '';
+  });
   const [acts, setActs] = useState(
     initialData?.stepOutput?.userInput?.acts ||
     initialData?.stepInput?.acts ||
@@ -227,14 +234,29 @@ export default function Step2ScenePreview({
 
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput) {
-      console.log('[Step2ScenePreview] Updating form with stepOutput.userInput');
-      setTitle(initialData.stepOutput.userInput.title || '');
-      setActs(initialData.stepOutput.userInput.acts || []);
-    } else if (initialData?.stepInput) {
-      console.log('[Step2ScenePreview] Updating form with stepInput');
-      setTitle(initialData.stepInput.suggestedTitle || '');
-      setActs(initialData.stepInput.acts || []);
+    // 前回のデータと比較して、実際に変更があった場合のみ更新
+    const hasDataChanged = prevInitialDataRef.current?.stepOutput !== initialData?.stepOutput ||
+                          prevInitialDataRef.current?.stepInput !== initialData?.stepInput;
+    
+    if (hasDataChanged && initialData) {
+      console.log('[Step2ScenePreview] Initial data changed, updating form');
+      
+      if (initialData?.stepOutput?.userInput) {
+        console.log('[Step2ScenePreview] Using stepOutput.userInput');
+        console.log('[Step2ScenePreview] Title from stepOutput:', initialData.stepOutput.userInput.title);
+        // titleがundefinedまたはnullの場合のみデフォルト値を使用
+        if (initialData.stepOutput.userInput.title !== undefined && initialData.stepOutput.userInput.title !== null) {
+          setTitle(initialData.stepOutput.userInput.title);
+        }
+        setActs(initialData.stepOutput.userInput.acts || []);
+      } else if (initialData?.stepInput) {
+        console.log('[Step2ScenePreview] Using stepInput');
+        setTitle(initialData.stepInput.suggestedTitle || '');
+        setActs(initialData.stepInput.acts || []);
+      }
+      
+      // 現在のデータを記録
+      prevInitialDataRef.current = initialData;
     }
   }, [initialData]);
 
@@ -399,10 +421,57 @@ export default function Step2ScenePreview({
     setActiveDragType(null);
   };
 
+  // データが変更されているかチェック
+  const hasDataChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return true; // 保存データがない場合は変更ありとみなす
+    
+    // タイトルの比較
+    if (title !== savedData.title) return true;
+    
+    // 幕場構成の比較
+    const filteredActs = acts.filter(act => act.scenes.length > 0);
+    const savedActs = savedData.acts || [];
+    
+    if (filteredActs.length !== savedActs.length) return true;
+    
+    for (let i = 0; i < filteredActs.length; i++) {
+      const act = filteredActs[i];
+      const savedAct = savedActs[i];
+      
+      if (!savedAct || act.actNumber !== savedAct.actNumber || act.actTitle !== savedAct.actTitle) {
+        return true;
+      }
+      
+      if (act.scenes.length !== savedAct.scenes.length) return true;
+      
+      for (let j = 0; j < act.scenes.length; j++) {
+        const scene = act.scenes[j];
+        const savedScene = savedAct.scenes[j];
+        
+        if (!savedScene || 
+            scene.sceneNumber !== savedScene.sceneNumber || 
+            scene.sceneTitle !== savedScene.sceneTitle || 
+            scene.summary !== savedScene.summary) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!title.trim() || !user) {
       error('タイトルを入力してください');
+      return;
+    }
+
+    // データが変更されていない場合はスキップ
+    if (!hasDataChanged()) {
+      console.log('[Step2ScenePreview] No changes detected, skipping save');
+      onNext();
       return;
     }
 

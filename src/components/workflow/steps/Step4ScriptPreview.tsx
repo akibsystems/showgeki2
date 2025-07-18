@@ -250,6 +250,9 @@ export default function Step4ScriptPreview({
   const [isLoading, setIsLoading] = useState(false);
   const [regeneratingBeats, setRegeneratingBeats] = useState<Set<number>>(new Set());
 
+  // 前回のinitialDataを追跡（データの変更を検出するため）
+  const prevInitialDataRef = useRef<typeof initialData>(undefined);
+
   // シーンデータの管理
   const [scenes, setScenes] = useState<any[]>([]);
 
@@ -281,7 +284,6 @@ export default function Step4ScriptPreview({
   }, [user?.id, workflowId]);
 
   // 初回ロード時にプレビューがない場合は自動生成
-  const [hasInitiallyGenerated, setHasInitiallyGenerated] = useState(false);
   const hasInitiallyGeneratedRef = useRef(false); // useRefで永続化
 
   useEffect(() => {
@@ -296,21 +298,23 @@ export default function Step4ScriptPreview({
     ) {
       console.log('[Step4ScriptPreview] Auto-starting preview generation');
       hasInitiallyGeneratedRef.current = true; // 即座にフラグを立てる
-      setHasInitiallyGenerated(true);
 
-      // プロンプトを保存してから生成
-      saveUpdatedPrompts().then(() => {
-        imagePreview.generatePreview();
-      });
+      // 初期ロード時はプロンプトを保存せずに画像生成のみ実行
+      // （保存するとStep5の処理が自動的に走ってしまうため）
+      imagePreview.generatePreview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, workflowId, isDataLoaded, scenes.length, imagePreview.status]);
 
   // initialDataが変更されたときにデータを更新
   useEffect(() => {
-    console.log('[Step4ScriptPreview] initialData changed:', initialData);
+    // 前回のデータと比較して、実際に変更があった場合のみ更新
+    const hasDataChanged = prevInitialDataRef.current?.stepOutput !== initialData?.stepOutput ||
+                          prevInitialDataRef.current?.stepInput !== initialData?.stepInput;
 
-    if (initialData) {
+    if (hasDataChanged && initialData) {
+      console.log('[Step4ScriptPreview] Initial data changed, updating form');
+
       // シーンデータの設定（stepOutputがある場合は編集されたデータを優先）
       let newScenes = [];
 
@@ -350,6 +354,9 @@ export default function Step4ScriptPreview({
 
       // データ読み込み完了
       setIsDataLoaded(true);
+      
+      // 現在のデータを記録
+      prevInitialDataRef.current = initialData;
     }
   }, [initialData]);
 
@@ -544,9 +551,52 @@ export default function Step4ScriptPreview({
     }, 2000); // 2秒ごとにチェック
   };
 
+  // データが変更されているかチェック
+  const hasDataChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return true; // 保存データがない場合は変更ありとみなす
+    
+    const savedScenes = savedData.scenes || [];
+    if (scenes.length !== savedScenes.length) return true;
+    
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
+      const savedScene = savedScenes.find((s: any) => s.id === scene.id);
+      
+      if (!savedScene ||
+          scene.imagePrompt !== savedScene.imagePrompt ||
+          scene.customImage !== savedScene.customImage) {
+        return true;
+      }
+      
+      // dialogueの比較
+      if (scene.dialogue?.length !== savedScene.dialogue?.length) return true;
+      
+      for (let j = 0; j < (scene.dialogue?.length || 0); j++) {
+        const dialogue = scene.dialogue[j];
+        const savedDialogue = savedScene.dialogue[j];
+        
+        if (!savedDialogue ||
+            dialogue.speaker !== savedDialogue.speaker ||
+            dialogue.text !== savedDialogue.text) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!user) return;
+
+    // データが変更されていない場合はスキップ
+    if (!hasDataChanged()) {
+      console.log('[Step4ScriptPreview] No changes detected, skipping save');
+      onNext();
+      return;
+    }
 
     setIsLoading(true);
     try {

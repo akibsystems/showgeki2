@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui';
 import { useToast } from '@/contexts';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,6 +42,9 @@ export default function Step3CharacterStyle({
   // デバッグ: initialDataの内容を確認
   console.log('[Step3CharacterStyle] initialData:', initialData);
 
+  // 前回のinitialDataを追跡（データの変更を検出するため）
+  const prevInitialDataRef = useRef<typeof initialData>(undefined);
+
   // フォームの状態管理
   const [characters, setCharacters] = useState<Array<{
     id: string;
@@ -49,21 +52,31 @@ export default function Step3CharacterStyle({
     description: string;
     faceReference?: string;
   }>>(() => {
-    // charactersが配列であることを保証
+    // stepOutputが存在する場合は、それを優先的に使用
     const outputChars = initialData?.stepOutput?.userInput?.characters;
     if (Array.isArray(outputChars)) {
-      return outputChars;
-    }
-
-    const inputChars = initialData?.stepInput?.detailedCharacters;
-    if (Array.isArray(inputChars)) {
-      return inputChars.map(char => ({
+      console.log('[Step3CharacterStyle] Using characters from stepOutput:', outputChars);
+      return outputChars.map(char => ({
         id: char.id,
         name: char.name,
-        description: `${char.personality}\n${char.visualDescription}`,
+        description: char.description,
+        faceReference: char.faceReference
       }));
     }
 
+    // stepOutputがない場合は、stepInputから初期値を作成
+    const inputChars = initialData?.stepInput?.detailedCharacters;
+    if (Array.isArray(inputChars)) {
+      console.log('[Step3CharacterStyle] Creating characters from stepInput:', inputChars);
+      return inputChars.map(char => ({
+        id: char.id,
+        name: char.name,
+        description: `${char.personality || ''}\n${char.visualDescription || ''}`.trim(),
+        faceReference: undefined // 初回は顔参照画像なし
+      }));
+    }
+
+    console.log('[Step3CharacterStyle] No initial character data found');
     return [];
   });
 
@@ -72,35 +85,73 @@ export default function Step3CharacterStyle({
     console.log('[Step3CharacterStyle] Characters state updated:', characters);
   }, [characters]);
 
-  const [imageStyle, setImageStyle] = useState({
-    preset: initialData?.stepOutput?.userInput?.imageStyle?.preset || 'anime',
-    customPrompt: initialData?.stepOutput?.userInput?.imageStyle?.customPrompt || '',
+  const [imageStyle, setImageStyle] = useState(() => {
+    // stepOutputが存在し、有効なimageStyleがある場合はそれを使用
+    if (initialData?.stepOutput?.userInput?.imageStyle) {
+      return {
+        preset: initialData.stepOutput.userInput.imageStyle.preset || 'anime',
+        customPrompt: initialData.stepOutput.userInput.imageStyle.customPrompt || '',
+      };
+    }
+    // それ以外はデフォルト値
+    return {
+      preset: 'anime',
+      customPrompt: '',
+    };
   });
 
   // initialDataが変更されたときにフォームデータを更新
   useEffect(() => {
-    if (initialData?.stepOutput?.userInput) {
-      console.log('[Step3CharacterStyle] Updating form with stepOutput.userInput');
-      const outputChars = initialData.stepOutput.userInput.characters;
-      setCharacters(Array.isArray(outputChars) ? outputChars : []);
-      setImageStyle({
-        preset: initialData.stepOutput.userInput.imageStyle?.preset || 'anime',
-        customPrompt: initialData.stepOutput.userInput.imageStyle?.customPrompt || '',
-      });
-    } else if (initialData?.stepInput?.detailedCharacters) {
-      console.log('[Step3CharacterStyle] Updating form with stepInput.detailedCharacters');
-      const inputChars = initialData.stepInput.detailedCharacters;
-      if (Array.isArray(inputChars)) {
-        setCharacters(
-          inputChars.map(char => ({
-            id: char.id,
-            name: char.name,
-            description: `${char.personality}\n${char.visualDescription}`,
-          }))
-        );
-      } else {
-        setCharacters([]);
+    // 前回のデータと比較して、実際に変更があった場合のみ更新
+    const hasDataChanged = prevInitialDataRef.current?.stepOutput !== initialData?.stepOutput ||
+                          prevInitialDataRef.current?.stepInput !== initialData?.stepInput;
+    
+    if (hasDataChanged && initialData) {
+      console.log('[Step3CharacterStyle] Initial data changed, updating form');
+      
+      // stepOutputが存在し、有効なuserInputがある場合
+      if (initialData?.stepOutput?.userInput?.characters && Array.isArray(initialData.stepOutput.userInput.characters)) {
+        console.log('[Step3CharacterStyle] Using stepOutput.userInput');
+        const outputChars = initialData.stepOutput.userInput.characters;
+        setCharacters(outputChars.map(char => ({
+          id: char.id,
+          name: char.name,
+          description: char.description,
+          faceReference: char.faceReference
+        })));
+        setImageStyle({
+          preset: initialData.stepOutput.userInput.imageStyle?.preset || 'anime',
+          customPrompt: initialData.stepOutput.userInput.imageStyle?.customPrompt || '',
+        });
+      } 
+      // stepOutputがない、または空で、stepInputがある場合
+      else if (initialData?.stepInput?.detailedCharacters && Array.isArray(initialData.stepInput.detailedCharacters)) {
+        // stepOutputが存在しない、または有効なデータがない場合
+        const hasValidStepOutput = initialData?.stepOutput?.userInput?.characters && 
+                                  Array.isArray(initialData.stepOutput.userInput.characters) && 
+                                  initialData.stepOutput.userInput.characters.length > 0;
+        
+        if (!hasValidStepOutput) {
+          console.log('[Step3CharacterStyle] Using stepInput.detailedCharacters (no valid stepOutput)');
+          const inputChars = initialData.stepInput.detailedCharacters;
+          setCharacters(
+            inputChars.map(char => ({
+              id: char.id,
+              name: char.name,
+              description: `${char.personality || ''}\n${char.visualDescription || ''}`.trim(),
+              faceReference: undefined
+            }))
+          );
+          // デフォルトの画像スタイルを設定
+          setImageStyle({
+            preset: 'anime',
+            customPrompt: '',
+          });
+        }
       }
+      
+      // 現在のデータを記録
+      prevInitialDataRef.current = initialData;
     }
   }, [initialData]);
 
@@ -201,10 +252,47 @@ export default function Step3CharacterStyle({
     success('顔参照画像を削除しました');
   };
 
+  // データが変更されているかチェック
+  const hasDataChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return true; // 保存データがない場合は変更ありとみなす
+    
+    // キャラクターの比較
+    if (characters.length !== savedData.characters?.length) return true;
+    
+    for (let i = 0; i < characters.length; i++) {
+      const char = characters[i];
+      const savedChar = savedData.characters[i];
+      
+      if (!savedChar ||
+          char.id !== savedChar.id ||
+          char.name !== savedChar.name ||
+          char.description !== savedChar.description ||
+          char.faceReference !== savedChar.faceReference) {
+        return true;
+      }
+    }
+    
+    // 画像スタイルの比較
+    if (imageStyle.preset !== savedData.imageStyle?.preset ||
+        imageStyle.customPrompt !== savedData.imageStyle?.customPrompt) {
+      return true;
+    }
+    
+    return false;
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!user) {
       error('認証が必要です');
+      return;
+    }
+
+    // データが変更されていない場合はスキップ
+    if (!hasDataChanged()) {
+      console.log('[Step3CharacterStyle] No changes detected, skipping save');
+      onNext();
       return;
     }
 
@@ -218,6 +306,8 @@ export default function Step3CharacterStyle({
           imageStyle,
         },
       };
+
+      console.log('[Step3CharacterStyle] Saving Step3Output:', JSON.stringify(step3Output, null, 2));
 
       const response = await fetch(`/api/workflow/${workflowId}/step/3`, {
         method: 'POST',
@@ -240,6 +330,7 @@ export default function Step3CharacterStyle({
         return;
       }
 
+      console.log('[Step3CharacterStyle] Save successful, response status:', response.status);
       // 保存成功後に次のステップへ
       onNext();
     } catch (err) {
@@ -408,7 +499,7 @@ export default function Step3CharacterStyle({
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 disabled={isLoading}
               >
-                {Object.entries(IMAGE_STYLE_PRESETS).map(([key, value]) => (
+                {Object.entries(IMAGE_STYLE_PRESETS).map(([key]) => (
                   <option key={key} value={key}>
                     {key === 'anime' && 'アニメ風'}
                     {key === 'watercolor' && '水彩画風'}

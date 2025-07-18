@@ -62,13 +62,25 @@ export async function generateStep4Input(
 
     // キャラクター情報と画風設定を更新
     const updatedCharactersData = {
-      characters: step3Output.userInput.characters.map(char => ({
-        ...storyboard.characters_data?.characters?.find((c: any) => c.id === char.id) || {},
-        id: char.id,
-        name: char.name,
-        description: char.description,
-        faceReference: char.faceReference
-      }))
+      characters: step3Output.userInput.characters.map(char => {
+        // 既存のキャラクターデータを取得
+        const existingChar = storyboard.characters_data?.characters?.find((c: any) => c.id === char.id) || {};
+        
+        // Step3のdescriptionは personality + visualDescription の結合されたもの
+        // 元のフィールドを保持しつつ、編集された内容も反映する
+        return {
+          ...existingChar, // すべての既存フィールドを保持
+          id: char.id,
+          name: char.name,
+          // descriptionフィールドは保存用（互換性のため）
+          description: char.description,
+          // personalityとvisualDescriptionは元の値を保持（Step3では編集されない）
+          personality: existingChar.personality || '',
+          visualDescription: existingChar.visualDescription || '',
+          // faceReferenceは明示的に更新
+          faceReference: char.faceReference
+        };
+      })
     };
 
     const updatedStyleData: StyleData = {

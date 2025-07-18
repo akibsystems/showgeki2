@@ -30,10 +30,10 @@ export async function GET(
 
     const { workflow_id } = await params;
 
-    // ワークフローを取得
+    // ワークフローを取得（すべてのステップデータを含む）
     const { data: workflow, error } = await supabase
       .from('workflows')
-      .select('id, storyboard_id, uid, current_step, status, created_at, updated_at')
+      .select('*')  // すべてのカラムを取得（step1_in, step1_out, ... step7_out を含む）
       .eq('id', workflow_id)
       .eq('uid', uid)
       .single();

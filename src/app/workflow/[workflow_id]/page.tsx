@@ -225,14 +225,18 @@ function WorkflowPageContent({ params }: PageProps) {
           
           // stepOutputを取得
           const stepOutColumnName = `step${currentStep}_out`;
+          console.log(`[WorkflowPage] Looking for ${stepOutColumnName}:`, workflowData.workflow[stepOutColumnName]);
+          
           if (workflowData.workflow[stepOutColumnName]) {
+            console.log(`[WorkflowPage] Found stepOutput for step ${currentStep}:`, workflowData.workflow[stepOutColumnName]);
             setStepOutput(workflowData.workflow[stepOutColumnName]);
           } else if (currentStep === 1 && stepInputData && Object.keys(stepInputData).length > 0) {
             // Step1でstepOutputがない場合、stepInputをstepOutputとして使用
             setStepOutput({ userInput: stepInputData });
           } else {
-            // stepOutputがない場合は空のオブジェクトを設定
-            setStepOutput({});
+            // stepOutputがない場合はnullを設定（空のオブジェクトではなく）
+            console.log(`[WorkflowPage] No stepOutput found for step ${currentStep}`);
+            setStepOutput(null);
           }
         } else {
           console.warn('Failed to fetch workflow data:', {
@@ -240,7 +244,7 @@ function WorkflowPageContent({ params }: PageProps) {
             statusText: workflowResponse.statusText
           });
           // ワークフロー情報が取得できない場合でも、stepInputは使えるので続行
-          setStepOutput({});
+          setStepOutput(null);
         }
       } catch (err) {
         console.error('Failed to fetch workflow - Error details:', {
