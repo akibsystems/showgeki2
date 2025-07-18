@@ -461,6 +461,47 @@ export default function Step2ScenePreview({
     return false;
   };
 
+  // タイトルのみが変更されているかチェック
+  const isTitleOnlyChanged = () => {
+    const savedData = initialData?.stepOutput?.userInput;
+    if (!savedData) return false; // 保存データがない場合はfalse
+    
+    // タイトルが変更されていない場合はfalse
+    if (title === savedData.title) return false;
+    
+    // 幕場構成が変更されていないかチェック
+    const filteredActs = acts.filter(act => act.scenes.length > 0);
+    const savedActs = savedData.acts || [];
+    
+    if (filteredActs.length !== savedActs.length) return false;
+    
+    for (let i = 0; i < filteredActs.length; i++) {
+      const act = filteredActs[i];
+      const savedAct = savedActs[i];
+      
+      if (!savedAct || act.actNumber !== savedAct.actNumber || act.actTitle !== savedAct.actTitle) {
+        return false;
+      }
+      
+      if (act.scenes.length !== savedAct.scenes.length) return false;
+      
+      for (let j = 0; j < act.scenes.length; j++) {
+        const scene = act.scenes[j];
+        const savedScene = savedAct.scenes[j];
+        
+        if (!savedScene || 
+            scene.sceneNumber !== savedScene.sceneNumber || 
+            scene.sceneTitle !== savedScene.sceneTitle || 
+            scene.summary !== savedScene.summary) {
+          return false;
+        }
+      }
+    }
+    
+    // タイトルだけが変更されている
+    return true;
+  };
+
   // 保存処理
   const handleSave = async () => {
     if (!title.trim() || !user) {
@@ -493,11 +534,15 @@ export default function Step2ScenePreview({
         },
       };
 
+      // タイトルのみの変更の場合はフラグを追加
+      const titleOnlyChange = isTitleOnlyChanged();
+      
       const response = await fetch(`/api/workflow/${workflowId}/step/2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
+          'X-Title-Only-Change': titleOnlyChange ? 'true' : 'false',
         },
         body: JSON.stringify(step2Output),
       });

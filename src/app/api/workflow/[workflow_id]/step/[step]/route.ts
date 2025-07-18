@@ -180,9 +180,12 @@ export async function POST(
 
     const { workflow_id, step } = await params;
     const stepNumber = parseInt(step, 10) as StepNumber;
+    
+    // タイトルのみの変更かどうかを確認
+    const isTitleOnlyChange = request.headers.get('X-Title-Only-Change') === 'true';
 
     console.log(`[POST] /api/workflow/${workflow_id}/step/${step}`);
-    console.log(`[POST] uid: ${uid}, stepNumber: ${stepNumber}`);
+    console.log(`[POST] uid: ${uid}, stepNumber: ${stepNumber}, titleOnlyChange: ${isTitleOnlyChange}`);
 
     // バリデーション
     if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 7) {
@@ -261,7 +264,8 @@ export async function POST(
         stepNumber,
         stepOutput,
         workflow.storyboard,
-        workflow_id
+        workflow_id,
+        isTitleOnlyChange
       );
       nextStepInput = result.nextStepInput;
       storyboardUpdates = result.storyboardUpdates;
@@ -457,7 +461,8 @@ async function generateAndUpdateStoryboard(
   stepNumber: StepNumber,
   stepOutput: StepOutput,
   currentStoryboard: Storyboard,
-  workflowId: string
+  workflowId: string,
+  isTitleOnlyChange: boolean = false
 ): Promise<{ nextStepInput: StepInput | null; storyboardUpdates: Partial<Storyboard> }> {
   let storyboardUpdates: Partial<Storyboard> = {};
   let nextStepInput: StepInput | null = null;
@@ -505,35 +510,64 @@ async function generateAndUpdateStoryboard(
       // Step2完了時: AIでキャラクターを詳細化してStep3Inputを作成
       const step2Output = stepOutput as Step2Output;
 
-      try {
-        const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
-        const result = await manager.proceedToNextStep(2, step2Output);
+      // タイトルのみの変更の場合は、AIをスキップして既存データから生成
+      if (isTitleOnlyChange) {
+        console.log('[Step2] Title-only change detected, skipping AI generation');
+        
+        // タイトルを更新
+        storyboardUpdates.title = step2Output.userInput.title;
+        
+        // summary_dataもタイトルを更新
+        if (currentStoryboard.summary_data) {
+          storyboardUpdates.summary_data = {
+            ...currentStoryboard.summary_data,
+            title: step2Output.userInput.title
+          };
+        }
+        
+        // 既存のストーリーボードデータからStep3Inputを生成
+        nextStepInput = await generateStepInput(3, {
+          ...currentStoryboard,
+          title: step2Output.userInput.title,
+          summary_data: {
+            ...currentStoryboard.summary_data,
+            title: step2Output.userInput.title
+          }
+        } as Storyboard);
+        
+        console.log('[Step2] Generated Step3Input from existing data');
+      } else {
+        // 通常のAI処理
+        try {
+          const manager = new WorkflowStepManager(workflowId, currentStoryboard.id);
+          const result = await manager.proceedToNextStep(2, step2Output);
 
-        if (result.success && result.data) {
-          nextStepInput = result.data;
-          // storyboardUpdatesはstep2-processor内で更新
-        } else {
-          const errorMessage = result.error?.message || 'AIによるキャラクター詳細化に失敗しました';
-          const errorCode = result.error?.code || 'STEP3_GENERATION_FAILED';
+          if (result.success && result.data) {
+            nextStepInput = result.data;
+            // storyboardUpdatesはstep2-processor内で更新
+          } else {
+            const errorMessage = result.error?.message || 'AIによるキャラクター詳細化に失敗しました';
+            const errorCode = result.error?.code || 'STEP3_GENERATION_FAILED';
+            throw new WorkflowGenerationError(
+              `Step3入力の生成に失敗しました: ${errorMessage}`,
+              errorCode,
+              2
+            );
+          }
+        } catch (error) {
+          console.error('Step2→Step3 生成エラー:', error);
+
+          if (error instanceof WorkflowGenerationError) {
+            throw error;
+          }
+
           throw new WorkflowGenerationError(
-            `Step3入力の生成に失敗しました: ${errorMessage}`,
-            errorCode,
-            2
+            'AIによるキャラクター設定の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
+            'AI_GENERATION_ERROR',
+            2,
+            error instanceof Error ? error : undefined
           );
         }
-      } catch (error) {
-        console.error('Step2→Step3 生成エラー:', error);
-
-        if (error instanceof WorkflowGenerationError) {
-          throw error;
-        }
-
-        throw new WorkflowGenerationError(
-          'AIによるキャラクター設定の生成中にエラーが発生しました。しばらく待ってから再度お試しください。',
-          'AI_GENERATION_ERROR',
-          2,
-          error instanceof Error ? error : undefined
-        );
       }
       break;
 
