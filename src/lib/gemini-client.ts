@@ -27,18 +27,28 @@ export interface ConsistencyCheckResult {
     visualScore: Record<string, number>;
     audioScore: Record<string, number | null>;
     notes?: string;
+    beatIndex?: number;
+    expectedSpeaker?: string;
+    expectedText?: string;
+    expectedVoice?: string;
+    expectedImageDescription?: string;
+    scriptAdherence?: number;
   }[];
   summary: {
     overallVisualScore: number;
     overallAudioScore: number;
+    overallScriptAdherence: number;
     visualScoreReason: string;
     audioScoreReason: string;
+    scriptAdherenceReason: string;
     totalScenes: number;
     charactersDetected: string[];
+    charactersExpected: string[];
     issues?: {
       description: string;
       reason: string;
       severity: 'low' | 'medium' | 'high';
+      category: 'visual' | 'audio' | 'script' | 'timing';
     }[];
   };
 }
@@ -104,6 +114,113 @@ export const CONSISTENCY_CHECK_PROMPT = `
 - medium: 気になるが許容範囲内の変化
 - low: わずかな違いだが記録すべき変化
 `;
+
+// ================================================================
+// Enhanced Consistency Check Prompt (with MulmoScript)
+// ================================================================
+
+export function createEnhancedConsistencyCheckPrompt(mulmoscript: any): string {
+  const beats = mulmoscript.beats || [];
+  const characters = [...new Set(beats.map((beat: any) => beat.speaker).filter(Boolean))];
+  const voices = [...new Set(beats.map((beat: any) => beat.voice).filter(Boolean))];
+  
+  // Create beat-by-beat expectations
+  const beatExpectations = beats.map((beat: any, index: number) => {
+    const imageDescription = beat.image?.source?.prompt || 'No image description';
+    return `Beat ${index + 1}:
+  - Speaker: ${beat.speaker || 'Unknown'}
+  - Text: "${beat.text || ''}"
+  - Voice: ${beat.voice || 'Unknown'}
+  - Expected Image: ${imageDescription}
+  - Duration: ${beat.duration || 'Unknown'}秒`;
+  }).join('\n\n');
+
+  return `
+動画とMulmoScriptを詳細に比較し、登場人物の一貫性と台本忠実度を評価してください。
+MulmoScriptは動画生成時に使用された正確な台本です。これを基準として評価してください。
+
+=== MULMOSCRIPT情報 ===
+期待される登場人物: ${characters.join(', ')}
+使用される音声: ${voices.join(', ')}
+総Beat数: ${beats.length}
+
+=== BEAT別期待値 ===
+${beatExpectations}
+
+=== 評価指示 ===
+上記のMulmoScriptと実際の動画を比較し、以下の形式で評価してください：
+
+{
+  "scenes": [
+    {
+      "index": 1,
+      "timeRange": { "start": 0, "end": 5.2 },
+      "characters": ["太郎", "花子"],
+      "visualScore": { "太郎": 95, "花子": 88 },
+      "audioScore": { "太郎": 90, "花子": 93 },
+      "notes": "太郎の表情が期待値と一致し、花子の服装が台本通り",
+      "beatIndex": 1,
+      "expectedSpeaker": "太郎",
+      "expectedText": "こんにちは、元気ですか？",
+      "expectedVoice": "alloy",
+      "expectedImageDescription": "笑顔の男性が手を振っている",
+      "scriptAdherence": 92
+    }
+  ],
+  "summary": {
+    "overallVisualScore": 91,
+    "overallAudioScore": 92,
+    "overallScriptAdherence": 89,
+    "visualScoreReason": "期待されるキャラクターの外見と実際の映像の一致度。髪型、服装、表情が台本の画像プロンプト通りに描画されている。",
+    "audioScoreReason": "指定された音声タイプと実際の音声の一致度。声質、性別、話し方が期待値と一致している。",
+    "scriptAdherenceReason": "台本の内容と実際の動画の一致度。台詞、タイミング、シーン構成が期待値通りに再現されている。",
+    "totalScenes": ${beats.length},
+    "charactersDetected": ["太郎", "花子"],
+    "charactersExpected": ${JSON.stringify(characters)},
+    "issues": [
+      {
+        "description": "Beat 3で花子の音声が男性的に聞こえる",
+        "reason": "指定された音声は'nova'（女性）だが、実際の音声は男性的な特徴を持っている",
+        "severity": "high",
+        "category": "audio"
+      }
+    ]
+  }
+}
+
+=== 詳細評価基準 ===
+
+1. **Visual Score (視覚的一貫性)**:
+   - 期待される画像プロンプトとの一致度
+   - 同一キャラクターの外見一貫性
+   - 表情、服装、髪型の適切性
+
+2. **Audio Score (音声一貫性)**:
+   - 指定された音声タイプとの一致度
+   - 声の性別、年齢、特徴の適切性
+   - 同一キャラクターの音声一貫性
+
+3. **Script Adherence (台本忠実度)**:
+   - 台詞内容の正確性
+   - シーン構成の適切性
+   - タイミングの正確性
+
+4. **Issue Categories**:
+   - "visual": 視覚的な問題
+   - "audio": 音声的な問題
+   - "script": 台本忠実度の問題
+   - "timing": タイミングの問題
+
+=== 重要な注意事項 ===
+- 各BeatをMulmoScriptの期待値と正確に比較
+- 実際の動画から検出された要素を期待値と照合
+- 不一致がある場合は具体的な理由を記載
+- 全体的な品質だけでなく、台本との整合性を重視
+- 日本語で具体的かつ建設的なフィードバックを提供
+
+応答は純粋なJSONのみで、余計な説明文は含めないでください。
+`;
+}
 
 // ================================================================
 // Helper Functions

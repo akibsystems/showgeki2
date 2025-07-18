@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { withAdminAuth, AdminContext } from '@/lib/admin-auth';
-import { geminiClient, ConsistencyCheckResult, CONSISTENCY_CHECK_PROMPT } from '@/lib/gemini-client';
+import { geminiClient, ConsistencyCheckResult, createEnhancedConsistencyCheckPrompt } from '@/lib/gemini-client';
 import { ErrorType } from '@/types';
 import { z } from 'zod';
 
@@ -95,7 +95,7 @@ async function checkVideoConsistency(
     // Get video details
     const { data: video, error: videoError } = await supabase
       .from('videos')
-      .select('id, url, title, duration_sec')
+      .select('id, url, title, duration_sec, story_id')
       .eq('id', videoId)
       .single();
 
@@ -109,6 +109,13 @@ async function checkVideoConsistency(
       );
     }
 
+    // Get storyboard separately
+    const { data: storyboard, error: storyboardError } = await supabase
+      .from('storyboards')
+      .select('id, mulmoscript, story_data')
+      .eq('id', video.story_id)
+      .single();
+
     if (!video.url) {
       return NextResponse.json(
         {
@@ -118,6 +125,21 @@ async function checkVideoConsistency(
         { status: 400 }
       );
     }
+
+    // Check if storyboard exists
+    if (storyboardError || !storyboard?.mulmoscript) {
+      return NextResponse.json(
+        {
+          error: 'Video has no associated mulmoscript',
+          type: ErrorType.VALIDATION,
+          details: storyboardError?.message || 'No mulmoscript found',
+        },
+        { status: 400 }
+      );
+    }
+
+    const mulmoscript = storyboard.mulmoscript;
+    console.log(`[ConsistencyCheck] Found mulmoscript with ${mulmoscript.beats?.length || 0} beats`);
 
     // Download video from Supabase storage to buffer
     console.log(`[ConsistencyCheck] Downloading video ${videoId} for analysis...`);
@@ -134,11 +156,13 @@ async function checkVideoConsistency(
 
     const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
 
-    // Note: The actual file upload API might differ based on the SDK version
-    // This is a simplified version - you may need to adjust based on the actual Gemini SDK
+    // Create enhanced prompt with mulmoscript
+    const enhancedPrompt = createEnhancedConsistencyCheckPrompt(mulmoscript);
+    
     console.log(`[ConsistencyCheck] Analyzing video with Gemini (${GEMINI_MODEL})...`);
     console.log(`[ConsistencyCheck] Video buffer size:`, videoBuffer.byteLength, 'bytes');
-    console.log(`[ConsistencyCheck] Using prompt length:`, CONSISTENCY_CHECK_PROMPT.length, 'characters');
+    console.log(`[ConsistencyCheck] Using enhanced prompt length:`, enhancedPrompt.length, 'characters');
+    console.log(`[ConsistencyCheck] MulmoScript beats count:`, mulmoscript.beats?.length || 0);
 
     const result = await model.generateContent({
       contents: [{
@@ -150,7 +174,7 @@ async function checkVideoConsistency(
               data: Buffer.from(videoBuffer).toString('base64'),
             },
           },
-          { text: CONSISTENCY_CHECK_PROMPT },
+          { text: enhancedPrompt },
         ],
       }],
       generationConfig: {
@@ -214,6 +238,9 @@ async function checkVideoConsistency(
       checkedBy: context.adminEmail || context.adminId,
       checkDate: new Date().toISOString(),
       modelUsed: GEMINI_MODEL,
+      mulmoscriptUsed: true,
+      beatsCount: mulmoscript.beats?.length || 0,
+      charactersExpected: [...new Set(mulmoscript.beats?.map((beat: any) => beat.speaker).filter(Boolean) || [])],
     };
 
     const { error: insertError } = await supabase

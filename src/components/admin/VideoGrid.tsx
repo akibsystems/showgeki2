@@ -18,7 +18,6 @@ interface VideoGridProps {
   videos: VideoWithRelations[];
   selectedVideos: string[];
   onSelectionChange: (selectedIds: string[]) => void;
-  onVideoPreview?: (video: VideoWithRelations) => void;
   loading?: boolean;
 }
 
@@ -30,7 +29,6 @@ export function VideoGrid({
   videos, 
   selectedVideos, 
   onSelectionChange,
-  onVideoPreview,
   loading = false 
 }: VideoGridProps) {
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);

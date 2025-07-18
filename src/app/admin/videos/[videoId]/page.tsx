@@ -578,6 +578,22 @@ export default function VideoDetailPage() {
                           </p>
                         )}
                       </div>
+                      {consistencyCheck.result.summary.overallScriptAdherence !== undefined && (
+                        <div className="bg-gray-800 rounded-lg p-4">
+                          <p className="text-sm text-gray-400 mb-1">台本忠実度</p>
+                          <p className={`text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallScriptAdherence)}`}>
+                            {consistencyCheck.result.summary.overallScriptAdherence}点
+                          </p>
+                          <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallScriptAdherence)}`}>
+                            {getScoreLabel(consistencyCheck.result.summary.overallScriptAdherence)}
+                          </p>
+                          {consistencyCheck.result.summary.scriptAdherenceReason && (
+                            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                              {consistencyCheck.result.summary.scriptAdherenceReason}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Metadata */}
@@ -585,6 +601,11 @@ export default function VideoDetailPage() {
                       <p>
                         検出キャラクター: {consistencyCheck.result.summary.charactersDetected.join(', ')}
                       </p>
+                      {consistencyCheck.result.summary.charactersExpected && (
+                        <p>
+                          期待キャラクター: {consistencyCheck.result.summary.charactersExpected.join(', ')}
+                        </p>
+                      )}
                       <p>
                         総シーン数: {consistencyCheck.result.summary.totalScenes}
                       </p>
@@ -593,6 +614,9 @@ export default function VideoDetailPage() {
                           チェック日時: {format(new Date(consistencyCheck.checkedAt), 'yyyy年M月d日 HH:mm', { locale: ja })}
                         </p>
                       )}
+                      <p className="text-purple-400 mt-1">
+                        ✨ MulmoScript強化分析
+                      </p>
                     </div>
 
                     {/* Issues */}
@@ -611,6 +635,18 @@ export default function VideoDetailPage() {
                               medium: '中程度',
                               low: '軽微'
                             };
+                            const categoryColors = {
+                              visual: 'text-blue-300 bg-blue-900/30',
+                              audio: 'text-green-300 bg-green-900/30',
+                              script: 'text-purple-300 bg-purple-900/30',
+                              timing: 'text-yellow-300 bg-yellow-900/30'
+                            };
+                            const categoryLabels = {
+                              visual: '視覚',
+                              audio: '音声',
+                              script: '台本',
+                              timing: 'タイミング'
+                            };
                             
                             return (
                               <div key={i} className="bg-gray-800/50 rounded p-3">
@@ -618,6 +654,11 @@ export default function VideoDetailPage() {
                                   <span className={`text-xs px-2 py-1 rounded ${severityColors[issue.severity || 'medium']}`}>
                                     {severityLabels[issue.severity || 'medium']}
                                   </span>
+                                  {issue.category && (
+                                    <span className={`text-xs px-2 py-1 rounded ${categoryColors[issue.category]}`}>
+                                      {categoryLabels[issue.category]}
+                                    </span>
+                                  )}
                                   <span className="text-xs text-red-300 font-medium">
                                     {typeof issue === 'string' ? issue : issue.description}
                                   </span>
@@ -637,17 +678,53 @@ export default function VideoDetailPage() {
                     {/* Scene Details */}
                     <div className="border border-gray-700 rounded-lg overflow-hidden">
                       <div className="px-4 py-2 bg-gray-800 text-sm text-gray-300 font-medium">
-                        シーン詳細
+                        シーン詳細 (MulmoScript連携)
                       </div>
                       <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
                         {consistencyCheck.result.scenes.map((scene) => (
                           <div key={scene.index} className="bg-gray-800/50 rounded-lg p-3 text-xs">
                             <div className="font-medium text-gray-200 mb-2">
                               シーン {scene.index} {scene.timeRange && `(${scene.timeRange.start}s - ${scene.timeRange.end}s)`}
+                              {scene.beatIndex && (
+                                <span className="ml-2 text-purple-400">Beat {scene.beatIndex}</span>
+                              )}
                             </div>
-                            <div className="text-gray-400 mb-2">
-                              登場人物: {scene.characters.join(', ')}
+                            
+                            {/* Expected vs Actual */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                              <div className="bg-gray-900/30 rounded p-2">
+                                <div className="text-gray-400 text-xs font-medium mb-1">期待値</div>
+                                {scene.expectedSpeaker && (
+                                  <div className="text-gray-300">話者: {scene.expectedSpeaker}</div>
+                                )}
+                                {scene.expectedVoice && (
+                                  <div className="text-gray-300">音声: {scene.expectedVoice}</div>
+                                )}
+                                {scene.expectedText && (
+                                  <div className="text-gray-300 mt-1">台詞: "{scene.expectedText}"</div>
+                                )}
+                                {scene.expectedImageDescription && (
+                                  <div className="text-gray-300 mt-1">画像: {scene.expectedImageDescription}</div>
+                                )}
+                              </div>
+                              
+                              <div className="bg-gray-900/30 rounded p-2">
+                                <div className="text-gray-400 text-xs font-medium mb-1">実際</div>
+                                <div className="text-gray-300">
+                                  登場人物: {scene.characters.join(', ')}
+                                </div>
+                                {scene.scriptAdherence !== undefined && (
+                                  <div className="mt-1">
+                                    <span className="text-gray-400">台本忠実度: </span>
+                                    <span className={`${getScoreColor(scene.scriptAdherence)}`}>
+                                      {scene.scriptAdherence}点
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
+                            
+                            {/* Scores */}
                             <div className="grid grid-cols-1 gap-2 text-xs">
                               <div>
                                 <span className="text-gray-500">視覚:</span>

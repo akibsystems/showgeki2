@@ -16,7 +16,6 @@ interface VideoTableProps {
   videos: VideoWithRelations[];
   selectedVideos: string[];
   onSelectionChange: (selectedIds: string[]) => void;
-  onVideoPreview?: (video: VideoWithRelations) => void;
   loading?: boolean;
 }
 
@@ -28,7 +27,6 @@ export function VideoTable({
   videos, 
   selectedVideos, 
   onSelectionChange,
-  onVideoPreview,
   loading = false 
 }: VideoTableProps) {
   const [sortField, setSortField] = useState<keyof VideoWithRelations>('created_at');

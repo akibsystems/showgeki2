@@ -6,7 +6,6 @@ import { useAdminVideos } from '@/hooks/useAdminVideos';
 import { VideoFilters } from '@/components/admin/VideoFilters';
 import { VideoTable } from '@/components/admin/VideoTable';
 import { VideoGrid } from '@/components/admin/VideoGrid';
-import { VideoPreviewModal } from '@/components/admin/VideoPreviewModal';
 import { ConsistencyCheckModal } from '@/components/admin/ConsistencyCheckModal';
 import { Button } from '@/components/ui';
 import { APIErrorMessage } from '@/components/ui/error-message';
@@ -34,7 +33,6 @@ export default function AdminVideosPage() {
   } = useAdminVideos();
   
   const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
-  const [previewVideo, setPreviewVideo] = useState<VideoWithRelations | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showConsistencyCheck, setShowConsistencyCheck] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -261,7 +259,6 @@ export default function AdminVideosPage() {
               videos={data?.videos || []}
               selectedVideos={selectedVideos}
               onSelectionChange={setSelectedVideos}
-              onVideoPreview={setPreviewVideo}
               loading={isLoading}
             />
           ) : (
@@ -269,7 +266,6 @@ export default function AdminVideosPage() {
               videos={data?.videos || []}
               selectedVideos={selectedVideos}
               onSelectionChange={setSelectedVideos}
-              onVideoPreview={setPreviewVideo}
               loading={isLoading}
             />
           )}
@@ -310,13 +306,6 @@ export default function AdminVideosPage() {
           )}
         </div>
       </div>
-
-      {/* Video preview modal */}
-      <VideoPreviewModal
-        video={previewVideo}
-        isOpen={!!previewVideo}
-        onClose={() => setPreviewVideo(null)}
-      />
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
