@@ -6,32 +6,6 @@ import { createAdminClient } from '@/lib/supabase';
 // Types
 // ================================================================
 
-interface VideoDetailResponse {
-  video: {
-    id: string;
-    uid: string;
-    story_id: string;
-    status: string;
-    video_url: string | null;
-    title: string | null;
-    created_at: string;
-    updated_at: string | null;
-    duration: number | null;
-    resolution: string | null;
-    storyboard: {
-      id: string;
-      story_data: any;
-      mulmoscript: any;
-      created_at: string;
-    } | null;
-    story: {
-      id: string;
-      title: string;
-      created_at: string;
-    };
-  };
-}
-
 // ================================================================
 // Helper Functions
 // ================================================================
@@ -127,18 +101,20 @@ export async function GET(
       }
     }
     
-    const response: VideoDetailResponse = {
+    const response = {
       video: {
         id: video.id,
         uid: video.uid,
         story_id: video.story_id,
         status: video.status,
-        video_url: video.video_url || video.url,
+        url: video.video_url || video.url,  // Changed from video_url to url
         title: video.title,
         created_at: video.created_at,
         updated_at: video.updated_at,
-        duration: video.duration || video.duration_sec,
+        duration_sec: video.duration || video.duration_sec,  // Changed to match VideoWithRelations
         resolution: video.resolution,
+        size_mb: video.size_mb,  // Added size_mb
+        error_msg: video.error_msg,  // Added error_msg
         storyboard: storyboard,
         story: story || { id: video.story_id, title: 'Unknown', created_at: video.created_at }
       }

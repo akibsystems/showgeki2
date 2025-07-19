@@ -177,6 +177,8 @@ export default function VideoDetailPage() {
         throw new Error('Failed to fetch video details');
       }
       const data = await response.json();
+      console.log('[VideoDetailPage] Fetched video data:', data);
+      console.log('[VideoDetailPage] Video URL:', data.video?.url);
       setDetail(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
@@ -398,44 +400,56 @@ export default function VideoDetailPage() {
       </div>
 
       {/* Video Preview and Details */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Left Column: Video Preview and Basic Info */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Video Player */}
-          {detail.video.url && (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-100 mb-4">動画プレビュー</h3>
-                <div className="bg-black rounded-lg overflow-hidden">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-gray-100 mb-4">動画プレビュー</h3>
+              {detail.video.url ? (
+                <div className="bg-black rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
                   <VideoPlayer
                     src={detail.video.url}
                     poster=""
                     title={detail.video.title || detail.video.story?.title || '無題'}
                   />
                 </div>
+              ) : (
+                <div className="bg-gray-800 rounded-lg flex items-center justify-center" style={{ minHeight: '300px' }}>
+                  <div className="text-center">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-400">動画URLが設定されていません</p>
+                    <p className="text-xs text-gray-500 mt-2">Status: {detail.video.status}</p>
+                  </div>
+                </div>
+              )}
                 
                 {/* Video Actions */}
-                <div className="flex gap-3 mt-4">
-                  <a
-                    href={detail.video.url}
-                    download
-                    className="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    ダウンロード
-                  </a>
-                </div>
+                {detail.video.url && (
+                  <div className="flex gap-3 mt-4">
+                    <a
+                      href={detail.video.url}
+                      download
+                      className="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      ダウンロード
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
 
           {/* Video Info */}
           <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-100 mb-4">動画情報</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm text-gray-400">ストーリーID</label>
                   <p className="text-gray-100 font-mono text-sm mt-1">{detail.video.story_id}</p>
@@ -478,7 +492,7 @@ export default function VideoDetailPage() {
                   </div>
                 )}
                 {detail.video.url && (
-                  <div className="md:col-span-2">
+                  <div className="col-span-2 md:col-span-3">
                     <label className="text-sm text-gray-400">動画URL</label>
                     <div className="flex items-center gap-2 mt-1">
                       <input
@@ -490,7 +504,7 @@ export default function VideoDetailPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => copyToClipboard(detail.video.url!, 'video_url')}
+                        onClick={() => copyToClipboard(detail.video.url || '', 'video_url')}
                       >
                         {copiedField === 'video_url' ? 'コピー済み' : 'コピー'}
                       </Button>
@@ -504,11 +518,11 @@ export default function VideoDetailPage() {
 
         {/* Right Column: Consistency Check */}
         {detail.video.status === 'completed' && (
-          <div className="xl:col-span-1">
-            <Card className="bg-gray-900 border-gray-800 xl:sticky xl:top-6">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-100 flex items-center">
+          <div className="lg:col-span-1">
+            <Card className="bg-gray-900 border-gray-800 lg:sticky lg:top-6">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base lg:text-lg font-semibold text-gray-100 flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -549,10 +563,10 @@ export default function VideoDetailPage() {
                 {consistencyCheck.result && (
                   <div className="space-y-4">
                     {/* Overall Scores */}
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <p className="text-sm text-gray-400 mb-1">視覚的一貫性</p>
-                        <p className={`text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallVisualScore)}`}>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs lg:text-sm text-gray-400 mb-1">視覚的一貫性</p>
+                        <p className={`text-xl lg:text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallVisualScore)}`}>
                           {consistencyCheck.result.summary.overallVisualScore}点
                         </p>
                         <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallVisualScore)}`}>
@@ -564,9 +578,9 @@ export default function VideoDetailPage() {
                           </p>
                         )}
                       </div>
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <p className="text-sm text-gray-400 mb-1">音声一貫性</p>
-                        <p className={`text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallAudioScore)}`}>
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs lg:text-sm text-gray-400 mb-1">音声一貫性</p>
+                        <p className={`text-xl lg:text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallAudioScore)}`}>
                           {consistencyCheck.result.summary.overallAudioScore}点
                         </p>
                         <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallAudioScore)}`}>
@@ -579,9 +593,9 @@ export default function VideoDetailPage() {
                         )}
                       </div>
                       {consistencyCheck.result.summary.overallScriptAdherence !== undefined && (
-                        <div className="bg-gray-800 rounded-lg p-4">
-                          <p className="text-sm text-gray-400 mb-1">台本忠実度</p>
-                          <p className={`text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallScriptAdherence)}`}>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                          <p className="text-xs lg:text-sm text-gray-400 mb-1">台本忠実度</p>
+                          <p className={`text-xl lg:text-2xl font-bold ${getScoreColor(consistencyCheck.result.summary.overallScriptAdherence)}`}>
                             {consistencyCheck.result.summary.overallScriptAdherence}点
                           </p>
                           <p className={`text-xs ${getScoreColor(consistencyCheck.result.summary.overallScriptAdherence)}`}>
@@ -680,7 +694,7 @@ export default function VideoDetailPage() {
                       <div className="px-4 py-2 bg-gray-800 text-sm text-gray-300 font-medium">
                         シーン詳細 (MulmoScript連携)
                       </div>
-                      <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                      <div className="p-3 space-y-2 max-h-[300px] overflow-y-auto">
                         {consistencyCheck.result.scenes.map((scene) => (
                           <div key={scene.index} className="bg-gray-800/50 rounded-lg p-3 text-xs">
                             <div className="font-medium text-gray-200 mb-2">

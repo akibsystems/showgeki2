@@ -152,7 +152,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handleError = (e: any) => {
       setIsLoading(false);
       setHasError(true);
-      setErrorMessage('Failed to load video');
+      console.error('Video loading error:', e);
+      console.error('Video src:', src);
+      
+      // More specific error messages
+      const errorCode = e.target?.error?.code;
+      let message = 'Failed to load video';
+      
+      switch (errorCode) {
+        case 1: // MEDIA_ERR_ABORTED
+          message = 'Video loading was aborted';
+          break;
+        case 2: // MEDIA_ERR_NETWORK
+          message = 'Network error while loading video';
+          break;
+        case 3: // MEDIA_ERR_DECODE
+          message = 'Video decoding error';
+          break;
+        case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+          message = 'Video format not supported';
+          break;
+        default:
+          message = `Video error (code: ${errorCode || 'unknown'})`;
+      }
+      
+      setErrorMessage(message);
       onError?.(e);
     };
 
@@ -186,16 +210,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   if (hasError) {
     return (
-      <div className={`bg-gray-100 flex items-center justify-center rounded-lg ${className}`} 
+      <div className={`bg-gray-900 border border-red-500/30 flex items-center justify-center rounded-lg ${className}`} 
            style={{ width, height: height === 'auto' ? '300px' : height }}>
         <div className="text-center p-6">
-          <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-16 h-16 mx-auto mb-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Video Error</h3>
-          <p className="text-gray-600 mb-4">{errorMessage}</p>
+          <h3 className="text-lg font-medium text-red-400 mb-2">動画の読み込みエラー</h3>
+          <p className="text-red-300 mb-2">{errorMessage}</p>
+          <p className="text-gray-400 text-sm mb-4 font-mono break-all">{src}</p>
           <Button variant="secondary" onClick={() => window.location.reload()}>
-            Retry
+            再試行
           </Button>
         </div>
       </div>
@@ -211,7 +236,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         poster={poster}
         autoPlay={autoPlay}
         muted={muted}
-        controls={!controls} // Use custom controls when controls=true
+        controls={!controls} // Use custom controls when controls=true, disable native controls
         className="w-full h-full object-contain"
         preload="metadata"
       />
