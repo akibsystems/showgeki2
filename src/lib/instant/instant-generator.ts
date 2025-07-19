@@ -248,10 +248,17 @@ export async function processInstantMode({
         console.log(`[InstantGenerator] ${input.characters.length} characters added to story text`);
       }
 
+      // キャラクター情報をディレクター指示の登場人物として設定
+      const charactersDirectorNote = input.characters && input.characters.length > 0
+        ? input.characters.map(char => 
+            `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
+          ).join('、')
+        : '';
+
       const step1Output: Step1Output = {
         userInput: {
           storyText: enhancedStoryText,
-          characters: '', // 自動推定
+          characters: charactersDirectorNote, // 画像につけた名前をディレクター指示として設定
           dramaticTurningPoint: '', // 自動推定
           futureVision: '',
           learnings: '',
