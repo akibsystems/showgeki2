@@ -34,7 +34,7 @@ export async function generateStep2Input(
 ): Promise<Step2Input> {
   try {
     // AIでstoryboardを生成
-    const generatedStoryboard = await generateStoryboardWithAI(step1Output);
+    const generatedStoryboard = await generateStoryboardWithAI(step1Output, workflowId);
 
     // storyboardを更新（story_dataも含めて保存）
     await updateStoryboard(storyboardId, generatedStoryboard, step1Output);
@@ -61,14 +61,17 @@ export async function generateStep2Input(
 /**
  * AIを使用してstoryboardを生成
  */
-async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
+async function generateStoryboardWithAI(
+  step1Output: Step1Output,
+  workflowId: string
+): Promise<{
   summary: SummaryData;
   acts: ActsData;
   characters: CharactersData;
 }> {
   console.log(`[step1-processor] generateStoryboardWithAI called`);
   const systemPrompt = createStoryboardSystemPrompt(step1Output);
-  const userPrompt = createStoryboardUserPrompt(step1Output);
+  const userPrompt = await createStoryboardUserPrompt(step1Output, workflowId);
   console.log(`[step1-processor] Prompts created, calling OpenAI...`);
 
   const response = await openai.chat.completions.create({
@@ -97,6 +100,8 @@ async function generateStoryboardWithAI(step1Output: Step1Output): Promise<{
   console.log(`[step1-processor] Response content JSON type:`, typeof JSON.parse(response.choices[0].message.content || '{}'));
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
+
+  console.log(`[step1-processor] result:`, response.choices[0].message.content);
 
   // 生成されたデータを検証・補完
   const validatedResult = validateAndNormalizeStoryboard(result, step1Output);
@@ -204,12 +209,56 @@ JSONフォーマットで以下の構造で出力してください：
 `;
 }
 
-function createStoryboardUserPrompt(step1Output: Step1Output): string {
+async function createStoryboardUserPrompt(step1Output: Step1Output, workflowId: string): Promise<string> {
   const { userInput } = step1Output;
+
+  let detectedCharacters = '';
+
+  // かんたんモードの場合、detected_facesテーブルから名前を取得
+  try {
+    // workflowテーブルからmodeを確認
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
+      .select('mode')
+      .eq('id', workflowId)
+      .single();
+
+    if (!workflowError && workflow?.mode === 'instant') {
+      console.log(`[step1-processor] Instant mode detected, fetching detected faces...`);
+
+      // detected_facesテーブルから顔検出情報を取得
+      const { data: detectedFaces, error: facesError } = await supabase
+        .from('detected_faces')
+        .select('tag_name, tag_role, tag_description')
+        .eq('workflow_id', workflowId)
+        .order('position_order', { ascending: true });
+
+      if (!facesError && detectedFaces && detectedFaces.length > 0) {
+        console.log(`[step1-processor] Found ${detectedFaces.length} detected faces`);
+        const characterNames = detectedFaces
+          .filter(face => face.tag_name)
+          .map(face => face.tag_name)
+          .join(', ');
+
+        if (characterNames) {
+          detectedCharacters = characterNames;
+          console.log(`[step1-processor] Detected characters: ${detectedCharacters}`);
+        }
+      } else {
+        console.log(`[step1-processor] No detected faces found or error:`, facesError);
+      }
+    }
+  } catch (error) {
+    console.error(`[step1-processor] Error fetching detected faces:`, error);
+  }
+
+  const allCharacters = [userInput.characters, detectedCharacters]
+    .filter(Boolean)
+    .join(', ');
 
   return `## ディレクターからの指示
 - ストーリー: ${userInput.storyText}
-- 登場人物: ${userInput.characters}
+- 登場人物: ${allCharacters}
 - 劇的転換点: ${userInput.dramaticTurningPoint}
 - 未来のビジョン: ${userInput.futureVision}
 - 学びや気づき: ${userInput.learnings}
@@ -226,13 +275,12 @@ function createStoryboardUserPrompt(step1Output: Step1Output): string {
  */
 function validateAndNormalizeStoryboard(
   result: any,
-  step1Output: Step1Output
+  _step1Output: Step1Output
 ): {
   summary: SummaryData;
   acts: ActsData;
   characters: CharactersData;
 } {
-  const { userInput } = step1Output;
 
   // 結果が無効な場合はエラーをthrow
   if (!result || typeof result !== 'object') {

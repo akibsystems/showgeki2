@@ -121,15 +121,6 @@ export async function processInstantMode({
         console.log(`[InstantGenerator] ${input.imageUrls.length} image references added to story text`);
       }
 
-      // キャラクター情報がある場合は追加
-      if (input.characters && input.characters.length > 0) {
-        const characterInfo = input.characters.map(char =>
-          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
-        ).join('\n');
-        enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
-        console.log(`[InstantGenerator] ${input.characters.length} characters added to story text`);
-      }
-
       const story: Story = {
         id: storyboard.id,
         workspace_id: workflowId, // 仮のworkspace_id
@@ -223,6 +214,8 @@ export async function processInstantMode({
       await status.update('generating', '動画生成を開始中...', 90);
 
     } else {
+      // ⭐️非ダイレクトモード⭐️
+
       // 通常モード: Step 1→2 から開始
       console.log(`[InstantGenerator] Starting phase processing mode for workflow ${workflowId}`);
       await status.update('analyzing');
@@ -239,27 +232,22 @@ export async function processInstantMode({
         console.log(`[InstantGenerator] ${input.imageUrls.length} image references added to story text`);
       }
 
-      // キャラクター情報がある場合は追加
+      // characters情報を取得（input.charactersまたはimageUrlsから）
+      let characterNames = '';
       if (input.characters && input.characters.length > 0) {
-        const characterInfo = input.characters.map(char =>
-          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
-        ).join('\n');
-        enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
-        console.log(`[InstantGenerator] ${input.characters.length} characters added to story text`);
+        // input.charactersがある場合は名前を取得
+        characterNames = input.characters
+          .filter(char => char.name)
+          .map(char => char.name)
+          .join(', ');
+        console.log(`[InstantGenerator] Character names from input.characters: ${characterNames}`);
       }
-
-      // キャラクター情報をディレクター指示の登場人物として設定
-      const charactersDirectorNote = input.characters && input.characters.length > 0
-        ? input.characters.map(char =>
-          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
-        ).join('、')
-        : '';
 
       const step1Output: Step1Output = {
         userInput: {
-          storyText: enhancedStoryText,
-          characters: charactersDirectorNote, // 画像につけた名前をディレクター指示として設定
-          dramaticTurningPoint: '', // 自動推定
+          storyText: input.storyText,
+          characters: characterNames,
+          dramaticTurningPoint: '',
           futureVision: '',
           learnings: '',
           totalScenes: getSceneCountForDuration(input.duration || 'medium'),

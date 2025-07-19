@@ -144,6 +144,8 @@ async function generateDetailedCharacters(
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
 
+  console.log(`[step2-processor] result:`, result);
+
   // 結果を検証
   if (!result.characters || !Array.isArray(result.characters) || result.characters.length === 0) {
     throw new CharacterGenerationError(
@@ -206,13 +208,7 @@ function createCharacterSystemPrompt(): string {
 あなたはシェイクスピアの生まれ変わりであり、魅力的な短編動画コンテンツの制作を専門とする演出家です。
 ディレクターの指示をもとに、キャラクターの詳細な設定を作成してください。
 
-### 名前の生成について
-【名前未設定】と記載されているキャラクターには、以下の指針で適切な名前を必ず付けてください：
-- ストーリーや役割に合った名前
-- 覚えやすく、発音しやすい名前
-- 他のキャラクターと区別しやすい名前
-
-### 出力形式
+## 出力形式
 {
   "characters": [
     {
@@ -235,6 +231,13 @@ function createCharacterSystemPrompt(): string {
   ]
 }
 
+## キャラクターの名前について
+キャラクター名は指定されたものをそのまま使うこと
+例外として、【名前未設定】と記載されているキャラクターには、以下の指針で適切な名前を必ず付けてください：
+- ストーリーや役割に合った名前
+- 覚えやすく、発音しやすい名前
+- 他のキャラクターと区別しやすい名前
+
 ## 重要な指示
 - 各キャラクターに明確な存在理由と物語上の機能を持たせること
 - 外見は性格と役割を視覚的に表現するものであること
@@ -253,37 +256,21 @@ function createCharacterUserPrompt(
 ): string {
   let originalStoryInfo = '';
 
-  // story_dataが存在する場合、元のストーリー情報を含める
-  if (storyData) {
-    originalStoryInfo = `
-## 元のストーリー情報
+  return `# ディレクターからの指示
+## タイトル
+${step2Output.userInput.title}
+
+## ストーリー情報
 - ストーリー: ${storyData.originalText || ''}
-- 登場人物の情報: ${storyData.characters || ''}
 - 劇的転換点: ${storyData.dramaticTurningPoint || ''}
 - 未来のビジョン: ${storyData.futureVision || ''}
-- 学びや気づき: ${storyData.learnings || ''}`;
+- 学びや気づき: ${storyData.learnings || ''}
 
-    // インスタントモードで顔検出されたキャラクター情報を追加
-    if (storyData.detectedCharacters && Array.isArray(storyData.detectedCharacters)) {
-      originalStoryInfo += `
-
-## 顔画像から検出されたキャラクター
-${storyData.detectedCharacters.map((char: any, index: number) => {
-        const needsAutoName = char.name && char.name.startsWith('__AUTO_NAME_');
-        return `- キャラクター${index + 1}: ${needsAutoName ? '【名前未設定 - 適切な名前を付けてください】' : char.name}
-  - 顔画像: ${char.faceImageUrl ? '提供済み' : 'なし'}`;
-      }).join('\n')}`;
-    }
-  }
-
-  return `## 演出家の指示
-タイトル: ${step2Output.userInput.title}
-${originalStoryInfo}
 ## 幕場構成
 ${JSON.stringify(step2Output.userInput.acts, null, 2)}
 
-## 既存キャラクター情報
-${existingCharacters.map(char => `- ${char.name}: ${char.role} (${char.personality})`).join('\n')}
+## キャラクター情報
+${existingCharacters.map(char => `- キャラクター名:${char.name}, 役割:${char.role}, 性格:(${char.personality})`).join('\n')}
 
 これらの情報を基に、各キャラクターの詳細な設定をJSONフォーマットで作成してください。`;
 }
