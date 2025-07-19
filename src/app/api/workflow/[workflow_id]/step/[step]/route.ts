@@ -265,7 +265,8 @@ export async function POST(
         stepOutput,
         workflow.storyboard,
         workflow_id,
-        isTitleOnlyChange
+        isTitleOnlyChange,
+        request
       );
       nextStepInput = result.nextStepInput;
       storyboardUpdates = result.storyboardUpdates;
@@ -466,7 +467,8 @@ async function generateAndUpdateStoryboard(
   stepOutput: StepOutput,
   currentStoryboard: Storyboard,
   workflowId: string,
-  isTitleOnlyChange: boolean = false
+  isTitleOnlyChange: boolean = false,
+  request?: NextRequest
 ): Promise<{ nextStepInput: StepInput | null; storyboardUpdates: Partial<Storyboard> }> {
   let storyboardUpdates: Partial<Storyboard> = {};
   let nextStepInput: StepInput | null = null;
@@ -584,24 +586,62 @@ async function generateAndUpdateStoryboard(
       // Step3完了時: step3-generatorを使用してStep4Inputを生成
       const step3Output = stepOutput as Step3Output;
 
-      try {
-        // step3-generatorを呼び出してStep4Inputを生成
-        nextStepInput = await generateStep4Input(
-          workflowId,
-          currentStoryboard.id,
-          step3Output
-        );
+      // データが変更されていない場合は、AIをスキップして既存データから生成
+      const isDataUnchanged = request.headers.get('X-Data-Unchanged') === 'true';
+      
+      if (isDataUnchanged) {
+        console.log('[Step3] Data unchanged, skipping AI generation');
+        
+        // characters_dataを更新（ユーザー編集を反映）
+        const updatedCharacters = currentStoryboard.characters_data?.characters.map(char => {
+          const userChar = step3Output.userInput.characters.find(c => c.id === char.id);
+          if (userChar) {
+            return {
+              ...char,
+              name: userChar.name,
+              // descriptionから性格と外見の説明を分解して反映
+              personality: userChar.description.split('\n')[0] || char.personality,
+              visualDescription: userChar.description.split('\n')[1] || char.visualDescription,
+              faceReference: userChar.faceReference
+            };
+          }
+          return char;
+        }) || [];
+        
+        storyboardUpdates.characters_data = {
+          ...currentStoryboard.characters_data,
+          characters: updatedCharacters
+        };
+        
+        // 既存のストーリーボードデータからStep4Inputを生成
+        const step4Input = await generateStepInput(4, {
+          ...currentStoryboard,
+          characters_data: storyboardUpdates.characters_data
+        } as Storyboard) as Step4Input;
+        
+        nextStepInput = step4Input;
+        console.log('[Step3] Generated Step4Input from existing data');
+      } else {
+        // 通常のAI処理
+        try {
+          // step3-generatorを呼び出してStep4Inputを生成
+          nextStepInput = await generateStep4Input(
+            workflowId,
+            currentStoryboard.id,
+            step3Output
+          );
 
-        // storyboardUpdatesは generateStep4Input 内で更新されるため、ここでは空
-        // 将来的にはgeneratorから更新内容を返すように変更することも検討
-      } catch (error) {
-        console.error('Step4入力生成エラー:', error);
-        // エラー時は空のStep4Inputを返す
-        nextStepInput = {
-          title: currentStoryboard.title || '',
-          acts: currentStoryboard.acts_data?.acts || [],
-          scenes: []
-        } as Step4Input;
+          // storyboardUpdatesは generateStep4Input 内で更新されるため、ここでは空
+          // 将来的にはgeneratorから更新内容を返すように変更することも検討
+        } catch (error) {
+          console.error('Step4入力生成エラー:', error);
+          // エラー時は空のStep4Inputを返す
+          nextStepInput = {
+            title: currentStoryboard.title || '',
+            acts: currentStoryboard.acts_data?.acts || [],
+            scenes: []
+          } as Step4Input;
+        }
       }
       break;
 

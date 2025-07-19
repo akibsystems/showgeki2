@@ -657,11 +657,11 @@ export default function Step2ScenePreview({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={acts.map(act => `act-${act.actNumber}`)}
+            items={Array.isArray(acts) ? acts.map(act => `act-${act.actNumber}`) : []}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-6">
-              {acts.map((act, actIndex) => (
+              {Array.isArray(acts) && acts.map((act, actIndex) => (
                 <SortableAct
                   key={`act-${act.actNumber}`}
                   act={act}
@@ -679,11 +679,11 @@ export default function Step2ScenePreview({
                   />
 
                   <SortableContext
-                    items={act.scenes.map((_, sceneIndex) => `scene-${actIndex}-${sceneIndex}`)}
+                    items={Array.isArray(act.scenes) ? act.scenes.map((_, sceneIndex) => `scene-${actIndex}-${sceneIndex}`) : []}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-3">
-                      {act.scenes.map((scene, sceneIndex) => (
+                      {Array.isArray(act.scenes) && act.scenes.map((scene, sceneIndex) => (
                         <SortableScene
                           key={`scene-${actIndex}-${sceneIndex}`}
                           scene={scene}
@@ -751,7 +751,7 @@ export default function Step2ScenePreview({
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {initialData.stepInput.keywords.map((keyword, index) => {
+              {initialData.stepInput.keywords && initialData.stepInput.keywords.map((keyword, index) => {
                 // スコアに基づいて色を計算
                 const getScoreColor = (score: number) => {
                   if (score >= 9.0) return 'bg-red-600';

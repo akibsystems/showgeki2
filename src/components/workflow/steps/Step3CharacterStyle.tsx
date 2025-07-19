@@ -290,7 +290,8 @@ export default function Step3CharacterStyle({
     }
 
     // データが変更されていない場合はスキップ
-    if (!hasDataChanged()) {
+    const dataChanged = hasDataChanged();
+    if (!dataChanged) {
       console.log('[Step3CharacterStyle] No changes detected, skipping save');
       onNext();
       return;
@@ -308,12 +309,14 @@ export default function Step3CharacterStyle({
       };
 
       console.log('[Step3CharacterStyle] Saving Step3Output:', JSON.stringify(step3Output, null, 2));
+      console.log('[Step3CharacterStyle] Data changed:', dataChanged);
 
       const response = await fetch(`/api/workflow/${workflowId}/step/3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-User-UID': user.id,
+          'X-Data-Unchanged': !dataChanged ? 'true' : 'false',
         },
         body: JSON.stringify(step3Output),
       });
