@@ -162,7 +162,7 @@ JSONフォーマットで以下の構造で出力してください：
     "characters": [
       {
         "id": "character-1",
-        "name": "キャラクター名",
+        "name": "登場人物名",
         "role": "役割（例：主人公、親友、恋人など）",
         "personality": "性格の説明",
         "visualDescription": "外見の説明"
@@ -175,11 +175,12 @@ JSONフォーマットで以下の構造で出力してください：
 - シェイクスピア風の５幕構成（序幕、展開、クライマックス、転換、終幕）を意識してください
 - タイトルは短く印象的に、劇的な雰囲気を含めて
 - あらすじは簡潔にシーンの要点を説明
+- ディレクターから登場人物の名前について指示がある場合は、そのままの名前で必ず登場人物に含めてください。
 - 日本語で出力してください
 - タグは物語の特徴を表す3-5個程度
 
 ## キーワード抽出の指針
-物語から**できるだけ多くの**重要なキーワードを抽出してください（最低15個以上）：
+物語から**できるだけ多くの**重要なキーワードを抽出してください：
 
 ### 抽出対象
 - **固有名詞**: 人名、企業名、製品名、サービス名、団体名、地名、建物名など
@@ -255,17 +256,17 @@ function validateAndNormalizeStoryboard(
     genre: result.summary?.genre || 'ドラマ',
     tags: Array.isArray(result.summary?.tags) ? result.summary.tags : [],
     estimatedDuration: result.summary?.estimatedDuration || 120,
-    keywords: Array.isArray(result.summary?.keywords) ? 
+    keywords: Array.isArray(result.summary?.keywords) ?
       result.summary.keywords.map((keyword: any) => ({
         term: keyword.term || '',
-        importance: typeof keyword.importance === 'number' && 
-                   keyword.importance >= 0 && 
-                   keyword.importance <= 10 ? 
-                   Math.round(keyword.importance * 10) / 10 : // 0.1刻みに丸める
-                   5.0,
+        importance: typeof keyword.importance === 'number' &&
+          keyword.importance >= 0 &&
+          keyword.importance <= 10 ?
+          Math.round(keyword.importance * 10) / 10 : // 0.1刻みに丸める
+          5.0,
         reason: keyword.reason || '',
-        category: ['person', 'organization', 'event', 'concept', 'location', 'other'].includes(keyword.category) 
-          ? keyword.category 
+        category: ['person', 'organization', 'event', 'concept', 'location', 'other'].includes(keyword.category)
+          ? keyword.category
           : 'other'
       })).filter((k: any) => k.term).sort((a: any, b: any) => b.importance - a.importance) : [] // 重要度順でソート
   };

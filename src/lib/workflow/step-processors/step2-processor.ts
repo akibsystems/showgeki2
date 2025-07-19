@@ -156,12 +156,12 @@ async function generateDetailedCharacters(
   if (existingCharacters && existingCharacters.length > 0) {
     existingCharacters.forEach((existingChar: any) => {
       if (existingChar.name && existingChar.name.startsWith('__AUTO_NAME_')) {
-        const generatedChar = result.characters.find((c: any) => 
-          c.id === existingChar.id || 
+        const generatedChar = result.characters.find((c: any) =>
+          c.id === existingChar.id ||
           // インデックスベースのマッチング（IDが一致しない場合）
           result.characters.indexOf(c) === existingCharacters.indexOf(existingChar)
         );
-        
+
         if (generatedChar && generatedChar.name) {
           console.log(`[step2-processor] Generated name for ${existingChar.name}: ${generatedChar.name}`);
           existingChar.name = generatedChar.name;
@@ -206,7 +206,7 @@ function createCharacterSystemPrompt(): string {
 ディレクターの指示をもとに、キャラクターの詳細な設定を作成してください。
 
 ### 名前の生成について
-【名前未設定】と記載されているキャラクターには、以下の指針で適切な日本人名を必ず付けてください：
+【名前未設定】と記載されているキャラクターには、以下の指針で適切な名前を必ず付けてください：
 - ストーリーや役割に合った名前
 - 覚えやすく、発音しやすい名前
 - 他のキャラクターと区別しやすい名前
@@ -260,17 +260,17 @@ function createCharacterUserPrompt(
 - 劇的転換点: ${storyData.dramaticTurningPoint || ''}
 - 未来のビジョン: ${storyData.futureVision || ''}
 - 学びや気づき: ${storyData.learnings || ''}`;
-    
+
     // インスタントモードで顔検出されたキャラクター情報を追加
     if (storyData.detectedCharacters && Array.isArray(storyData.detectedCharacters)) {
       originalStoryInfo += `
 
 ## 顔画像から検出されたキャラクター
 ${storyData.detectedCharacters.map((char: any, index: number) => {
-  const needsAutoName = char.name && char.name.startsWith('__AUTO_NAME_');
-  return `- キャラクター${index + 1}: ${needsAutoName ? '【名前未設定 - 適切な日本人名を付けてください】' : char.name}
+        const needsAutoName = char.name && char.name.startsWith('__AUTO_NAME_');
+        return `- キャラクター${index + 1}: ${needsAutoName ? '【名前未設定 - 適切な名前を付けてください】' : char.name}
   - 顔画像: ${char.faceImageUrl ? '提供済み' : 'なし'}`;
-}).join('\n')}`;
+      }).join('\n')}`;
     }
   }
 
