@@ -47,6 +47,18 @@ interface VideoDetail {
       created_at: string;
       updated_at: string;
     } | null;
+    detectedFaces?: Array<{
+      id: string;
+      workflow_id: string;
+      original_image_url: string;
+      face_image_url: string;
+      name: string;
+      tag_name?: string;
+      tag_role?: string;
+      tag_description?: string;
+      created_at: string;
+    }>;
+    uploadedImages?: string[];
   };
 }
 
@@ -624,6 +636,78 @@ export default function VideoDetailPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Uploaded Images for Instant Mode */}
+          {detail.video.workflow?.mode === 'instant' && detail.video.uploadedImages && detail.video.uploadedImages.length > 0 && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-100 mb-4">アップロードされた画像</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {detail.video.uploadedImages.map((imageUrl, index) => (
+                    <div key={index} className="bg-gray-800 rounded-lg p-3">
+                      <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-700">
+                        <img
+                          src={imageUrl}
+                          alt={`アップロード画像 ${index + 1}`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `
+                              <div class="flex items-center justify-center h-full">
+                                <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-gray-100 text-center">
+                        画像 {index + 1}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Detected Faces for Instant Mode */}
+          {detail.video.workflow?.mode === 'instant' && detail.video.detectedFaces && detail.video.detectedFaces.length > 0 && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-100 mb-4">検出された顔画像</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {detail.video.detectedFaces.map((face) => (
+                    <div key={face.id} className="bg-gray-800 rounded-lg p-3">
+                      <div className="aspect-square relative overflow-hidden rounded-lg mb-2 bg-gray-700">
+                        <img
+                          src={face.face_image_url}
+                          alt={`${face.tag_name || face.name || '未設定'}の顔`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `
+                              <div class="flex items-center justify-center h-full">
+                                <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-gray-100 text-center truncate">
+                        {face.tag_name || face.name || '未設定'}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

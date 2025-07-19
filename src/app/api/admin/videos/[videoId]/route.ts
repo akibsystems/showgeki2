@@ -103,6 +103,8 @@ export async function GET(
     
     // Fetch workflow information
     let workflow = null;
+    let detectedFaces = [];
+    let uploadedImages = [];
     if (storyboard) {
       const { data: workflowData, error: workflowError } = await adminSupabase
         .from('workflows')
@@ -112,6 +114,36 @@ export async function GET(
       
       if (!workflowError && workflowData) {
         workflow = workflowData;
+        
+        // If instant mode, get uploaded images and fetch detected faces
+        if (workflowData.mode === 'instant') {
+          // Get uploaded images from story_data
+          if (storyboard.story_data && storyboard.story_data.imageUrls) {
+            uploadedImages = storyboard.story_data.imageUrls;
+          }
+          
+          // Fetch detected faces
+          const { data: facesData, error: facesError } = await adminSupabase
+            .from('detected_faces')
+            .select('*')
+            .eq('workflow_id', workflowData.id)
+            .order('created_at', { ascending: true });
+          
+          if (!facesError && facesData) {
+            detectedFaces = facesData;
+            
+            // If no images from story_data, try to extract from detected faces
+            if (uploadedImages.length === 0) {
+              const uniqueImages = new Set<string>();
+              facesData.forEach(face => {
+                if (face.original_image_url) {
+                  uniqueImages.add(face.original_image_url);
+                }
+              });
+              uploadedImages = Array.from(uniqueImages);
+            }
+          }
+        }
       }
     }
     
@@ -131,7 +163,9 @@ export async function GET(
         error_msg: video.error_msg,  // Added error_msg
         storyboard: storyboard,
         story: story || { id: video.story_id, title: 'Unknown', created_at: video.created_at },
-        workflow: workflow
+        workflow: workflow,
+        detectedFaces: detectedFaces,
+        uploadedImages: uploadedImages
       }
     };
     

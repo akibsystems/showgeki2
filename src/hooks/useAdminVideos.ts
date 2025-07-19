@@ -34,6 +34,7 @@ export interface VideoWithRelations {
     id: string;
     mode: 'instant' | 'professional';
   } | null;
+  hasUploadedImages?: boolean;
 }
 
 export interface VideoFilters {
@@ -45,6 +46,7 @@ export interface VideoFilters {
   uid?: string;
   search?: string;
   modes?: ('instant' | 'professional')[];
+  hasImages?: boolean;
 }
 
 export interface VideoPagination {

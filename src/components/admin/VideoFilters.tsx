@@ -66,7 +66,7 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
   };
 
   const hasActiveFilters = filters.status || filters.from || filters.to || filters.search || 
-    (filters.modes && filters.modes.length !== 2);
+    (filters.modes && filters.modes.length !== 2) || filters.hasImages !== undefined;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
@@ -135,8 +135,8 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
                   checked={localFilters.modes?.includes('instant') ?? false}
                   onChange={(e) => {
                     const currentModes = localFilters.modes || [];
-                    const newModes = e.target.checked 
-                      ? [...currentModes, 'instant']
+                    const newModes: ('instant' | 'professional')[] = e.target.checked 
+                      ? [...currentModes, 'instant' as const]
                       : currentModes.filter(m => m !== 'instant');
                     setLocalFilters({
                       ...localFilters,
@@ -155,8 +155,8 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
                   checked={localFilters.modes?.includes('professional') ?? false}
                   onChange={(e) => {
                     const currentModes = localFilters.modes || [];
-                    const newModes = e.target.checked 
-                      ? [...currentModes, 'professional']
+                    const newModes: ('instant' | 'professional')[] = e.target.checked 
+                      ? [...currentModes, 'professional' as const]
                       : currentModes.filter(m => m !== 'professional');
                     setLocalFilters({
                       ...localFilters,
@@ -170,6 +170,27 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
                 <span className="ml-2 text-sm text-gray-100">プロフェッショナルモード</span>
               </label>
             </div>
+          </div>
+
+          {/* Image filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              参照画像
+            </label>
+            <select
+              value={localFilters.hasImages !== undefined ? String(localFilters.hasImages) : ''}
+              onChange={(e) => setLocalFilters({ 
+                ...localFilters, 
+                hasImages: e.target.value ? e.target.value === 'true' : undefined,
+                page: 1 
+              })}
+              disabled={disabled}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="">すべて</option>
+              <option value="true">画像あり</option>
+              <option value="false">画像なし</option>
+            </select>
           </div>
 
           {/* Date range */}
