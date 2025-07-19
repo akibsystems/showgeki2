@@ -190,6 +190,7 @@ async function generateDetailedCharacters(
       weight: char.weight,
       hairStyle: char.hairStyle,
       eyeColor: char.eyeColor,
+      glasses: char.glasses,
       hairColor: char.hairColor,
       personality: char.personality || '詳細な性格設定が必要',
       visualDescription: char.visualDescription || '外見の描写が必要'
@@ -227,6 +228,7 @@ function createCharacterSystemPrompt(): string {
       "hairStyle": "各シーンでの髪型を、[髪型1, 髪型2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
       "hairColor": "各シーンでの髪の色を、[髪色1, 髪色2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
       "eyeColor": "各シーンでの瞳の色を、[瞳色1, 瞳色2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
+      "glasses": "各シーンでのメガネの有無を、[なし, なし, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。基本的にディレクターからの指示がない限りメガネはなしとし、各シーンで一貫させてください",
       "visualDescription": "各シーンでの特徴的な装飾品、衣装の詳細、全体的な印象を、[説明1, 説明2, ...]のように配列で返してください。シーン数と同じ要素の配列で返してください。",
       "personality": "内面の葛藤、価値観、行動原理、成長の可能性を含む詳細な性格描写",
     }

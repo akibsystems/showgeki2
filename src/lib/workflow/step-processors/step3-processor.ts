@@ -367,6 +367,7 @@ ${characters.map(char => {
 - 瞳の色: ${char.eyeColor || ''}
 - 髪の色: ${char.hairColor || ''}
 - 体型: ${char.bodyType || ''}
+- メガネの有無: ${char.glasses || ''}
 - 服装など: ${char.visualDescription || ''}`;
     }
   }).join('\n\n')}

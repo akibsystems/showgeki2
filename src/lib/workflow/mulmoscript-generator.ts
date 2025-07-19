@@ -140,6 +140,7 @@ function processImagePromptForCharacters(imagePrompt: string, characters: any[],
       const weight = getAttributeValue(char.weight, beatIndex);
       const hairStyle = getAttributeValue(char.hairStyle, beatIndex);
       const eyeColor = getAttributeValue(char.eyeColor, beatIndex);
+      const glasses = getAttributeValue(char.glasses, beatIndex);
       const hairColor = getAttributeValue(char.hairColor, beatIndex);
       const bodyType = getAttributeValue(char.bodyType, beatIndex);
       const visualDescription = getAttributeValue(char.visualDescription, beatIndex);
@@ -150,6 +151,7 @@ function processImagePromptForCharacters(imagePrompt: string, characters: any[],
       if (weight) attributes.push(`体重:${weight}`);
       if (hairStyle) attributes.push(`髪型:${hairStyle}`);
       if (eyeColor) attributes.push(`瞳の色:${eyeColor}`);
+      if (glasses) attributes.push(`メガネの有無:${glasses}`);
       if (hairColor) attributes.push(`髪の色:${hairColor}`);
       if (bodyType) attributes.push(`体型:${bodyType}`);
       if (visualDescription) attributes.push(`服装など:${visualDescription}`);
@@ -246,7 +248,7 @@ export async function generateMulmoScriptFromStoryboard(
   const finalBeats = processedBeats.map((beat) => {
     // このbeatのimagePromptに登場するキャラクターを特定
     const charactersInBeat: string[] = [];
-    
+
     charactersWithFaceRef.forEach((char: any) => {
       // キャラクター名がimagePromptに含まれているかチェック
       if (beat.imagePrompt.includes(char.name)) {
@@ -343,7 +345,7 @@ export async function generateMulmoScriptFromStoryboard(
   // 顔参照画像を設定
   const faceReferences: Record<string, any> = {};
   console.log('[MulmoScript Generation] Processing face references for characters:', characters.map(c => ({ name: c.name, hasFaceReference: !!c.faceReference })));
-  
+
   characters.forEach(char => {
     if (char.faceReference) {
       console.log(`[MulmoScript Generation] Adding face reference for ${char.name}: ${char.faceReference}`);
