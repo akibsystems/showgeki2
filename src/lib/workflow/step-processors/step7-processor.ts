@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 import type {
   Step7Output
 } from '@/types/workflow';
@@ -14,11 +13,6 @@ const supabase = createClient(
     }
   }
 );
-
-// OpenAI クライアント
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 /**
  * Step7の出力を処理（最終確認完了）
@@ -146,8 +140,8 @@ async function onWorkflowComplete(
  * ワークフロー統計情報の更新
  */
 async function updateWorkflowStatistics(
-  workflowId: string,
-  storyboardId: string
+  _workflowId: string,
+  _storyboardId: string
 ): Promise<void> {
   // 統計情報の更新ロジック（必要に応じて実装）
   // 例: 完了したワークフローの数、平均所要時間など
@@ -176,7 +170,7 @@ async function queueVideoGeneration(storyboardId: string): Promise<void> {
     }
 
     // workflow_idを取得
-    const { data: workflow, error: workflowError } = await supabase
+    const { data: workflow } = await supabase
       .from('workflows')
       .select('id')
       .eq('storyboard_id', storyboardId)
