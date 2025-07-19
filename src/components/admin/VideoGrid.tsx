@@ -211,9 +211,22 @@ export function VideoGrid({
             </h3>
 
             {/* User info */}
-            <p className="text-xs text-gray-400 truncate mb-3">
+            <p className="text-xs text-gray-400 truncate mb-1">
               {video.profile?.display_name || video.profile?.email?.split('@')[0] || 'Unknown'}
             </p>
+            
+            {/* Mode badge */}
+            {video.workflow && (
+              <div className="mb-2">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  video.workflow.mode === 'instant' 
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                    : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                }`}>
+                  {video.workflow.mode === 'instant' ? 'かんたん' : 'プロ'}
+                </span>
+              </div>
+            )}
 
             {/* Meta info */}
             <div className="space-y-1 text-xs text-gray-500">
@@ -230,7 +243,7 @@ export function VideoGrid({
               <div className="flex items-center justify-between">
                 <span>作成日:</span>
                 <span className="text-gray-400">
-                  {format(new Date(video.created_at), 'MM/dd', { locale: ja })}
+                  {format(new Date(video.created_at), 'MM/dd HH:mm', { locale: ja })}
                 </span>
               </div>
             </div>

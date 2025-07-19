@@ -16,6 +16,7 @@ const GetVideosQuerySchema = z.object({
   to: z.string().datetime().optional(),
   uid: z.string().optional(),
   search: z.string().optional(),
+  mode: z.enum(['instant', 'professional']).optional(),
 });
 
 const DeleteVideosRequestSchema = z.object({
@@ -76,12 +77,12 @@ async function getVideos(
       );
     }
     
-    const { page, limit, status, from, to, uid, search } = parseResult.data;
+    const { page, limit, status, from, to, uid, search, mode } = parseResult.data;
     const supabase = createAdminClient();
     
     console.log(`\n========================================`);
     console.log(`[getVideos] SEARCH REQUEST RECEIVED`);
-    console.log(`[getVideos] Query params:`, { page, limit, status, from, to, uid, search });
+    console.log(`[getVideos] Query params:`, { page, limit, status, from, to, uid, search, mode });
     console.log(`========================================\n`);
     
     // Build query - Since there's no foreign key, we'll do a manual join
@@ -110,6 +111,7 @@ async function getVideos(
     let finalVideos = [];
     let totalCount = 0;
     let storyboards: any[] = [];
+    let workflows: any[] = [];
     
     if (search) {
       // First, find all storyboards that match the search term
@@ -209,27 +211,104 @@ async function getVideos(
         storyboards = [];
       }
       
-    } else {
-      // No search - use normal pagination
-      query = query
-        .range((page - 1) * limit, page * limit - 1)
-        .order('created_at', { ascending: false });
-      
-      const { data: videos, error, count } = await query;
-      
-      if (error) {
-        console.error('[getVideos] Database error:', error);
-        return NextResponse.json(
-          {
-            error: 'Failed to fetch videos',
-            type: ErrorType.INTERNAL,
-          },
-          { status: 500 }
-        );
+      // Get workflows for filtering by mode if needed
+      if (mode && storyIds.length > 0) {
+        const { data: workflowData } = await supabase
+          .from('workflows')
+          .select('id, storyboard_id, mode')
+          .in('storyboard_id', storyIds)
+          .eq('mode', mode);
+        
+        if (workflowData) {
+          workflows = workflowData;
+          // Filter videos by those with matching workflows
+          const validStoryIds = workflows.map(w => w.storyboard_id);
+          finalVideos = finalVideos.filter(v => validStoryIds.includes(v.story_id));
+          totalCount = finalVideos.length;
+        } else {
+          // No workflows found with this mode
+          finalVideos = [];
+          totalCount = 0;
+        }
+      } else if (!mode && storyIds.length > 0) {
+        // Get all workflows for display
+        const { data: workflowData } = await supabase
+          .from('workflows')
+          .select('id, storyboard_id, mode')
+          .in('storyboard_id', storyIds);
+        
+        if (workflowData) {
+          workflows = workflowData;
+        }
       }
       
-      finalVideos = videos || [];
-      totalCount = count || 0;
+    } else {
+      // No search - use normal pagination
+      // First get all videos with basic filters
+      let tempQuery = supabase.from('videos').select('*', { count: 'exact' });
+      
+      if (status) tempQuery = tempQuery.eq('status', status);
+      if (from) tempQuery = tempQuery.gte('created_at', from);
+      if (to) tempQuery = tempQuery.lte('created_at', to);
+      if (uid) tempQuery = tempQuery.eq('uid', uid);
+      
+      // If mode filter is applied, we need to filter by workflow mode
+      if (mode) {
+        // Get all videos first to filter by workflow mode
+        const { data: allVideos, error: allError } = await tempQuery;
+        
+        if (!allError && allVideos) {
+          const storyIds = [...new Set(allVideos.map(v => v.story_id).filter(Boolean))];
+          
+          if (storyIds.length > 0) {
+            // Get workflows with the specified mode
+            const { data: workflowData } = await supabase
+              .from('workflows')
+              .select('id, storyboard_id, mode')
+              .in('storyboard_id', storyIds)
+              .eq('mode', mode);
+            
+            if (workflowData) {
+              workflows = workflowData;
+              const validStoryIds = workflows.map(w => w.storyboard_id);
+              finalVideos = allVideos.filter(v => validStoryIds.includes(v.story_id));
+              totalCount = finalVideos.length;
+              
+              // Apply pagination after filtering
+              const startIndex = (page - 1) * limit;
+              const endIndex = startIndex + limit;
+              finalVideos = finalVideos
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(startIndex, endIndex);
+            } else {
+              // No workflows found with this mode
+              finalVideos = [];
+              totalCount = 0;
+            }
+          }
+        }
+      } else {
+        // No mode filter - use normal query
+        query = query
+          .range((page - 1) * limit, page * limit - 1)
+          .order('created_at', { ascending: false });
+        
+        const { data: videos, error, count } = await query;
+        
+        if (error) {
+          console.error('[getVideos] Database error:', error);
+          return NextResponse.json(
+            {
+              error: 'Failed to fetch videos',
+              type: ErrorType.INTERNAL,
+            },
+            { status: 500 }
+          );
+        }
+        
+        finalVideos = videos || [];
+        totalCount = count || 0;
+      }
       
       // Get storyboards for the videos
       const storyIds = [...new Set(finalVideos.map(v => v.story_id).filter(Boolean))];
@@ -253,10 +332,25 @@ async function getVideos(
       } else {
         storyboards = [];
       }
+      
+      // Get workflows for all videos
+      if (storyIds.length > 0) {
+        const { data: workflowData } = await supabase
+          .from('workflows')
+          .select('id, storyboard_id, mode')
+          .in('storyboard_id', storyIds);
+        
+        if (workflowData) {
+          workflows = workflowData;
+        }
+      }
     }
     
     // Create storyboard map
     const storyboardMap = new Map(storyboards.map(sb => [sb.id, sb]));
+    
+    // Create workflow map
+    const workflowMap = new Map(workflows.map(w => [w.storyboard_id, w]));
     
     // Get profiles for the videos
     const uids = [...new Set([
@@ -279,12 +373,14 @@ async function getVideos(
     
     const videosWithProfiles = finalVideos.map(video => {
       const storyboard = storyboardMap.get(video.story_id);
+      const workflow = workflowMap.get(video.story_id);
       // Remove story_data from the response to reduce payload size
       const { story_data, ...storyboardWithoutData } = storyboard || {};
       return {
         ...video,
         story: storyboardWithoutData, // Map storyboard to story for backward compatibility
         profile: storyboard?.uid ? profileMap.get(storyboard.uid) : profileMap.get(video.uid),
+        workflow: workflow ? { id: workflow.id, mode: workflow.mode } : null,
       };
     });
     

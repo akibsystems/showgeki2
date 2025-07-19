@@ -30,6 +30,10 @@ export interface VideoWithRelations {
     email?: string;
     display_name?: string;
   };
+  workflow?: {
+    id: string;
+    mode: 'instant' | 'professional';
+  } | null;
 }
 
 export interface VideoFilters {
@@ -40,6 +44,7 @@ export interface VideoFilters {
   to?: string;
   uid?: string;
   search?: string;
+  modes?: ('instant' | 'professional')[];
 }
 
 export interface VideoPagination {
@@ -86,7 +91,18 @@ export function useAdminVideos(): UseAdminVideosReturn {
   const queryString = new URLSearchParams(
     Object.entries(filters)
       .filter(([_, value]) => value !== undefined && value !== '')
-      .map(([key, value]) => [key, String(value)])
+      .flatMap(([key, value]) => {
+        // Handle modes array specially
+        if (key === 'modes' && Array.isArray(value)) {
+          // Only send mode parameter if exactly one mode is selected
+          if (value.length === 1) {
+            return [['mode', value[0]]];
+          }
+          // If both or none selected, don't send mode parameter
+          return [];
+        }
+        return [[key, String(value)]];
+      })
   ).toString();
 
   // Fetch videos with SWR

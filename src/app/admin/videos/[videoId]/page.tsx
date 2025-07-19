@@ -22,8 +22,30 @@ interface VideoDetail {
     storyboard: {
       id: string;
       story_data: any;
+      summary_data: any;
+      acts_data: any;
+      characters_data: any;
+      scenes_data: any;
+      audio_data: any;
+      style_data: any;
+      caption_data: any;
       mulmoscript: any;
       created_at: string;
+      updated_at?: string;
+    } | null;
+    workflow?: {
+      id: string;
+      mode: 'instant' | 'professional';
+      current_step: number;
+      status: string;
+      progress: number | null;
+      error_message: string | null;
+      instant_step: string | null;
+      instant_metadata: {
+        execution_timings?: Record<string, any>;
+      } | null;
+      created_at: string;
+      updated_at: string;
     } | null;
   };
 }
@@ -514,6 +536,98 @@ export default function VideoDetailPage() {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Workflow Info */}
+          {detail.video.workflow && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-100 mb-4">ワークフロー情報</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm text-gray-400">作成モード</label>
+                    <p className="mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        detail.video.workflow.mode === 'instant' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                      }`}>
+                        {detail.video.workflow.mode === 'instant' ? 'かんたんモード' : 'プロフェッショナルモード'}
+                      </span>
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-400">現在のステップ</label>
+                      <p className="text-gray-100 text-sm mt-1">
+                        {detail.video.workflow.mode === 'instant' 
+                          ? `${detail.video.workflow.instant_step || '-'}`
+                          : `Step ${detail.video.workflow.current_step}`}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-400">ステータス</label>
+                      <p className="text-gray-100 text-sm mt-1">{detail.video.workflow.status}</p>
+                    </div>
+                  </div>
+                  
+                  {detail.video.workflow.progress !== null && (
+                    <div>
+                      <label className="text-sm text-gray-400">進捗</label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="flex-1 bg-gray-800 rounded-full h-2">
+                          <div 
+                            className="bg-purple-500 h-2 rounded-full transition-all"
+                            style={{ width: `${detail.video.workflow.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-400">{detail.video.workflow.progress}%</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {detail.video.workflow.error_message && (
+                    <div>
+                      <label className="text-sm text-gray-400">エラー</label>
+                      <p className="text-red-400 text-sm mt-1">{detail.video.workflow.error_message}</p>
+                    </div>
+                  )}
+                  
+                  {/* Instant Mode Execution Timings */}
+                  {detail.video.workflow.mode === 'instant' && detail.video.workflow.instant_metadata?.execution_timings && (
+                    <div>
+                      <label className="text-sm text-gray-400 mb-2 block">処理時間</label>
+                      <div className="space-y-1">
+                        {Object.entries(detail.video.workflow.instant_metadata.execution_timings).map(([step, timing]: [string, any]) => (
+                          <div key={step} className="flex justify-between text-sm">
+                            <span className="text-gray-400">{step}:</span>
+                            <span className="text-gray-100 font-mono">
+                              {typeof timing === 'number' 
+                                ? `${(timing / 1000).toFixed(2)}秒`
+                                : timing.duration_ms 
+                                  ? `${(timing.duration_ms / 1000).toFixed(2)}秒`
+                                  : '-'}
+                            </span>
+                          </div>
+                        ))}
+                        {/* Total Time */}
+                        <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
+                          <span className="text-gray-400 font-semibold">合計:</span>
+                          <span className="text-gray-100 font-mono font-semibold">
+                            {(() => {
+                              const total = Object.entries(detail.video.workflow.instant_metadata.execution_timings).reduce((sum, [_, timing]: [string, any]) => {
+                                const ms = typeof timing === 'number' ? timing : (timing.duration_ms || 0);
+                                return sum + ms;
+                              }, 0);
+                              return `${(total / 1000).toFixed(2)}秒`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right Column: Consistency Check */}
@@ -808,6 +922,123 @@ export default function VideoDetailPage() {
               `mulmoscript_${detail.video.id}.json`
             )}
           />
+          
+          {/* Additional Storyboard Data */}
+          <div className="border-t border-gray-700 pt-6 mt-8">
+            <h3 className="text-xl font-bold text-gray-100 mb-6">詳細ストーリーボードデータ</h3>
+            
+            {/* Summary Data */}
+            {detail.video.storyboard?.summary_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.summary_data}
+                title="Summary Data (作品概要・全体情報)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.summary_data, null, 2),
+                  'summary_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.summary_data,
+                  `summary_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Acts Data */}
+            {detail.video.storyboard?.acts_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.acts_data}
+                title="Acts Data (幕場構成)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.acts_data, null, 2),
+                  'acts_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.acts_data,
+                  `acts_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Characters Data */}
+            {detail.video.storyboard?.characters_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.characters_data}
+                title="Characters Data (キャラクター設定)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.characters_data, null, 2),
+                  'characters_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.characters_data,
+                  `characters_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Scenes Data */}
+            {detail.video.storyboard?.scenes_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.scenes_data}
+                title="Scenes Data (シーン一覧)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.scenes_data, null, 2),
+                  'scenes_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.scenes_data,
+                  `scenes_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Audio Data */}
+            {detail.video.storyboard?.audio_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.audio_data}
+                title="Audio Data (BGM・音声設定)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.audio_data, null, 2),
+                  'audio_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.audio_data,
+                  `audio_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Style Data */}
+            {detail.video.storyboard?.style_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.style_data}
+                title="Style Data (画風・スタイル設定)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.style_data, null, 2),
+                  'style_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.style_data,
+                  `style_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+            
+            {/* Caption Data */}
+            {detail.video.storyboard?.caption_data && (
+              <JsonDataCard
+                data={detail.video.storyboard.caption_data}
+                title="Caption Data (字幕設定)"
+                onCopyRaw={() => copyToClipboard(
+                  JSON.stringify(detail.video.storyboard!.caption_data, null, 2),
+                  'caption_data'
+                )}
+                onExport={() => downloadJson(
+                  detail.video.storyboard!.caption_data,
+                  `caption_data_${detail.video.id}.json`
+                )}
+              />
+            )}
+          </div>
         </div>
       ) : (
         <Card className="bg-gray-900 border-gray-800">

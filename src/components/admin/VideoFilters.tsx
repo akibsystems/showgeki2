@@ -20,13 +20,20 @@ interface VideoFiltersProps {
 // ================================================================
 
 export function VideoFilters({ filters, onFiltersChange, disabled = false }: VideoFiltersProps) {
-  const [localFilters, setLocalFilters] = useState<VideoFiltersType>(filters);
+  const [localFilters, setLocalFilters] = useState<VideoFiltersType>({
+    ...filters,
+    // Initialize modes with both selected if not provided
+    modes: filters.modes || ['instant', 'professional']
+  });
   // Start with false to avoid hydration mismatch
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Update localFilters when filters prop changes (e.g., from URL)
   useEffect(() => {
-    setLocalFilters(filters);
+    setLocalFilters({
+      ...filters,
+      modes: filters.modes || ['instant', 'professional']
+    });
   }, [filters]);
   
   // Set initial state after mount based on screen size
@@ -52,12 +59,14 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
     const resetFilters: VideoFiltersType = {
       page: 1,
       limit: filters.limit,
+      modes: ['instant', 'professional']
     };
     setLocalFilters(resetFilters);
     onFiltersChange(resetFilters);
   };
 
-  const hasActiveFilters = filters.status || filters.from || filters.to || filters.search;
+  const hasActiveFilters = filters.status || filters.from || filters.to || filters.search || 
+    (filters.modes && filters.modes.length !== 2);
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
@@ -112,6 +121,55 @@ export function VideoFilters({ filters, onFiltersChange, disabled = false }: Vid
               <option value="completed">完了</option>
               <option value="error">エラー</option>
             </select>
+          </div>
+
+          {/* Mode filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              作成モード
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localFilters.modes?.includes('instant') ?? false}
+                  onChange={(e) => {
+                    const currentModes = localFilters.modes || [];
+                    const newModes = e.target.checked 
+                      ? [...currentModes, 'instant']
+                      : currentModes.filter(m => m !== 'instant');
+                    setLocalFilters({
+                      ...localFilters,
+                      modes: newModes,
+                      page: 1
+                    });
+                  }}
+                  disabled={disabled}
+                  className="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                />
+                <span className="ml-2 text-sm text-gray-100">かんたんモード</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localFilters.modes?.includes('professional') ?? false}
+                  onChange={(e) => {
+                    const currentModes = localFilters.modes || [];
+                    const newModes = e.target.checked 
+                      ? [...currentModes, 'professional']
+                      : currentModes.filter(m => m !== 'professional');
+                    setLocalFilters({
+                      ...localFilters,
+                      modes: newModes,
+                      page: 1
+                    });
+                  }}
+                  disabled={disabled}
+                  className="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                />
+                <span className="ml-2 text-sm text-gray-100">プロフェッショナルモード</span>
+              </label>
+            </div>
           </div>
 
           {/* Date range */}

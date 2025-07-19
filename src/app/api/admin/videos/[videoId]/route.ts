@@ -92,12 +92,26 @@ export async function GET(
     if (video.story_id) {
       const { data: storyboardData, error: storyboardError } = await adminSupabase
         .from('storyboards')
-        .select('id, story_data, mulmoscript, created_at')
+        .select('*')  // Select all columns to get all _data fields
         .eq('id', video.story_id)
         .single();
       
       if (!storyboardError && storyboardData) {
         storyboard = storyboardData;
+      }
+    }
+    
+    // Fetch workflow information
+    let workflow = null;
+    if (storyboard) {
+      const { data: workflowData, error: workflowError } = await adminSupabase
+        .from('workflows')
+        .select('id, mode, current_step, status, progress, error_message, instant_step, instant_metadata, created_at, updated_at')
+        .eq('storyboard_id', storyboard.id)
+        .single();
+      
+      if (!workflowError && workflowData) {
+        workflow = workflowData;
       }
     }
     
@@ -116,7 +130,8 @@ export async function GET(
         size_mb: video.size_mb,  // Added size_mb
         error_msg: video.error_msg,  // Added error_msg
         storyboard: storyboard,
-        story: story || { id: video.story_id, title: 'Unknown', created_at: video.created_at }
+        story: story || { id: video.story_id, title: 'Unknown', created_at: video.created_at },
+        workflow: workflow
       }
     };
     
