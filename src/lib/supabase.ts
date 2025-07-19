@@ -96,6 +96,7 @@ export interface Database {
           preview_status?: string;
           preview_data?: any;
           preview_storage_path?: string;
+          workflow_id?: string;
         };
         Insert: {
           id?: string;
@@ -111,6 +112,7 @@ export interface Database {
           preview_status?: string;
           preview_data?: any;
           preview_storage_path?: string;
+          workflow_id?: string;
         };
         Update: {
           id?: string;
@@ -126,6 +128,7 @@ export interface Database {
           preview_status?: string;
           preview_data?: any;
           preview_storage_path?: string;
+          workflow_id?: string;
         };
       };
       reviews: {

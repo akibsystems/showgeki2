@@ -46,10 +46,10 @@ export async function processInstantMode({
     // 顔検出情報の保存処理
     if (input.characters && input.characters.length > 0) {
       console.log(`[InstantGenerator] Saving ${input.characters.length} detected faces to database...`);
-      
+
       for (let i = 0; i < input.characters.length; i++) {
         const character = input.characters[i];
-        
+
         try {
           // detected_facesテーブルに保存
           const { error: dbError } = await supabase
@@ -79,7 +79,7 @@ export async function processInstantMode({
           console.error(`[InstantGenerator] Error saving face ${i}:`, error);
         }
       }
-      
+
       console.log(`[InstantGenerator] Face information saved to database`);
     }
 
@@ -123,7 +123,7 @@ export async function processInstantMode({
 
       // キャラクター情報がある場合は追加
       if (input.characters && input.characters.length > 0) {
-        const characterInfo = input.characters.map(char => 
+        const characterInfo = input.characters.map(char =>
           `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
         ).join('\n');
         enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
@@ -230,7 +230,7 @@ export async function processInstantMode({
 
       // Step1Output を準備
       console.log(`[InstantGenerator] Preparing Step1Output...`);
-      
+
       // 画像参照がある場合はテキストに追加
       let enhancedStoryText = input.storyText;
       if (input.imageUrls && input.imageUrls.length > 0) {
@@ -241,7 +241,7 @@ export async function processInstantMode({
 
       // キャラクター情報がある場合は追加
       if (input.characters && input.characters.length > 0) {
-        const characterInfo = input.characters.map(char => 
+        const characterInfo = input.characters.map(char =>
           `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
         ).join('\n');
         enhancedStoryText += `\n\n[登場人物]\n${characterInfo}`;
@@ -250,9 +250,9 @@ export async function processInstantMode({
 
       // キャラクター情報をディレクター指示の登場人物として設定
       const charactersDirectorNote = input.characters && input.characters.length > 0
-        ? input.characters.map(char => 
-            `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
-          ).join('、')
+        ? input.characters.map(char =>
+          `${char.name}（${char.role}）${char.description ? `: ${char.description}` : ''}`
+        ).join('、')
         : '';
 
       const step1Output: Step1Output = {
@@ -363,18 +363,18 @@ export async function processInstantMode({
         userInput: {
           characters: step3Result.data.detailedCharacters.map((char: any) => {
             // input.charactersから同名のキャラクターを探して顔画像URLを取得
-            const matchingInputChar = input.characters?.find(inputChar => 
-              inputChar.name === char.name || 
-              char.name.includes(inputChar.name) || 
+            const matchingInputChar = input.characters?.find(inputChar =>
+              inputChar.name === char.name ||
+              char.name.includes(inputChar.name) ||
               inputChar.name.includes(char.name)
             );
-            
+
             if (matchingInputChar) {
               console.log(`[InstantGenerator] Matched character "${char.name}" with input character "${matchingInputChar.name}", faceImageUrl: ${matchingInputChar.faceImageUrl}`);
             } else {
               console.log(`[InstantGenerator] No matching input character found for "${char.name}"`);
             }
-            
+
             return {
               id: char.id,
               name: char.name,
@@ -662,6 +662,7 @@ async function startVideoGeneration(workflowId: string, uid: string): Promise<st
         story_id: storyboard.id,
         uid: uid,
         status: 'queued',
+        workflow_id: workflowId,
         created_at: new Date().toISOString()
       })
       .select()

@@ -215,10 +215,24 @@ async function generateVideo(
       videoId = updatedVideo.id;
     } else {
       // 新しいvideoレコードを作成
+      // workflow_idを取得するため、まずstoryboardとworkflowを確認
+      let workflowId: string | null = null;
+      
+      const { data: workflowData } = await supabase
+        .from('workflows')
+        .select('id')
+        .eq('storyboard_id', storyId)
+        .maybeSingle();
+      
+      if (workflowData) {
+        workflowId = workflowData.id;
+      }
+      
       const videoInsertData: SupabaseVideoInsert = {
         story_id: storyId,
         uid: auth.uid,
-        status: 'queued'
+        status: 'queued',
+        workflow_id: workflowId || undefined
       };
 
       const { data: newVideo, error: createError } = await supabase

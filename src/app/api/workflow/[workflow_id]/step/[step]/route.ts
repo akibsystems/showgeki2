@@ -587,7 +587,7 @@ async function generateAndUpdateStoryboard(
       const step3Output = stepOutput as Step3Output;
 
       // データが変更されていない場合は、AIをスキップして既存データから生成
-      const isDataUnchanged = request.headers.get('X-Data-Unchanged') === 'true';
+      const isDataUnchanged = request?.headers.get('X-Data-Unchanged') === 'true';
       
       if (isDataUnchanged) {
         console.log('[Step3] Data unchanged, skipping AI generation');

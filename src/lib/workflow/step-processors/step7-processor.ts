@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import type { 
+import type {
   Step7Output
 } from '@/types/workflow';
 
@@ -30,7 +30,7 @@ export async function processStep7Output(
 ): Promise<void> {
   console.log(`[step7-processor] processStep7Output called for workflow ${workflowId}, storyboard ${storyboardId}`);
   console.log(`[step7-processor] Step7 output received:`, JSON.stringify(step7Output, null, 2));
-  
+
   try {
     // storyboardから既存のデータを取得
     console.log(`[step7-processor] Fetching storyboard data from database...`);
@@ -103,8 +103,22 @@ async function onWorkflowComplete(
   step7Output: Step7Output
 ): Promise<void> {
   console.log(`[step7-processor] onWorkflowComplete called for workflow ${workflowId}, storyboard ${storyboardId}`);
-  
+
   try {
+    // ワークフローのモードを確認
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
+      .select('mode')
+      .eq('id', workflowId)
+      .single();
+
+    if (workflowError) {
+      console.error('[step7-processor] Failed to fetch workflow mode:', workflowError);
+    }
+
+    const isInstantMode = workflow?.mode === 'instant';
+    console.log(`[step7-processor] Workflow mode: ${workflow?.mode}, isInstantMode: ${isInstantMode}`);
+
     // ログの記録
     console.log(`[step7-processor] ワークフロー完了: ${workflowId}`);
     console.log(`[step7-processor] ストーリーボード: ${storyboardId}`);
@@ -114,9 +128,12 @@ async function onWorkflowComplete(
     // 統計情報の更新や通知の送信など、必要に応じて実装
     await updateWorkflowStatistics(workflowId, storyboardId);
 
-    // 動画生成キューへの追加（必要に応じて）
-    if (step7Output.userInput.confirmed) {
+    // 動画生成キューへの追加（instant modeの場合はスキップ）
+    if (step7Output.userInput.confirmed && !isInstantMode) {
+      console.log(`[step7-processor] Queuing video generation for non-instant mode workflow`);
       await queueVideoGeneration(storyboardId);
+    } else if (isInstantMode) {
+      console.log(`[step7-processor] Skipping video generation queue for instant mode workflow`);
     }
 
   } catch (error) {
@@ -141,7 +158,7 @@ async function updateWorkflowStatistics(
  */
 async function queueVideoGeneration(storyboardId: string): Promise<void> {
   try {
-    // ストーリーボードからuidを取得
+    // ストーリーボードからuidとworkflow_idを取得
     const { data: storyboard, error: fetchError } = await supabase
       .from('storyboards')
       .select('uid')
@@ -158,6 +175,15 @@ async function queueVideoGeneration(storyboardId: string): Promise<void> {
       throw new Error('ストーリーボードにuidが設定されていません');
     }
 
+    // workflow_idを取得
+    const { data: workflow, error: workflowError } = await supabase
+      .from('workflows')
+      .select('id')
+      .eq('storyboard_id', storyboardId)
+      .maybeSingle();
+
+    const workflowId = workflow?.id || null;
+
     // 動画生成のためのレコードを作成
     const { error } = await supabase
       .from('videos')
@@ -165,6 +191,7 @@ async function queueVideoGeneration(storyboardId: string): Promise<void> {
         story_id: storyboardId,
         uid: storyboard.uid,
         status: 'queued',
+        workflow_id: workflowId || undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -204,7 +231,7 @@ export async function getWorkflowProgress(workflowId: string): Promise<{
   progress: number;
 }> {
   console.log(`[step7-processor] getWorkflowProgress called for workflow ${workflowId}`);
-  
+
   try {
     const { data: workflow, error } = await supabase
       .from('workflows')

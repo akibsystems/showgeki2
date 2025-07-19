@@ -51,6 +51,7 @@ psql -h localhost -p 54322 -U postgres -d postgres -f migrations/001_add_beats_c
 | 002 | `002_add_story_data_column.sql` | storyboardsテーブルにstory_data列を追加（Step1のユーザー入力保存用） | 2025-07-12 | Claude |
 | 003 | `003_workflow_architecture_changes.sql` | ワークフローアーキテクチャの変更（workflows, projects, storyboardsテーブル） | - | システム |
 | 004 | `004_add_instant_mode_to_workflows.sql` | workflowsテーブルにインスタントモードサポートを追加（モード区別、進捗管理、エラー状況） | 2025-07-12 | Claude |
+| 007 | `007_add_workflow_id_to_videos.sql` | videosテーブルにworkflow_idカラムを追加し、既存データをバックフィル | 2025-01-19 | Claude |
 
 ## 注意事項
 
@@ -66,6 +67,7 @@ psql -h localhost -p 54322 -U postgres -d postgres -f migrations/001_add_beats_c
 - **`002_add_story_data_column.sql`**: storyboardsテーブルにstory_data (JSONB)カラムを追加します。Step1のユーザー入力を保存し、後続のステップで参照できるようにします。
 - **`003_workflow_architecture_changes.sql`**: 新しいワークフローアーキテクチャを導入します。projects, storyboards, workflowsテーブルの構造を作成します。
 - **`004_add_instant_mode_to_workflows.sql`**: workflowsテーブルにインスタントモードのサポートを追加します。instant_generationsテーブルからの移行もサポートします。
+- **`007_add_workflow_id_to_videos.sql`**: videosテーブルにworkflow_idカラムを追加し、効率的なフィルタリングを可能にします。既存データは自動的にバックフィルされます。
 
 ## ロールバック手順
 
